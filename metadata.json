@@ -1,0 +1,6 @@
+{
+  "name": "Remix: المخازن المصرية المتحدة",
+  "description": "نظام متكامل لإدارة المستودعات والمخزون مع دعم كامل للضريبة المصرية والربط الإلكتروني",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": []
+}

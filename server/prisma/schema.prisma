@@ -1,0 +1,621 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  manager
+  rep
+}
+
+enum OrderStatus {
+  pending
+  shipped
+  delivered
+  cancelled
+}
+
+enum PurchaseStatus {
+  received
+  cancelled
+}
+
+enum PaymentStatus {
+  paid
+  partial
+  unpaid
+}
+
+enum PaymentMethod {
+  cash
+  transfer
+  check
+  credit
+}
+
+enum TransactionType {
+  income
+  expense
+  equity
+}
+
+enum TransactionCategory {
+  sale
+  purchase
+  salary
+  rent
+  utilities
+  vehicle
+  capital_injection
+  cogs
+  advance
+  bonus
+  deduction
+  other
+}
+
+enum VehicleStatus {
+  active
+  maintenance
+  retired
+}
+
+enum CollectionStatus {
+  pending
+  confirmed
+  rejected
+}
+
+enum CollectionMethod {
+  cash
+  transfer
+  check
+}
+
+enum CollectionType {
+  customer
+  rep_settlement
+}
+
+enum NotificationType {
+  info
+  warning
+  error
+  success
+}
+
+enum StockRequestStatus {
+  pending
+  approved
+  rejected
+}
+
+enum TransferStatus {
+  pending
+  completed
+  cancelled
+}
+
+enum InventoryTxType {
+  increase
+  decrease
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  username  String    @unique
+  password  String
+  role      UserRole  @default(admin)
+  repId     Int?
+  nationalId String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  refreshTokens RefreshToken[]
+  activityLogs  ActivityLog[]
+  notifications Notification[]
+
+  @@map("user_accounts")
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+model Item {
+  id            Int      @id @default(autoincrement())
+  sku           String   @unique
+  name          String
+  category      String
+  purchasePrice Decimal  @default(0) @db.Decimal(12, 2)
+  sellingPrice  Decimal  @default(0) @db.Decimal(12, 2)
+  quantity      Decimal  @default(0) @db.Decimal(12, 2)
+  minQuantity   Decimal  @default(5) @db.Decimal(12, 2)
+  location      String   @default("")
+  expiryDate    String?
+  supplierId    Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+  deleteReason  String?
+
+  supplier            Supplier?           @relation(fields: [supplierId], references: [id])
+  inventoryTransactions InventoryTransaction[]
+  repInventories      RepInventory[]
+  orderItems          SalesOrderItem[]
+  purchaseItems       PurchaseOrderItem[]
+  stockTransferItems  StockTransferItem[]
+  stockRequestItems   StockRequestItem[]
+
+  @@index([sku])
+  @@index([name])
+  @@index([category])
+  @@index([supplierId])
+  @@map("items")
+}
+
+model InventoryTransaction {
+  id          Int             @id @default(autoincrement())
+  itemId      Int
+  type        InventoryTxType
+  oldQuantity Decimal         @db.Decimal(12,2)
+  newQuantity Decimal         @db.Decimal(12,2)
+  diff        Decimal         @db.Decimal(12,2)
+  reason      String
+  source      String?
+  userId      Int
+  timestamp   DateTime        @default(now())
+
+  item Item @relation(fields: [itemId], references: [id])
+
+  @@index([itemId])
+  @@index([timestamp])
+  @@map("inventory_transactions")
+}
+
+model Supplier {
+  id          Int       @id @default(autoincrement())
+  name        String
+  contactName String    @default("")
+  phone       String    @default("")
+  email       String    @default("")
+  taxNumber   String?
+  address     String    @default("")
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
+  deleteReason String?
+
+  items          Item[]
+  purchaseOrders PurchaseOrder[]
+
+  @@index([name])
+  @@map("suppliers")
+}
+
+model Customer {
+  id            Int      @id @default(autoincrement())
+  name          String
+  phone         String   @default("")
+  email         String   @default("")
+  address       String   @default("")
+  loyaltyPoints Int      @default(0)
+  latitude      Decimal? @db.Decimal(10,7)
+  longitude     Decimal? @db.Decimal(10,7)
+  createdAt     DateTime @default(now())
+  deletedAt     DateTime?
+  deleteReason  String?
+
+  salesOrders SalesOrder[]
+
+  @@index([name])
+  @@index([phone])
+  @@map("customers")
+}
+
+model SalesOrder {
+  id          Int          @id @default(autoincrement())
+  orderNumber String       @unique
+  customerId  Int
+  repId       Int?
+  subtotal    Decimal?     @db.Decimal(12,2)
+  taxId       Int?
+  taxAmount   Decimal?     @default(0) @db.Decimal(12,2)
+  totalAmount Decimal      @db.Decimal(12,2)
+  status      OrderStatus  @default(pending)
+  paymentStatus PaymentStatus @default(unpaid)
+  paidAmount  Decimal      @default(0) @db.Decimal(12,2)
+  settledAmount Decimal?   @default(0) @db.Decimal(12,2)
+  isSettledWithWarehouse Boolean @default(false)
+  dueDate     DateTime?
+  date        DateTime     @default(now())
+  deletedAt   DateTime?
+  deleteReason String?
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  items    SalesOrderItem[]
+
+  @@index([orderNumber])
+  @@index([customerId])
+  @@index([repId])
+  @@index([status])
+  @@map("sales_orders")
+}
+
+model SalesOrderItem {
+  id          Int    @id @default(autoincrement())
+  orderId     Int
+  itemId      Int
+  quantity    Decimal @db.Decimal(12,2)
+  price       Decimal @db.Decimal(12,2)
+  purchasePrice Decimal? @db.Decimal(12,2)
+
+  order SalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  item  Item       @relation(fields: [itemId], references: [id])
+
+  @@index([orderId])
+  @@index([itemId])
+  @@map("sales_order_items")
+}
+
+model PurchaseOrder {
+  id            Int             @id @default(autoincrement())
+  orderNumber   String          @unique
+  supplierId    Int
+  invoiceNumber String?
+  subtotal      Decimal?        @db.Decimal(12,2)
+  taxId         Int?
+  taxAmount     Decimal?        @default(0) @db.Decimal(12,2)
+  totalAmount   Decimal         @db.Decimal(12,2)
+  status        PurchaseStatus  @default(received)
+  paymentStatus PaymentStatus   @default(unpaid)
+  paidAmount    Decimal         @default(0) @db.Decimal(12,2)
+  dueDate       DateTime?
+  date          DateTime        @default(now())
+  notes         String?
+  paymentMethod PaymentMethod?
+  deletedAt     DateTime?
+  deleteReason  String?
+
+  supplier Supplier        @relation(fields: [supplierId], references: [id])
+  items    PurchaseOrderItem[]
+
+  @@index([orderNumber])
+  @@index([supplierId])
+  @@index([status])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id       Int    @id @default(autoincrement())
+  orderId  Int
+  itemId   Int
+  quantity Decimal @db.Decimal(12,2)
+  price    Decimal @db.Decimal(12,2)
+
+  order PurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  item  Item          @relation(fields: [itemId], references: [id])
+
+  @@index([orderId])
+  @@index([itemId])
+  @@map("purchase_order_items")
+}
+
+model SalesRep {
+  id            Int      @id @default(autoincrement())
+  name          String
+  phone         String   @default("")
+  email         String   @default("")
+  zone          String   @default("")
+  target        Decimal  @default(0) @db.Decimal(12,2)
+  currentSales  Decimal  @default(0) @db.Decimal(12,2)
+  commissionRate Decimal @default(0) @db.Decimal(5,2)
+  balance       Decimal  @default(0) @db.Decimal(12,2)
+  createdAt     DateTime @default(now())
+  deletedAt     DateTime?
+  deleteReason  String?
+
+  repInventories    RepInventory[]
+  paymentCollections PaymentCollection[]
+  stockRequests     StockRequest[]
+
+  @@index([name])
+  @@map("sales_reps")
+}
+
+model RepInventory {
+  id        Int      @id @default(autoincrement())
+  repId     Int
+  itemId    Int
+  quantity  Decimal  @default(0) @db.Decimal(12,2)
+  updatedAt DateTime @updatedAt
+
+  rep  SalesRep @relation(fields: [repId], references: [id])
+  item Item     @relation(fields: [itemId], references: [id])
+
+  @@unique([repId, itemId])
+  @@index([repId])
+  @@map("rep_inventory")
+}
+
+model Warehouse {
+  id          Int      @id @default(autoincrement())
+  name        String
+  location    String   @default("")
+  capacity    Decimal  @default(0) @db.Decimal(12,2)
+  manager     String   @default("")
+  deletedAt   DateTime?
+  deleteReason String?
+
+  @@index([name])
+  @@map("warehouses")
+}
+
+model StockTransfer {
+  id            Int            @id @default(autoincrement())
+  transferNumber String
+  fromType      String
+  fromId        Int
+  toType        String
+  toId          Int
+  status        TransferStatus @default(pending)
+  date          DateTime       @default(now())
+  deletedAt     DateTime?
+  deleteReason  String?
+
+  items StockTransferItem[]
+
+  @@index([transferNumber])
+  @@map("stock_transfers")
+}
+
+model StockTransferItem {
+  id       Int    @id @default(autoincrement())
+  transferId Int
+  itemId   Int
+  quantity Decimal @db.Decimal(12,2)
+
+  transfer StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  item     Item          @relation(fields: [itemId], references: [id])
+
+  @@index([transferId])
+  @@map("stock_transfer_items")
+}
+
+model StockRequest {
+  id       Int               @id @default(autoincrement())
+  repId    Int
+  status   StockRequestStatus @default(pending)
+  date     DateTime           @default(now())
+  deletedAt DateTime?
+  deleteReason String?
+
+  rep   SalesRep          @relation(fields: [repId], references: [id])
+  items StockRequestItem[]
+
+  @@index([repId])
+  @@index([status])
+  @@map("stock_requests")
+}
+
+model StockRequestItem {
+  id           Int    @id @default(autoincrement())
+  requestId    Int
+  itemId       Int
+  quantity     Decimal @db.Decimal(12,2)
+  sellingPrice Decimal? @db.Decimal(12,2)
+
+  request StockRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  item    Item         @relation(fields: [itemId], references: [id])
+
+  @@index([requestId])
+  @@map("stock_request_items")
+}
+
+model Employee {
+  id          Int      @id @default(autoincrement())
+  name        String
+  role        String   @default("")
+  department  String   @default("")
+  email       String   @default("")
+  permissions String   @default("limited")
+  branchId    Int?
+  deletedAt   DateTime?
+  deleteReason String?
+
+  payrolls EmployeePayroll[]
+
+  @@index([name])
+  @@map("employees")
+}
+
+model EmployeePayroll {
+  id             Int      @id @default(autoincrement())
+  employeeId     Int
+  baseSalary     Decimal  @default(0) @db.Decimal(12,2)
+  advances       Decimal  @default(0) @db.Decimal(12,2)
+  bonuses        Decimal  @default(0) @db.Decimal(12,2)
+  deductions     Decimal  @default(0) @db.Decimal(12,2)
+  month          Int
+  status         String   @default("pending")
+  lastPaymentDate DateTime?
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@unique([employeeId, month])
+  @@index([employeeId])
+  @@map("employee_payrolls")
+}
+
+model FinancialTransaction {
+  id          Int                 @id @default(autoincrement())
+  type        TransactionType
+  category    TransactionCategory
+  amount      Decimal             @db.Decimal(12,2)
+  description String
+  referenceId Int?
+  date        DateTime            @default(now())
+
+  @@index([type])
+  @@index([category])
+  @@index([date])
+  @@index([referenceId])
+  @@map("financial_transactions")
+}
+
+model PaymentCollection {
+  id            Int              @id @default(autoincrement())
+  repId         Int
+  customerId    Int?
+  orderId       Int?
+  amount        Decimal          @db.Decimal(12,2)
+  method        CollectionMethod
+  status        CollectionStatus @default(pending)
+  type          CollectionType?  @default(customer)
+  date          DateTime         @default(now())
+  confirmedDate DateTime?
+
+  rep SalesRep @relation(fields: [repId], references: [id])
+
+  @@index([repId])
+  @@index([status])
+  @@map("payment_collections")
+}
+
+model Vehicle {
+  id              Int           @id @default(autoincrement())
+  name            String
+  plateNumber     String
+  purchaseDate    DateTime      @default(now())
+  purchaseValue   Decimal       @default(0) @db.Decimal(12,2)
+  licenseExpiry   DateTime      @default(now())
+  insuranceExpiry DateTime      @default(now())
+  lastMaintenance DateTime      @default(now())
+  status          VehicleStatus @default(active)
+  deletedAt       DateTime?
+  deleteReason    String?
+
+  @@index([plateNumber])
+  @@map("vehicles")
+}
+
+model Notification {
+  id      Int              @id @default(autoincrement())
+  userId  Int?
+  title   String
+  message String
+  type    NotificationType @default(info)
+  read    Boolean          @default(false)
+  date    DateTime         @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([read])
+  @@map("notifications")
+}
+
+model Branch {
+  id          Int      @id @default(autoincrement())
+  name        String
+  location    String   @default("")
+  managerId   Int?
+  phone       String   @default("")
+  createdAt   DateTime @default(now())
+  deletedAt   DateTime?
+  deleteReason String?
+
+  @@index([name])
+  @@map("branches")
+}
+
+model ActivityLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  username  String
+  action    String
+  entity    String
+  entityId  String?
+  details   String
+  timestamp DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([timestamp])
+  @@index([action])
+  @@map("activity_logs")
+}
+
+model SystemConfig {
+  id                  String  @id @default("default")
+  companyName         String  @default("")
+  logo                String?
+  stamp               String?
+  phone               String  @default("")
+  email               String  @default("")
+  taxId               String  @default("")
+  crNumber            String  @default("")
+  address             String  @default("")
+  currency            String  @default("EGP")
+  language            String  @default("ar")
+  invoicePrefix       String  @default("INV-")
+  invoiceNextNumber   Int     @default(1)
+  vatRate             Decimal @default(14) @db.Decimal(5,2)
+  defaultDiscount     Decimal @default(0) @db.Decimal(5,2)
+  qrCodeEnabled       Boolean @default(true)
+  paperSize           String  @default("A4")
+  theme               String  @default("light")
+  fontSize            String  @default("medium")
+  layout              String  @default("sidebar")
+  whatsappNotifications Boolean @default(false)
+  emailNotifications  Boolean @default(false)
+  lowStockAlerts      Boolean @default(true)
+  minStockLevel       Int     @default(10)
+  trackingSystem      String  @default("none")
+  primaryColor        String?
+
+  @@map("system_config")
+}
+
+model InvoiceSettings {
+  id          String @id @default("default")
+  companyName String @default("")
+  managedBy   String @default("")
+  phone       String?
+  address     String?
+
+  @@map("invoice_settings")
+}
+
+model TaxConfig {
+  id          Int      @id @default(autoincrement())
+  name        String
+  rate        Decimal  @db.Decimal(5,2)
+  type        String   @default("VAT")
+  code        String?
+  description String?
+  isActive    Boolean  @default(true)
+  isInclusive Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  deleteReason String?
+
+  @@index([name])
+  @@map("tax_configs")
+}
+

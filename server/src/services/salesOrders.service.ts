@@ -11,6 +11,17 @@ function generateOrderNumber(): string {
 }
 
 export const salesOrdersService = {
+  async getUnsettledByRep(repId: number) {
+    const orders = await prisma.salesOrder.findMany({
+      where: { repId, deletedAt: null, isSettledWithWarehouse: false },
+      select: { paidAmount: true, settledAmount: true },
+    });
+    const total = orders.reduce((sum, o) => {
+      return sum + toNumber(o.paidAmount) - toNumber(o.settledAmount);
+    }, 0);
+    return Math.max(0, total);
+  },
+
   async listOrders(params: {
     page?: number;
     pageSize?: number;

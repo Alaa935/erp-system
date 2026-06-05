@@ -2,6 +2,15 @@ import { Request, Response, NextFunction } from 'express';
 import { salesOrdersService } from '../services/salesOrders.service.js';
 
 export const salesOrdersController = {
+  async getUnsettled(req: Request, res: Response, next: NextFunction) {
+    try {
+      const repId = Number(req.query.repId);
+      if (!repId) return res.status(400).json({ success: false, error: 'repId is required' });
+      const result = await salesOrdersService.getUnsettledByRep(repId);
+      res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+  },
+
   async list(req: Request, res: Response, next: NextFunction) {
     try {
       const result = await salesOrdersService.listOrders(req.query as any);

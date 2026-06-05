@@ -13,8 +13,10 @@ export const stockRequestsService = {
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
   }) {
-    const { page = 1, pageSize = 10, search, status, repId, sortBy, sortOrder } = params;
-    const where: Prisma.StockRequestWhereInput = { deletedAt: null };
+    const { page = 1, pageSize = 10, search, status, sortBy, sortOrder } = params;
+    const rawRepId = (params as any).repId;
+    const repId = rawRepId ? Number(rawRepId) : undefined;
+    const where: Record<string, unknown> = { deletedAt: null };
 
     if (search) {
       where.OR = [
@@ -23,7 +25,7 @@ export const stockRequestsService = {
     }
 
     if (status) {
-      where.status = status as any;
+      where.status = status as string;
     }
 
     if (repId) {

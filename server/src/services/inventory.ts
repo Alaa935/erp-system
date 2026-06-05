@@ -4,18 +4,30 @@ import type { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 
 export const inventoryService = {
-  async listItems(params: {
-    page?: number;
-    pageSize?: number;
-    search?: string;
-    category?: string;
-    supplierId?: number;
-    sortBy?: string;
-    sortOrder?: 'asc' | 'desc';
-  }) {
-const pageNum = Number(page) || 1;
-const pageSizeNum = Number(pageSize) || 10;
-const where: Prisma.ItemWhereInput = { deletedAt: null };
+async listItems(params: {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  category?: string;
+  supplierId?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}) {
+
+  const {
+    page = 1,
+    pageSize = 10,
+    search,
+    category,
+    supplierId,
+    sortBy,
+    sortOrder,
+  } = params;
+
+  const pageNum = Number(page) || 1;
+  const pageSizeNum = Number(pageSize) || 10;
+
+  const where: Prisma.ItemWhereInput = { deletedAt: null };
 
     if (search) {
       where.OR = [
@@ -54,12 +66,12 @@ take: pageSizeNum,
         quantity: Number(i.quantity),
         minQuantity: Number(i.minQuantity),
       })),
-      meta: {
-        page,
-        pageSize,
-        total,
-        totalPages: Math.ceil(total / pageSize),
-      },
+     meta: {
+  page: pageNum,
+  pageSize: pageSizeNum,
+  total,
+  totalPages: Math.ceil(total / pageSizeNum),
+},
     };
   },
 

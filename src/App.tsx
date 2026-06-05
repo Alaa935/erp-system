@@ -76,6 +76,7 @@ export default function App() {
   }, []);
 
   const handleLogout = useCallback(() => {
+    console.log('[APP handleLogout] called', { ts: Date.now() });
     const refreshToken = localStorage.getItem('wms_refresh_token');
     if (refreshToken) {
       fetch(`${API_BASE}/api/auth/logout`, {
@@ -103,10 +104,12 @@ export default function App() {
 
   useEffect(() => {
     const init = async () => {
+      console.log('[APP INIT] Starting init effect', { ts: Date.now() });
       let sessionRestored = false;
 
       const token = getAccessToken();
       if (token) {
+        console.log('[APP INIT] Found access token, trying /auth/me');
         try {
           const userData = await api<{ id: number; username: string; role: 'admin' | 'manager' | 'rep'; repId?: number | null }>('/auth/me');
           const user: UserAccount = {
@@ -118,14 +121,15 @@ export default function App() {
           setCurrentUser(user);
           sessionManager.create(user);
           sessionRestored = true;
-        } catch {
+        } catch (e) {
+          console.log('[APP INIT] /auth/me failed, clearing tokens', e);
           clearTokens();
-          console.warn('JWT session restore failed — cleared tokens');
         }
       }
 
       if (!sessionRestored) {
         const refreshToken = localStorage.getItem('wms_refresh_token');
+        console.log('[APP INIT] No session, checking refresh token', { hasRefresh: !!refreshToken });
         if (refreshToken) {
           try {
             const refreshRes = await fetch(`${API_BASE}/api/auth/refresh`, {
@@ -147,23 +151,30 @@ export default function App() {
               sessionManager.create(user);
               sessionRestored = true;
             }
-          } catch {
+          } catch (e) {
+            console.log('[APP INIT] Refresh failed, clearing tokens', e);
             clearTokens();
           }
         }
       }
 
       if (!sessionRestored) {
+        console.log('[APP INIT] Session not restored, trying legacy session');
         const legacy = sessionManager.getUser();
         if (legacy) {
           setCurrentUser(legacy);
         }
       }
 
+      console.log('[APP INIT] Completed, sessionRestored:', sessionRestored, { ts: Date.now() });
       setTimeout(() => setIsInitializing(false), 800);
     };
+    console.log('[APP INIT] Calling init()');
     init();
   }, []);
+
+  // Log when the component mounts
+  console.log('[APP] Component rendered, currentUser:', !!currentUser, 'isInitializing:', isInitializing);
 
   const closeVerification = useCallback(() => {
     setInvoiceVerificationNumber(null);
@@ -199,6 +210,7 @@ export default function App() {
   ].filter(item => item.roles.includes(currentUser?.role || ''));
 
   const handleLogin = (user: UserAccount) => {
+    console.log('[APP handleLogin] called', { user, ts: Date.now(), accessToken: !!localStorage.getItem('wms_access_token'), refreshToken: !!localStorage.getItem('wms_refresh_token') });
     sessionManager.create(user);
     setCurrentUser(user);
     setActivePage(getDefaultPage(user));

@@ -4,21 +4,39 @@ const ACCESS_TOKEN_KEY = 'wms_access_token';
 const REFRESH_TOKEN_KEY = 'wms_refresh_token';
 
 export function getAccessToken(): string | null {
-  try { return localStorage.getItem(ACCESS_TOKEN_KEY); } catch { return null; }
+  const val = localStorage.getItem(ACCESS_TOKEN_KEY);
+  if (!val) debugLog('getAccessToken -> null');
+  return val;
 }
 
 export function getRefreshToken(): string | null {
-  try { return localStorage.getItem(REFRESH_TOKEN_KEY); } catch { return null; }
+  const val = localStorage.getItem(REFRESH_TOKEN_KEY);
+  if (!val) debugLog('getRefreshToken -> null');
+  return val;
+}
+
+let _debugId = 0;
+function debugLog(...args: unknown[]) {
+  console.log(`[API-CLIENT ${++_debugId}]`, ...args);
 }
 
 export function setTokens(accessToken: string, refreshToken: string): void {
+  debugLog('setTokens called', { accessToken: accessToken.slice(0, 20) + '...', refreshToken: refreshToken.slice(0, 20) + '...' });
   localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
   localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  debugLog('setTokens completed, verifying...', {
+    readBack: localStorage.getItem(ACCESS_TOKEN_KEY)?.slice(0, 20) + '...',
+    keys: Object.keys(localStorage),
+  });
 }
 
 export function clearTokens(): void {
+  const hadAccess = !!localStorage.getItem(ACCESS_TOKEN_KEY);
+  const hadRefresh = !!localStorage.getItem(REFRESH_TOKEN_KEY);
+  debugLog('clearTokens called', { hadAccess, hadRefresh, stack: new Error().stack?.split('\n').slice(2, 6).join(' | ') });
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  debugLog('clearTokens completed');
 }
 
 function decodeToken(token: string): { exp?: number } | null {

@@ -8,9 +8,9 @@ import { createStockRequestSchema, updateStockRequestSchema, deleteStockRequestS
 const router = Router();
 
 router.use(authenticate);
-router.get('/', authorize('admin', 'manager'), stockRequestsController.list);
-router.get('/:id', authorize('admin', 'manager'), stockRequestsController.getById);
-router.post('/', authorize('admin', 'manager'), validate(createStockRequestSchema), stockRequestsController.create);
+router.get('/', authorize('admin', 'manager', 'rep'), stockRequestsController.list);
+router.get('/:id', authorize('admin', 'manager', 'rep'), stockRequestsController.getById);
+router.post('/', authorize('admin', 'manager', 'rep'), validate(createStockRequestSchema), stockRequestsController.create);
 router.put('/:id', authorize('admin', 'manager'), validate(updateStockRequestSchema), stockRequestsController.update);
 router.delete('/:id', authorize('admin'), validate(deleteStockRequestSchema), stockRequestsController.remove);
 

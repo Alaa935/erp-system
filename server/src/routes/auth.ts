@@ -8,7 +8,7 @@ import { loginSchema, registerSchema, changePasswordSchema, forgotPasswordSchema
 const router = Router();
 
 router.post('/login', validate(loginSchema), authController.login);
-router.post('/register', authenticate, authorize('admin'), validate(registerSchema), authController.register);
+router.post('/register', authenticate, authorize('admin', 'manager'), validate(registerSchema), authController.register);
 router.post('/refresh', validate(refreshTokenSchema), authController.refresh);
 router.post('/logout', authController.logout);
 router.get('/me', authenticate, authController.me);

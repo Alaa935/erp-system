@@ -4,6 +4,16 @@ import type { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 
 export const customersService = {
+  async countToday() {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+    return prisma.customer.count({
+      where: { createdAt: { gte: startOfDay, lte: endOfDay } },
+    });
+  },
+
   async listCustomers(params: {
     page?: number;
     pageSize?: number;

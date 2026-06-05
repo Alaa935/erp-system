@@ -13,8 +13,9 @@ export const inventoryService = {
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
   }) {
-    const { page = 1, pageSize = 10, search, category, supplierId, sortBy, sortOrder } = params;
-    const where: Prisma.ItemWhereInput = { deletedAt: null };
+const pageNum = Number(page) || 1;
+const pageSizeNum = Number(pageSize) || 10;
+const where: Prisma.ItemWhereInput = { deletedAt: null };
 
     if (search) {
       where.OR = [
@@ -38,8 +39,8 @@ export const inventoryService = {
       prisma.item.findMany({
         where,
         orderBy,
-        skip: (page - 1) * pageSize,
-        take: pageSize,
+      skip: (pageNum - 1) * pageSizeNum,
+take: pageSizeNum,
         include: { supplier: { select: { id: true, name: true } } },
       }),
       prisma.item.count({ where }),

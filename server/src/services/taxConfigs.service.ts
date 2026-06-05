@@ -13,6 +13,8 @@ export const taxConfigsService = {
     sortOrder?: 'asc' | 'desc';
   }) {
     const { page = 1, pageSize = 10, search, isActive, sortBy, sortOrder } = params;
+    const pageNum = Number(page) || 1;
+const pageSizeNum = Number(pageSize) || 10;
     const where: Prisma.TaxConfigWhereInput = { deletedAt: null };
 
     if (search) {
@@ -37,8 +39,8 @@ export const taxConfigsService = {
       prisma.taxConfig.findMany({
         where,
         orderBy,
-        skip: (page - 1) * pageSize,
-        take: pageSize,
+       skip: (pageNum - 1) * pageSizeNum,
+take: pageSizeNum,
       }),
       prisma.taxConfig.count({ where }),
     ]);

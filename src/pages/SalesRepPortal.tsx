@@ -282,7 +282,88 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  enabled: !!selectedRepId,
  retry: false,
  });
- const activityLog = activityLogsData;
+  const activityLog = activityLogsData;
+
+  const createCustomer = useCreateCustomer();
+
+  const createSaleMutation = useMutation({
+  mutationFn: async (data: {
+    customerId: number;
+    items: { itemId: number; quantity: number; price: number }[];
+    paidAmount: number;
+    repId: number;
+  }) => {
+    const total = data.items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+    const repOrderNumber = `REP-${Math.floor(10000 + Math.random() * 90000)}`;
+    const orderRes = await api('/sales-orders', {
+      method: 'POST',
+      body: JSON.stringify({
+        orderNumber: repOrderNumber,
+        customerId: data.customerId,
+        repId: data.repId,
+        items: data.items,
+        totalAmount: total,
+        status: 'delivered',
+        paymentStatus: data.paidAmount >= total ? 'paid' : (data.paidAmount > 0 ? 'partial' : 'unpaid'),
+        paidAmount: Math.min(data.paidAmount, total),
+        settledAmount: 0,
+        isSettledWithWarehouse: false,
+        date: Date.now(),
+      }),
+    });
+    const order = (orderRes as any)?.data || orderRes;
+    const orderId = order.id;
+    if (data.paidAmount > 0) {
+      await api(`/sales-orders/${orderId}/payments`, {
+        method: 'POST',
+        body: JSON.stringify({ amount: Math.min(data.paidAmount, total), method: 'cash' }),
+      });
+    }
+    await api('/notifications', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: 'عملية بيع جديدة',
+        message: `قام المندوب ${selectedRep?.name} ببيع مبلغ ${total} ج.م (محصل: ${Math.min(data.paidAmount, total)}).`,
+        type: 'info',
+      }),
+    });
+    for (const saleItem of data.items) {
+      const repInvItem = myInventory?.find((i: any) => i.itemId === saleItem.itemId);
+      if (!repInvItem || repInvItem.quantity < saleItem.quantity) {
+        throw new Error(`رصيد غير كافٍ للصنف ID: ${saleItem.itemId}`);
+      }
+      await api(`/rep-inventory/${repInvItem.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ quantity: repInvItem.quantity - saleItem.quantity }),
+      });
+    }
+    if (selectedRep && selectedRep.id) {
+      await api(`/sales-reps/${selectedRep.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          currentSales: (selectedRep.currentSales || 0) + total,
+          balance: (selectedRep.balance || 0) + Math.min(data.paidAmount, total),
+        }),
+      });
+    }
+    await api('/activity-logs', {
+      method: 'POST',
+      body: JSON.stringify({
+        userId: selectedRepId, username: selectedRep?.name || '',
+        action: 'تسجيل عملية بيع', entity: 'SalesOrder',
+        entityId: orderId,
+        details: `فاتورة ${repOrderNumber} بقيمة ${total} ج.م (محصل: ${Math.min(data.paidAmount, total)}) للعميل ${customers?.find(c => c.id === data.customerId)?.name}`,
+        timestamp: Date.now()
+      }),
+    });
+    return { orderId, total, repOrderNumber };
+  },
+  onSuccess: () => {
+    qc.invalidateQueries({ queryKey: ['sales-orders'] });
+    qc.invalidateQueries({ queryKey: ['repInventory'] });
+    qc.invalidateQueries({ queryKey: ['salesReps'] });
+  },
+  });
 
   const handleCreateRequest = async (e: React.FormEvent) => {
   e.preventDefault();
@@ -412,8 +493,6 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   );
   }
 
-  const createCustomer = useCreateCustomer();
-
   const handleAddCustomer = async (e: React.FormEvent) => {
   e.preventDefault();
   if (!newCustomer.name) {
@@ -471,94 +550,6 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
   };
-
-  const createSaleMutation = useMutation({
-  mutationFn: async (data: {
-    customerId: number;
-    items: { itemId: number; quantity: number; price: number }[];
-    paidAmount: number;
-    repId: number;
-  }) => {
-    const total = data.items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-
-    const repOrderNumber = `REP-${Math.floor(10000 + Math.random() * 90000)}`;
-
-    const orderRes = await api('/sales-orders', {
-      method: 'POST',
-      body: JSON.stringify({
-        orderNumber: repOrderNumber,
-        customerId: data.customerId,
-        repId: data.repId,
-        items: data.items,
-        totalAmount: total,
-        status: 'delivered',
-        paymentStatus: data.paidAmount >= total ? 'paid' : (data.paidAmount > 0 ? 'partial' : 'unpaid'),
-        paidAmount: Math.min(data.paidAmount, total),
-        settledAmount: 0,
-        isSettledWithWarehouse: false,
-        date: Date.now(),
-      }),
-    });
-    const order = (orderRes as any)?.data || orderRes;
-    const orderId = order.id;
-
-    if (data.paidAmount > 0) {
-      await api(`/sales-orders/${orderId}/payments`, {
-        method: 'POST',
-        body: JSON.stringify({ amount: Math.min(data.paidAmount, total), method: 'cash' }),
-      });
-    }
-
-    await api('/notifications', {
-      method: 'POST',
-      body: JSON.stringify({
-        title: 'عملية بيع جديدة',
-        message: `قام المندوب ${selectedRep?.name} ببيع مبلغ ${total} ج.م (محصل: ${Math.min(data.paidAmount, total)}).`,
-        type: 'info',
-      }),
-    });
-
-    for (const saleItem of data.items) {
-      const repInvItem = myInventory?.find((i: any) => i.itemId === saleItem.itemId);
-      if (!repInvItem || repInvItem.quantity < saleItem.quantity) {
-        throw new Error(`رصيد غير كافٍ للصنف ID: ${saleItem.itemId}`);
-      }
-      
-      await api(`/rep-inventory/${repInvItem.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ quantity: repInvItem.quantity - saleItem.quantity }),
-      });
-    }
-
-    if (selectedRep && selectedRep.id) {
-      await api(`/sales-reps/${selectedRep.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          currentSales: (selectedRep.currentSales || 0) + total,
-          balance: (selectedRep.balance || 0) + Math.min(data.paidAmount, total),
-        }),
-      });
-    }
-
-    await api('/activity-logs', {
-      method: 'POST',
-      body: JSON.stringify({
-        userId: selectedRepId, username: selectedRep?.name || '',
-        action: 'تسجيل عملية بيع', entity: 'SalesOrder',
-        entityId: orderId,
-        details: `فاتورة ${repOrderNumber} بقيمة ${total} ج.م (محصل: ${Math.min(data.paidAmount, total)}) للعميل ${customers?.find(c => c.id === data.customerId)?.name}`,
-        timestamp: Date.now()
-      }),
-    });
-
-    return { orderId, total, repOrderNumber };
-  },
-  onSuccess: () => {
-    qc.invalidateQueries({ queryKey: ['sales-orders'] });
-    qc.invalidateQueries({ queryKey: ['repInventory'] });
-    qc.invalidateQueries({ queryKey: ['salesReps'] });
-  },
-  });
 
   const handleCreateSale = async (e: React.FormEvent) => {
   e.preventDefault();

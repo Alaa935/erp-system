@@ -39,11 +39,19 @@ export const repInventoryService = {
     if (quantity < 0) throw new AppError(400, 'Quantity cannot be negative');
 
     console.log('[REP INVENTORY STEP] calling update id=' + id);
-    const result = await prisma.repInventory.update({
-      where: { id },
-      data: { quantity: new Decimal(quantity) },
-    });
-    console.log('[REP INVENTORY STEP] update success id=' + result.id);
-    return result;
+    try {
+      const result = await prisma.repInventory.update({
+        where: { id },
+        data: { quantity: new Decimal(quantity) },
+      });
+      console.log('[REP INVENTORY STEP] update success id=' + result.id);
+      return result;
+    } catch (err: any) {
+      console.error('[REP INVENTORY UPDATE ERROR]', err);
+      console.error('[REP INVENTORY UPDATE ERROR CODE]', err.code ?? 'no code');
+      console.error('[REP INVENTORY UPDATE ERROR META]', JSON.stringify(err.meta ?? {}));
+      console.error('[REP INVENTORY UPDATE ERROR MESSAGE]', err.message ?? 'no message');
+      throw err;
+    }
   },
 };

@@ -26,8 +26,11 @@ export const repInventoryController = {
       }
       const result = await repInventoryService.updateQuantity(id, Number(quantity));
       res.json({ success: true, data: result });
-    } catch (err) {
+    } catch (err: any) {
       console.error('[REP INVENTORY ERROR]', err);
+      console.error('[REP INVENTORY ERROR CODE]', err.code ?? 'no code');
+      console.error('[REP INVENTORY ERROR META]', JSON.stringify(err.meta ?? {}));
+      console.error('[REP INVENTORY ERROR MESSAGE]', err.message ?? 'no message');
       console.error('[REP INVENTORY ERROR STACK]', err instanceof Error ? err.stack : 'no stack');
       next(err);
     }

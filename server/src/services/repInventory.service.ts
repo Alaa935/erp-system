@@ -51,6 +51,8 @@ export const repInventoryService = {
       console.error('[REP INVENTORY UPDATE ERROR CODE]', err.code ?? 'no code');
       console.error('[REP INVENTORY UPDATE ERROR META]', JSON.stringify(err.meta ?? {}));
       console.error('[REP INVENTORY UPDATE ERROR MESSAGE]', err.message ?? 'no message');
+      const errorObj = { ...err, message: (err as any).message, stack: (err as any).stack };
+      console.error('[REP INVENTORY UPDATE ERROR JSON]', JSON.stringify(errorObj, null, 2));
       throw err;
     }
   },

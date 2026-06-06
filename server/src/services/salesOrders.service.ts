@@ -22,6 +22,24 @@ export const salesOrdersService = {
     return Math.max(0, total);
   },
 
+  async getSettledCommission(repId: number, commissionRate: number) {
+    const orders = await prisma.salesOrder.findMany({
+      where: {
+        repId,
+        deletedAt: null,
+        isSettledWithWarehouse: true,
+        status: { notIn: ['cancelled', 'pending'] },
+      },
+      select: { paidAmount: true, settledAmount: true },
+    });
+
+    const totalSettled = orders.reduce((sum, o) => {
+      return sum + toNumber(o.paidAmount) - toNumber(o.settledAmount);
+    }, 0);
+
+    return totalSettled * (commissionRate / 100);
+  },
+
   async listOrders(params: {
     page?: number;
     pageSize?: number;

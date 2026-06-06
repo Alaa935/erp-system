@@ -72,6 +72,16 @@ export const salesOrdersController = {
     } catch (err) { next(err); }
   },
 
+  async getSettledCommission(req: Request, res: Response, next: NextFunction) {
+    try {
+      const repId = Number(req.query.repId);
+      const commissionRate = Number(req.query.commissionRate);
+      if (!repId) return res.status(400).json({ success: false, error: 'repId is required' });
+      const result = await salesOrdersService.getSettledCommission(repId, commissionRate || 0);
+      res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+  },
+
   async listTaxes(req: Request, res: Response, next: NextFunction) {
     try {
       const taxes = await salesOrdersService.listActiveTaxes();

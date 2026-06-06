@@ -143,7 +143,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  queryFn: () => api(`/rep-inventory?repId=${selectedRepId}`),
  enabled: !!selectedRepId,
  });
- const myInventory = repInvData as any[] | undefined;
+  const myInventory = (repInvData as any)?.items;
 
  const { data: inventoryData } = useInventory();
  const allItems = inventoryData?.items;

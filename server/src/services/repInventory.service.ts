@@ -31,16 +31,19 @@ export const repInventoryService = {
   },
 
   async updateQuantity(id: number, quantity: number) {
-    console.log('[REP INVENTORY SERVICE] updateQuantity id=' + id + ' quantity=' + quantity);
+    console.log('[REP INVENTORY STEP] findUnique id=' + id);
     const entry = await prisma.repInventory.findUnique({ where: { id } });
+    console.log('[REP INVENTORY STEP] findUnique done entry=' + (entry ? entry.id : 'null'));
     if (!entry) throw new AppError(404, 'Rep inventory entry not found');
+    console.log('[REP INVENTORY STEP] check quantity=' + quantity + ' entry.quantity=' + entry.quantity);
     if (quantity < 0) throw new AppError(400, 'Quantity cannot be negative');
 
+    console.log('[REP INVENTORY STEP] calling update id=' + id);
     const result = await prisma.repInventory.update({
       where: { id },
       data: { quantity: new Decimal(quantity) },
     });
-    console.log('[REP INVENTORY SERVICE] update success', result.id);
+    console.log('[REP INVENTORY STEP] update success id=' + result.id);
     return result;
   },
 };

@@ -37,12 +37,12 @@ interface SalesRepPortalProps {
 }
 
 const PORTAL_TABS = [
- { id: 'dashboard', label: '┘ä┘ê╪¡╪⌐ ╪º┘ä┘é┘è╪º╪»╪⌐', icon: LayoutDashboard },
- { id: 'overview', label: '┘å╪╕╪▒╪⌐ ╪╣╪º┘à╪⌐', icon: ClipboardList },
- { id: 'inventory', label: '╪╣┘ç╪»╪¬┘è', icon: Package },
- { id: 'customers', label: '╪º┘ä╪╣┘à┘ä╪º╪í', icon: Users },
- { id: 'sales', label: '╪º┘ä┘à╪¿┘è╪╣╪º╪¬', icon: ShoppingCart },
- { id: 'requests', label: '╪º┘ä╪╖┘ä╪¿╪º╪¬', icon: ArrowRightLeft },
+ { id: 'dashboard', label: 'لوحة القيادة', icon: LayoutDashboard },
+ { id: 'overview', label: 'نظرة عامة', icon: ClipboardList },
+ { id: 'inventory', label: 'عهدتي', icon: Package },
+ { id: 'customers', label: 'العملاء', icon: Users },
+ { id: 'sales', label: 'المبيعات', icon: ShoppingCart },
+ { id: 'requests', label: 'الطلبات', icon: ArrowRightLeft },
 ];
 
 export default function SalesRepPortal({ currentUser, activeTab: propTab }: SalesRepPortalProps) {
@@ -105,7 +105,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  if (reps && reps.length > 0) {
  if (!selectedRepId) {
  if (currentUser?.username === '1') {
- const mohamed = reps.find(r => r.name === '┘à╪¡┘à╪» ┘à╪¡┘à┘ê╪»');
+ const mohamed = reps.find(r => r.name === 'محمد محمود');
  if (mohamed) {
  setSelectedRepId(mohamed.id!);
  return;
@@ -125,7 +125,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  if (selectedRepId !== null && !selectedRep) {
  const matchingRep = reps.find(r => 
  r.name.toLowerCase().includes(currentUser?.username.toLowerCase() || '') ||
- (currentUser?.username === '1' && r.name === '┘à╪¡┘à╪» ┘à╪¡┘à┘ê╪»')
+ (currentUser?.username === '1' && r.name === 'محمد محمود')
  );
  if (matchingRep) {
  setSelectedRepId(matchingRep.id!);
@@ -188,7 +188,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   if (!selectedRepId || (unsettledAmount ?? 0) <= 0) return;
 
   if (pendingSettlement) {
-  toast.error('┘è┘ê╪¼╪» ╪╖┘ä╪¿ ╪¬╪│┘ê┘è╪⌐ ┘à╪╣┘ä┘é ╪¿╪º┘ä┘ü╪╣┘ä╪î ┘è╪▒╪¼┘ë ╪º┘å╪¬╪╕╪º╪▒ ╪º┘ä┘à╪▒╪º╪¼╪╣╪⌐');
+  toast.error('يوجد طلب تسوية معلق بالفعل، يرجى انتظار المراجعة');
   return;
   }
 
@@ -208,8 +208,8 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   await api('/notifications', {
   method: 'POST',
   body: JSON.stringify({
-  title: '╪╖┘ä╪¿ ╪¬╪│┘ê┘è╪⌐ ╪╣┘ç╪»╪⌐ ┘å┘é╪»┘è╪⌐',
-  message: `╪º┘ä┘à┘å╪»┘ê╪¿ ${selectedRep?.name} ┘è╪╖┘ä╪¿ ╪¬╪│┘ê┘è╪⌐ ┘à╪¿┘ä╪║ ${unsettledAmount} ╪¼.┘à ╪¡╪╡┘è┘ä╪⌐ ╪º┘ä┘è┘ê┘à.`,
+  title: 'طلب تسوية عهدة نقدية',
+  message: `المندوب ${selectedRep?.name} يطلب تسوية مبلغ ${unsettledAmount} ج.م حصيلة اليوم.`,
   type: 'warning',
   }),
   });
@@ -218,8 +218,8 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   method: 'POST',
   body: JSON.stringify({
   userId: selectedRepId, username: selectedRep?.name || '',
-  action: '╪╖┘ä╪¿ ╪¬╪│┘ê┘è╪⌐ ╪╣┘ç╪»╪⌐', entity: 'PaymentCollection',
-  details: `╪╖┘ä╪¿ ╪¬╪│┘ê┘è╪⌐ ${unsettledAmount} ╪¼.┘à ┘ä┘ä╪«╪▓┘è┘å╪⌐`,
+  action: 'طلب تسوية عهدة', entity: 'PaymentCollection',
+  details: `طلب تسوية ${unsettledAmount} ج.م للخزينة`,
   timestamp: Date.now()
   }),
   });
@@ -227,10 +227,10 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   qc.invalidateQueries({ queryKey: ['pendingSettlement'] });
   qc.invalidateQueries({ queryKey: ['unsettledOrders'] });
 
-  toast.success('╪¬┘à ╪Ñ╪▒╪│╪º┘ä ╪╖┘ä╪¿ ╪º┘ä╪¬┘ê╪▒┘è╪» ╪¿┘å╪¼╪º╪¡');
+  toast.success('تم إرسال طلب التوريد بنجاح');
   } catch (error) {
   console.error(error);
-  toast.error('┘ü╪┤┘ä ╪Ñ╪▒╪│╪º┘ä ╪º┘ä╪╖┘ä╪¿');
+  toast.error('فشل إرسال الطلب');
   }
   };
 
@@ -319,8 +319,8 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
    await api('/notifications', {
      method: 'POST',
      body: JSON.stringify({
-       title: '╪╣┘à┘ä┘è╪⌐ ╪¿┘è╪╣ ╪¼╪»┘è╪»╪⌐',
-       message: `┘é╪º┘à ╪º┘ä┘à┘å╪»┘ê╪¿ ${selectedRep?.name} ╪¿╪¿┘è╪╣ ┘à╪¿┘ä╪║ ${total} ╪¼.┘à (┘à╪¡╪╡┘ä: ${Math.min(data.paidAmount, total)}).`,
+       title: 'عملية بيع جديدة',
+       message: `قام المندوب ${selectedRep?.name} ببيع مبلغ ${total} ج.م (محصل: ${Math.min(data.paidAmount, total)}).`,
        type: 'info',
      }),
    });
@@ -328,7 +328,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
    for (const saleItem of data.items) {
      const repInvItem = myInventory?.find((i: any) => i.itemId === saleItem.itemId);
      if (!repInvItem || repInvItem.quantity < saleItem.quantity) {
-       throw new Error(`╪▒╪╡┘è╪» ╪║┘è╪▒ ┘â╪º┘ü┘ì ┘ä┘ä╪╡┘å┘ü ID: ${saleItem.itemId}`);
+       throw new Error(`رصيد غير كافٍ للصنف ID: ${saleItem.itemId}`);
      }
      
      await api(`/rep-inventory/${repInvItem.id}`, {
@@ -351,9 +351,9 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
      method: 'POST',
      body: JSON.stringify({
        userId: selectedRepId, username: selectedRep?.name || '',
-       action: '╪¬╪│╪¼┘è┘ä ╪╣┘à┘ä┘è╪⌐ ╪¿┘è╪╣', entity: 'SalesOrder',
+       action: 'تسجيل عملية بيع', entity: 'SalesOrder',
        entityId: orderId,
-       details: `┘ü╪º╪¬┘ê╪▒╪⌐ ${repOrderNumber} ╪¿┘é┘è┘à╪⌐ ${total} ╪¼.┘à (┘à╪¡╪╡┘ä: ${Math.min(data.paidAmount, total)}) ┘ä┘ä╪╣┘à┘è┘ä ${customers?.find(c => c.id === data.customerId)?.name}`,
+       details: `فاتورة ${repOrderNumber} بقيمة ${total} ج.م (محصل: ${Math.min(data.paidAmount, total)}) للعميل ${customers?.find(c => c.id === data.customerId)?.name}`,
        timestamp: Date.now()
      }),
    });
@@ -372,7 +372,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
 
   const existingPending = myRequests?.find((r: { repId: number; status: string }) => r.repId === selectedRepId && r.status === 'pending');
   if (existingPending) {
-   toast.error('┘ä╪»┘è┘â ╪╖┘ä╪¿ ╪¬┘ê╪▒┘è╪» ┘à╪╣┘ä┘é ╪¿╪º┘ä┘ü╪╣┘ä╪î ┘è╪▒╪¼┘ë ╪º┘å╪¬╪╕╪º╪▒ ╪º┘ä┘à╪▒╪º╪¼╪╣╪⌐');
+   toast.error('لديك طلب توريد معلق بالفعل، يرجى انتظار المراجعة');
    return;
   }
 
@@ -390,8 +390,8 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   await api('/notifications', {
   method: 'POST',
   body: JSON.stringify({
-  title: '╪╖┘ä╪¿ ╪¬┘ê╪▒┘è╪» ╪¿╪╢╪º╪╣╪⌐ ╪¼╪»┘è╪»',
-  message: `╪º┘ä┘à┘å╪»┘ê╪¿ ${currentUser?.username} ╪ú╪▒╪│┘ä ╪╖┘ä╪¿ ╪¬┘ê╪▒┘è╪» ╪¿╪╢╪º╪╣╪⌐ ╪¼╪»┘è╪».`,
+  title: 'طلب توريد بضاعة جديد',
+  message: `المندوب ${currentUser?.username} أرسل طلب توريد بضاعة جديد.`,
   type: 'info',
   }),
   });
@@ -400,9 +400,9 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   method: 'POST',
   body: JSON.stringify({
   userId: selectedRepId!, username: selectedRep?.name || '',
-  action: '╪╖┘ä╪¿ ╪¬┘ê╪▒┘è╪» ╪¿╪╢╪º╪╣╪⌐', entity: 'StockRequest',
+  action: 'طلب توريد بضاعة', entity: 'StockRequest',
   entityId: (requestRes as any)?.data?.id || (requestRes as any)?.id,
-  details: `╪╖┘ä╪¿ ╪¬┘ê╪▒┘è╪» ${newRequest.items.length} ╪ú╪╡┘å╪º┘ü`,
+  details: `طلب توريد ${newRequest.items.length} أصناف`,
   timestamp: Date.now()
   }),
   });
@@ -411,10 +411,10 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
 
   setRequestModalOpen(false);
   setNewRequest({ items: [] });
-  toast.success('╪¬┘à ╪Ñ╪▒╪│╪º┘ä ╪╖┘ä╪¿ ╪º┘ä╪¬┘ê╪▒┘è╪» ┘ä┘ä┘à╪«╪▓┘å ╪¿┘å╪¼╪º╪¡');
+  toast.success('تم إرسال طلب التوريد للمخزن بنجاح');
   } catch (error) {
   console.error(error);
-  toast.error('┘ü╪┤┘ä ╪Ñ╪▒╪│╪º┘ä ╪º┘ä╪╖┘ä╪¿');
+  toast.error('فشل إرسال الطلب');
   }
   };
 
@@ -430,8 +430,8 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  return (
  <div className="p-6 max-w-4xl mx-auto space-y-8">
  <div className="text-center space-y-4">
- <h1 className="text-3xl font-bold text-black">╪¿┘ê╪º╪¿╪⌐ ╪º┘ä┘à┘å╪»┘ê╪¿┘è┘å</h1>
- <p className="text-[#44474D]">┘è╪▒╪¼┘ë ╪º╪«╪¬┘è╪º╪▒ ┘à┘ä┘ü┘â ╪º┘ä╪┤╪«╪╡┘è ┘ä┘ä╪»╪«┘ê┘ä ╪Ñ┘ä┘ë ┘ä┘ê╪¡╪⌐ ╪º┘ä╪¬╪¡┘â┘à ╪º┘ä╪«╪º╪╡╪⌐ ╪¿┘â</p>
+ <h1 className="text-3xl font-bold text-black">بوابة المندوبين</h1>
+ <p className="text-[#44474D]">يرجى اختيار ملفك الشخصي للدخول إلى لوحة التحكم الخاصة بك</p>
  </div>
 
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -456,7 +456,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  
  <div className="bg-gray-50 border-2 border-dashed border-[#E0E3E5] p-6 rounded-2xl flex flex-col items-center justify-center text-center space-y-2 opacity-60">
  <Plus className="w-8 h-8 text-[#44474D]" />
- <span className="text-sm font-bold text-[#44474D]">┘è╪¬┘à ╪Ñ╪╢╪º┘ü╪⌐ ┘à┘å╪º╪»┘è╪¿ ╪¼╪»╪» ┘à┘å ┘ä┘ê╪¡╪⌐ ╪¬╪¡┘â┘à ╪º┘ä┘à╪»┘è╪▒</span>
+ <span className="text-sm font-bold text-[#44474D]">يتم إضافة مناديب جدد من لوحة تحكم المدير</span>
  </div>
  </div>
  </div>
@@ -467,17 +467,17 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  return (
  <div className="p-12 text-center space-y-4">
  <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
- <h2 className="text-xl font-bold">╪╣┘ü┘ê╪º┘ï╪î ┘ä┘à ┘è╪¬┘à ╪º┘ä╪╣╪½┘ê╪▒ ╪╣┘ä┘ë ┘à┘ä┘ü ╪º┘ä┘à┘å╪»┘ê╪¿</h2>
- <p className="text-[#44474D]">┘è╪¿╪»┘ê ╪ú┘å ╪│╪¼┘ä ╪º┘ä┘à┘å╪»┘ê╪¿ ╪º┘ä╪«╪º╪╡ ╪¿┘â ┘é╪» ╪¬┘à ╪¡╪░┘ü┘ç ╪ú┘ê ┘ä┘à ┘è╪¬┘à ╪Ñ┘å╪┤╪º╪ñ┘ç ╪¿╪╣╪».</p>
+ <h2 className="text-xl font-bold">عفواً، لم يتم العثور على ملف المندوب</h2>
+ <p className="text-[#44474D]">يبدو أن سجل المندوب الخاص بك قد تم حذفه أو لم يتم إنشاؤه بعد.</p>
  {currentUser?.role === 'admin' ? (
  <button 
  onClick={() => setSelectedRepId(null)}
  className="bg-black text-white px-6 py-2 rounded-xl font-bold"
  >
- ╪º┘ä╪╣┘ê╪»╪⌐ ┘ä╪º╪«╪¬┘è╪º╪▒ ┘à┘å╪»┘ê╪¿
+ العودة لاختيار مندوب
  </button>
  ) : (
- <p className="text-sm font-bold text-black font-tajawal">┘è╪▒╪¼┘ë ╪º┘ä╪¬┘ê╪º╪╡┘ä ┘à╪╣ ╪º┘ä╪Ñ╪»╪º╪▒╪⌐ ┘ä╪¬┘ü╪╣┘è┘ä ╪¡╪│╪º╪¿┘â ┘â┘à┘å╪»┘ê╪¿.</p>
+ <p className="text-sm font-bold text-black font-tajawal">يرجى التواصل مع الإدارة لتفعيل حسابك كمندوب.</p>
  )}
  </div>
  );
@@ -486,7 +486,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  const handleAddCustomer = async (e: React.FormEvent) => {
  e.preventDefault();
  if (!newCustomer.name) {
- toast.error('┘è╪▒╪¼┘ë ╪Ñ╪»╪«╪º┘ä ╪º╪│┘à ╪º┘ä╪╣┘à┘è┘ä');
+ toast.error('يرجى إدخال اسم العميل');
  return;
  }
 
@@ -497,7 +497,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  createdAt: Date.now()
  } as any);
  
- toast.success('╪¬┘à╪¬ ╪Ñ╪╢╪º┘ü╪⌐ ╪º┘ä╪╣┘à┘è┘ä ╪¿┘å╪¼╪º╪¡');
+ toast.success('تمت إضافة العميل بنجاح');
  setCustomerModalOpen(false);
  setNewCustomer({ 
  name: '', 
@@ -509,7 +509,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  });
  } catch (error) {
  console.error(error);
- toast.error('┘ü╪┤┘ä ╪Ñ╪╢╪º┘ü╪⌐ ╪º┘ä╪╣┘à┘è┘ä');
+ toast.error('فشل إضافة العميل');
  } finally {
  setIsSubmitting(false);
  }
@@ -517,7 +517,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
 
  const captureLocation = () => {
  if (!navigator.geolocation) {
- toast.error('┘à╪¬╪╡┘ü╪¡┘â ┘ä╪º ┘è╪»╪╣┘à ╪¬╪¡╪»┘è╪» ╪º┘ä┘à┘ê┘é╪╣');
+ toast.error('متصفحك لا يدعم تحديد الموقع');
  return;
  }
 
@@ -529,12 +529,12 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  latitude: position.coords.latitude,
  longitude: position.coords.longitude
  });
- toast.success('╪¬┘à ╪¬╪¡╪»┘è╪» ╪º┘ä┘à┘ê┘é╪╣ ╪¿┘å╪¼╪º╪¡');
+ toast.success('تم تحديد الموقع بنجاح');
  setIsLocating(false);
  },
  (error) => {
  console.error('Geolocation error:', error);
- toast.error('┘ü╪┤┘ä ╪¬╪¡╪»┘è╪» ╪º┘ä┘à┘ê┘é╪╣. ╪¬╪ú┘â╪» ┘à┘å ╪¬┘ü╪╣┘è┘ä ╪º┘ä┘Ç GPS ┘ê╪Ñ╪╣╪╖╪º╪í ╪º┘ä╪Ñ╪░┘å ┘ä┘ä┘à╪¬╪╡┘ü╪¡.');
+ toast.error('فشل تحديد الموقع. تأكد من تفعيل الـ GPS وإعطاء الإذن للمتصفح.');
  setIsLocating(false);
  },
  { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -544,12 +544,12 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  const handleCreateSale = async (e: React.FormEvent) => {
  e.preventDefault();
  if (newSale.items.length === 0 || !newSale.customerId) {
- toast.error('┘è╪▒╪¼┘ë ╪Ñ╪╢╪º┘ü╪⌐ ╪ú╪╡┘å╪º┘ü ┘ê╪º╪«╪¬┘è╪º╪▒ ╪╣┘à┘è┘ä');
+ toast.error('يرجى إضافة أصناف واختيار عميل');
  return;
  }
 
  if (newSale.items.some(i => i.quantity <= 0)) {
- toast.error('╪º┘ä┘â┘à┘è╪º╪¬ ┘è╪¼╪¿ ╪ú┘å ╪¬┘â┘ê┘å ╪ú┘â╪¿╪▒ ┘à┘å ╪╡┘ü╪▒');
+ toast.error('الكميات يجب أن تكون أكبر من صفر');
  return;
  }
 
@@ -569,7 +569,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
    repId: selectedRepId!,
  });
 
- toast.success('╪¬┘à ╪¬╪│╪¼┘è┘ä ╪╣┘à┘ä┘è╪⌐ ╪º┘ä╪¿┘è╪╣ ╪¿┘å╪¼╪º╪¡');
+ toast.success('تم تسجيل عملية البيع بنجاح');
  setSaleModalOpen(false);
  setNewSale({ customerId: 0, items: [], paidAmount: 0 });
  
@@ -581,7 +581,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  }
  } catch (error: any) {
  console.error(error);
- toast.error(error.message || '┘ü╪┤┘ä ╪¬╪│╪¼┘è┘ä ╪╣┘à┘ä┘è╪⌐ ╪º┘ä╪¿┘è╪╣');
+ toast.error(error.message || 'فشل تسجيل عملية البيع');
  }
  };
 
@@ -605,18 +605,18 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  await api('/notifications', {
  method: 'POST',
  body: JSON.stringify({
- title: '╪¬╪¡╪╡┘è┘ä ╪¼╪»┘è╪»',
- message: `┘é╪º┘à ╪º┘ä┘à┘å╪»┘ê╪¿ ${selectedRep?.name} ╪¿╪¬╪│╪¼┘è┘ä ╪¬╪¡╪╡┘è┘ä ╪¿┘é┘è┘à╪⌐ ${newCollection.amount} ╪¼.┘à ┘à┘å ${customers?.find(c => c.id === newCollection.customerId)?.name}. ┘è╪▒╪¼┘ë ╪º┘ä┘à╪▒╪º╪¼╪╣╪⌐ ┘ê╪º┘ä╪¬╪ú┘â┘è╪».`,
+ title: 'تحصيل جديد',
+ message: `قام المندوب ${selectedRep?.name} بتسجيل تحصيل بقيمة ${newCollection.amount} ج.م من ${customers?.find(c => c.id === newCollection.customerId)?.name}. يرجى المراجعة والتأكيد.`,
  type: 'info',
  }),
  });
 
  setCollectionModalOpen(false);
  setNewCollection({ customerId: 0, amount: 0, method: 'cash' });
- toast.success('╪¬┘à ╪¬╪│╪¼┘è┘ä ╪º┘ä╪¬╪¡╪╡┘è┘ä ╪¿┘å╪¼╪º╪¡');
+ toast.success('تم تسجيل التحصيل بنجاح');
  } catch (error) {
  console.error(error);
- toast.error('┘ü╪┤┘ä ╪¬╪│╪¼┘è┘ä ╪º┘ä╪¬╪¡╪╡┘è┘ä');
+ toast.error('فشل تسجيل التحصيل');
  }
  };
 
@@ -626,7 +626,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
 
  const repStock = myInventory?.find((i: any) => i.itemId === itemId)?.quantity || 0;
  if (repStock <= 0) {
- toast.error('┘ä╪º ┘è┘ê╪¼╪» ╪▒╪╡┘è╪» ┘â╪º┘ü┘ì ┘ü┘è ╪╣┘ç╪»╪¬┘â ┘ä┘ç╪░╪º ╪º┘ä╪╡┘å┘ü');
+ toast.error('لا يوجد رصيد كافٍ في عهدتك لهذا الصنف');
  return;
  }
 
@@ -661,7 +661,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  className="text-[#44474D] hover:text-black flex items-center gap-2 text-sm font-bold"
  >
  <ArrowRightLeft className="w-4 h-4" />
- ╪¬╪║┘è┘è╪▒ ╪º┘ä┘à┘å╪»┘ê╪¿ (╪ú╪»┘à┘å)
+ تغيير المندوب (أدمن)
  </button>
  )}
  </div>
@@ -677,14 +677,14 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  {propTab && (
  <div className="flex flex-col gap-1">
  <h1 className="text-2xl font-bold text-black">
- {propTab === 'dashboard' && '╪│╪¼┘ä ╪º┘ä╪╣┘à┘ä┘è╪º╪¬ ┘ê╪º┘ä┘å╪┤╪º╪╖'}
- {propTab === 'overview' && '┘ä┘ê╪¡╪⌐ ╪º┘ä╪¬╪¡┘â┘à ┘ê╪º┘ä┘à╪ñ╪┤╪▒╪º╪¬'}
- {propTab === 'inventory' && '╪╣┘ç╪»╪¬┘è (╪º┘ä┘à╪«╪▓┘ê┘å)'}
- {propTab === 'customers' && '╪Ñ╪»╪º╪▒╪⌐ ╪º┘ä╪╣┘à┘ä╪º╪í'}
- {propTab === 'sales' && '╪│╪¼┘ä ╪╣┘à┘ä┘è╪º╪¬ ╪º┘ä╪¿┘è╪╣'}
- {propTab === 'requests' && '╪╖┘ä╪¿╪º╪¬ ╪¬┘ê╪▒┘è╪» ╪º┘ä┘à╪«╪▓┘ê┘å'}
+ {propTab === 'dashboard' && 'سجل العمليات والنشاط'}
+ {propTab === 'overview' && 'لوحة التحكم والمؤشرات'}
+ {propTab === 'inventory' && 'عهدتي (المخزون)'}
+ {propTab === 'customers' && 'إدارة العملاء'}
+ {propTab === 'sales' && 'سجل عمليات البيع'}
+ {propTab === 'requests' && 'طلبات توريد المخزون'}
  </h1>
- <p className="text-sm text-[#44474D]">┘à╪▒╪¡╪¿╪º┘ï ╪¿┘â {selectedRep?.name} ΓÇó {selectedRep?.zone}</p>
+ <p className="text-sm text-[#44474D]">مرحباً بك {selectedRep?.name} • {selectedRep?.zone}</p>
  </div>
  )}
 
@@ -703,7 +703,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <div className="p-4 border-b bg-orange-50/50 flex justify-between items-center text-orange-800">
  <h3 className="font-bold flex items-center gap-2">
  <AlertCircle className="w-5 h-5" />
- ╪ú╪╡┘å╪º┘ü ╪ú┘ê╪┤┘â╪¬ ╪╣┘ä┘ë ╪º┘ä╪º┘å╪¬┘ç╪º╪í ┘ü┘è ╪╣┘ç╪»╪¬┘â
+ أصناف أوشكت على الانتهاء في عهدتك
  </h3>
  </div>
  <div className="divide-y">
@@ -716,8 +716,8 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  {item?.name?.[0] || 'P'}
  </div>
  <div>
- <p className="font-bold text-sm text-black">{item?.name || '╪╡┘å┘ü ╪║┘è╪▒ ┘à╪╣╪▒┘ê┘ü'}</p>
- <p className="text-[10px] text-[#44474D]">╪º┘ä┘â┘à┘è╪⌐ ╪º┘ä╪¡╪º┘ä┘è╪⌐: <span className="text-red-600 font-bold">{inv.quantity}</span></p>
+ <p className="font-bold text-sm text-black">{item?.name || 'صنف غير معروف'}</p>
+ <p className="text-[10px] text-[#44474D]">الكمية الحالية: <span className="text-red-600 font-bold">{inv.quantity}</span></p>
  </div>
  </div>
  <button 
@@ -727,30 +727,30 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  }}
  className="bg-black text-white px-4 py-1.5 rounded-lg text-[10px] font-bold hover:opacity-80 transition-opacity"
  >
- ╪¬╪¼╪»┘è╪» ╪º┘ä╪╖┘ä╪¿
+ تجديد الطلب
  </button>
  </div>
  )
  })}
  {myInventory?.filter((inv: any) => inv.quantity < 5).length === 0 && (
- <div className="p-10 text-center text-[#44474D] text-xs">┘ä╪º ╪¬┘ê╪¼╪» ╪ú╪╡┘å╪º┘ü ┘à┘å╪«┘ü╪╢╪⌐ ╪º┘ä┘à╪«╪▓┘ê┘å ╪¡╪º┘ä┘è╪º┘ï</div>
+ <div className="p-10 text-center text-[#44474D] text-xs">لا توجد أصناف منخفضة المخزون حالياً</div>
  )}
  </div>
  </div>
 
  <div className="bg-white p-6 rounded-2xl border border-[#E0E3E5] space-y-4">
- <h3 className="font-bold text-black">┘à┘ä╪«╪╡ ╪º┘ä╪ú╪»╪º╪í ╪º┘ä╪│╪▒┘è╪╣</h3>
+ <h3 className="font-bold text-black">ملخص الأداء السريع</h3>
  <div className="space-y-4">
  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
- <span className="text-xs font-bold text-[#44474D]">╪╣╪»╪» ╪º┘ä╪╣┘à┘ä╪º╪í ╪º┘ä╪¼╪»╪» ╪º┘ä┘è┘ê┘à</span>
+ <span className="text-xs font-bold text-[#44474D]">عدد العملاء الجدد اليوم</span>
  <span className="font-bold">{newCustomersToday ?? 0}</span>
  </div>
  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
- <span className="text-xs font-bold text-[#44474D]">╪º┘ä┘à╪¿┘è╪╣╪º╪¬ ╪º┘ä┘à┘â╪¬┘à┘ä╪⌐</span>
+ <span className="text-xs font-bold text-[#44474D]">المبيعات المكتملة</span>
  <span className="font-bold text-green-600">{salesCount ?? 0}</span>
  </div>
  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
- <span className="text-xs font-bold text-[#44474D]">╪╖┘ä╪¿╪º╪¬ ╪º┘ä╪¬┘ê╪▒┘è╪»</span>
+ <span className="text-xs font-bold text-[#44474D]">طلبات التوريد</span>
  <span className="font-bold text-blue-600">{myRequests?.length || 0}</span>
  </div>
  </div>
@@ -761,7 +761,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
  <h3 className="font-bold text-black flex items-center gap-2">
  <ClipboardList className="w-5 h-5 text-blue-600" />
- ╪│╪¼┘ä ╪º┘ä╪╣┘à┘ä┘è╪º╪¬ ┘ê╪ó╪«╪▒ ╪º┘ä╪¬╪¡╪▒┘â╪º╪¬
+ سجل العمليات وآخر التحركات
  </h3>
  </div>
  <div className="divide-y max-h-[400px] overflow-y-auto no-scrollbar">
@@ -775,10 +775,10 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  </div>
  <div>
  <p className="font-bold text-[13px] text-black">
- {activity.type === 'sale' ? `╪╣┘à┘ä┘è╪⌐ ╪¿┘è╪╣ ╪▒┘é┘à ${activity.orderNumber}` : `╪º╪│╪¬┘ä╪º┘à ╪¿╪╢╪º╪╣╪⌐ ╪▒┘é┘à ${activity.transferNumber}`}
+ {activity.type === 'sale' ? `عملية بيع رقم ${activity.orderNumber}` : `استلام بضاعة رقم ${activity.transferNumber}`}
  </p>
  <p className="text-[10px] text-[#44474D]">
- {activity.type === 'sale' ? `╪º┘ä╪╣┘à┘è┘ä: ${customers?.find(c => c.id === activity.customerId)?.name || '╪║┘è╪▒ ┘à╪╣╪▒┘ê┘ü'}` : `╪╣╪»╪» ╪º┘ä╪ú╪╡┘å╪º┘ü: ${activity.items?.length || 0}`}
+ {activity.type === 'sale' ? `العميل: ${customers?.find(c => c.id === activity.customerId)?.name || 'غير معروف'}` : `عدد الأصناف: ${activity.items?.length || 0}`}
  </p>
  </div>
  </div>
@@ -787,7 +787,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <p className={cn("text-xs font-bold",
  activity.type === 'sale' ?"text-green-600" :"text-blue-600"
  )}>
- {activity.type === 'sale' ? `+ ${activity.totalAmount} ╪¼.┘à` : '╪º╪│╪¬┘ä╪º┘à ┘à╪«╪▓┘å┘è'}
+ {activity.type === 'sale' ? `+ ${activity.totalAmount} ج.م` : 'استلام مخزني'}
  </p>
  </div>
  </div>
@@ -804,8 +804,8 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <div className="absolute top-0 right-0 p-4 opacity-10">
  <TrendingUp className="w-16 h-16" />
  </div>
- <p className="text-sm font-bold text-[#44474D]">┘à╪¿┘è╪╣╪º╪¬┘â ┘ç╪░╪º ╪º┘ä╪┤┘ç╪▒</p>
- <h3 className="text-3xl font-bold text-black">{(monthSales || 0).toLocaleString()} <span className="text-sm">╪¼.┘à</span></h3>
+ <p className="text-sm font-bold text-[#44474D]">مبيعاتك هذا الشهر</p>
+ <h3 className="text-3xl font-bold text-black">{(monthSales || 0).toLocaleString()} <span className="text-sm">ج.م</span></h3>
  <div className="w-full bg-gray-100 h-2 rounded-full mt-4">
  <div 
  className="bg-black h-full rounded-full" 
@@ -813,25 +813,25 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  />
  </div>
  <p className="text-[10px] text-[#44474D] text-left">
- ╪º┘ä┘à╪│╪¬┘ç╪»┘ü ╪º┘ä╪┤┘ç╪▒┘è: {(selectedRep?.target || 0).toLocaleString()} ╪¼.┘à
+ المستهدف الشهري: {(selectedRep?.target || 0).toLocaleString()} ج.م
  </p>
  </div>
 
  <div className="bg-white p-6 rounded-2xl border border-[#E0E3E5] space-y-2">
- <p className="text-sm font-bold text-[#44474D]">╪╣╪»╪» ╪º┘ä╪ú╪╡┘å╪º┘ü ┘ü┘è ╪º┘ä╪╣┘ç╪»╪⌐</p>
+ <p className="text-sm font-bold text-[#44474D]">عدد الأصناف في العهدة</p>
  <h3 className="text-3xl font-bold text-black">{myInventory?.length || 0}</h3>
  <p className="text-xs text-green-600 flex items-center gap-1">
  <CheckCircle2 className="w-3 h-3" />
- ╪¼┘à┘è╪╣ ╪º┘ä╪ú╪╡┘å╪º┘ü ┘à╪¬┘ê┘ü╪▒╪⌐
+ جميع الأصناف متوفرة
  </p>
  </div>
 
   <div className="bg-white p-6 rounded-2xl border border-[#E0E3E5] space-y-2">
-  <p className="text-sm font-bold text-[#44474D]">╪º┘ä╪╣┘à┘ê┘ä╪⌐ ╪º┘ä┘à╪¡┘é┘é╪⌐ (┘à┘å ╪º┘ä┘à╪¿┘è╪╣╪º╪¬ ╪º┘ä┘à╪│┘ê┘æ╪º╪⌐)</p>
+  <p className="text-sm font-bold text-[#44474D]">العمولة المحققة (من المبيعات المسوّاة)</p>
   <h3 className="text-3xl font-bold text-black">
-  {((settledCommission as number) || 0).toLocaleString()} <span className="text-sm">╪¼.┘à</span>
+  {((settledCommission as number) || 0).toLocaleString()} <span className="text-sm">ج.م</span>
   </h3>
-  <p className="text-xs text-[#44474D]">╪¿┘à╪╣╪»┘ä ╪╣┘à┘ê┘ä╪⌐ {selectedRep?.commissionRate || 0}% ╪╣┘ä┘ë ╪º┘ä┘à╪¿┘è╪╣╪º╪¬ ╪º┘ä┘à╪│┘ê┘æ╪º╪⌐ ┘ü┘é╪╖</p>
+  <p className="text-xs text-[#44474D]">بمعدل عمولة {selectedRep?.commissionRate || 0}% على المبيعات المسوّاة فقط</p>
   </div>
  </div>
 
@@ -843,10 +843,10 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
  <Coins className="w-4 h-4 text-white" />
  </div>
- <span className="text-sm font-bold text-white/80">┘à┘ä╪«╪╡ ╪º┘ä╪¬╪¡╪╡┘è┘ä╪º╪¬ ╪º┘ä┘è┘ê┘à┘è╪⌐</span>
+ <span className="text-sm font-bold text-white/80">ملخص التحصيلات اليومية</span>
  </div>
- <h3 className="text-4xl font-bold mb-1">{(unsettledAmount || 0).toLocaleString()} <span className="text-lg">╪¼.┘à</span></h3>
- <p className="text-sm text-white/60 font-bold">╪Ñ╪¼┘à╪º┘ä┘è ┘à╪¿╪º┘ä╪║ ┘ü┘è ╪¡┘ê╪▓╪¬┘â ┘ä┘à ┘è╪¬┘à ╪¬┘ê╪▒┘è╪»┘ç╪º ┘ä┘ä╪«╪▓┘è┘å╪⌐</p>
+ <h3 className="text-4xl font-bold mb-1">{(unsettledAmount || 0).toLocaleString()} <span className="text-lg">ج.م</span></h3>
+ <p className="text-sm text-white/60 font-bold">إجمالي مبالغ في حوزتك لم يتم توريدها للخزينة</p>
  </div>
  
  <div className="flex flex-col gap-3 w-full md:w-auto">
@@ -854,8 +854,8 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <div className="bg-orange-500/20 border border-orange-500/30 px-6 py-4 rounded-2xl flex items-center gap-4">
  <Clock className="w-6 h-6 text-orange-500 animate-pulse" />
  <div>
- <p className="text-sm font-bold text-orange-500">╪╖┘ä╪¿ ╪º┘ä╪¬┘ê╪▒┘è╪» ┘é┘è╪» ╪º┘ä┘à╪▒╪º╪¼╪╣╪⌐</p>
- <p className="text-[10px] text-white/50">╪¿╪º┘å╪¬╪╕╪º╪▒ ╪¬╪ú┘â┘è╪» ╪º┘ä╪º╪│╪¬┘ä╪º┘à ┘à┘å ╪º┘ä╪Ñ╪»╪º╪▒╪⌐</p>
+ <p className="text-sm font-bold text-orange-500">طلب التوريد قيد المراجعة</p>
+ <p className="text-[10px] text-white/50">بانتظار تأكيد الاستلام من الإدارة</p>
  </div>
  </div>
  ) : (
@@ -864,7 +864,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  disabled={(unsettledAmount ?? 0) <= 0}
  className="bg-white text-black px-10 py-4 rounded-2xl font-bold text-sm hover:bg-green-500 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
  >
- {(unsettledAmount ?? 0) > 0 ? '╪¬┘ê╪▒┘è╪» ╪¬╪¡╪╡┘è┘ä╪º╪¬ ╪º┘ä┘è┘ê┘à ┘ä┘ä╪«╪▓┘è┘å╪⌐' : '┘ä╪º ╪¬┘ê╪¼╪» ╪¬╪¡╪╡┘è┘ä╪º╪¬ ┘ä┘ä╪¬┘ê╪▒┘è╪»'}
+ {(unsettledAmount ?? 0) > 0 ? 'توريد تحصيلات اليوم للخزينة' : 'لا توجد تحصيلات للتوريد'}
  </button>
  )}
  </div>
@@ -875,23 +875,23 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <div className="bg-white p-6 rounded-2xl border border-[#E0E3E5] space-y-4">
  <h4 className="font-bold text-black flex items-center gap-2">
  <ClipboardList className="w-5 h-5" />
- ╪¬┘å╪¿┘è┘ç╪º╪¬ ┘ç╪º┘à╪⌐
+ تنبيهات هامة
  </h4>
  <div className="space-y-3">
  {myInventory?.some((i: any) => i.quantity < 5) ? (
  <div className="flex gap-4 p-4 bg-orange-50 rounded-xl border border-orange-100 text-orange-800">
  <AlertCircle className="w-5 h-5 shrink-0" />
  <div>
- <p className="text-sm font-bold">┘à╪«╪▓┘ê┘å ┘à┘å╪«┘ü╪╢</p>
- <p className="text-xs">╪¬┘ê╪¼╪» ╪ú╪╡┘å╪º┘ü ┘ü┘è ╪╣┘ç╪»╪¬┘â ┘ê╪╡┘ä╪¬ ┘ä┘ä╪¡╪» ╪º┘ä╪ú╪»┘å┘ë╪î ┘è╪▒╪¼┘ë ╪╖┘ä╪¿ ╪¬┘ê╪▒┘è╪».</p>
+ <p className="text-sm font-bold">مخزون منخفض</p>
+ <p className="text-xs">توجد أصناف في عهدتك وصلت للحد الأدنى، يرجى طلب توريد.</p>
  </div>
  </div>
  ) : (
  <div className="flex gap-4 p-4 bg-green-50 rounded-xl border border-green-100 text-green-800">
  <CheckCircle2 className="w-5 h-5 shrink-0" />
  <div>
- <p className="text-sm font-bold">╪¡╪º┘ä╪⌐ ╪º┘ä┘à╪«╪▓┘ê┘å ┘à┘à╪¬╪º╪▓╪⌐</p>
- <p className="text-xs">╪▒╪╡┘è╪» ╪╣┘ç╪»╪¬┘â ┘â╪º┘ü┘ì ┘ä╪╣┘à┘ä┘è╪º╪¬ ╪º┘ä╪¿┘è╪╣ ╪º┘ä┘è┘ê┘à.</p>
+ <p className="text-sm font-bold">حالة المخزون ممتازة</p>
+ <p className="text-xs">رصيد عهدتك كافٍ لعمليات البيع اليوم.</p>
  </div>
  </div>
  )}
@@ -909,7 +909,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#44474D]" />
  <input 
  type="text" 
- placeholder="╪¿╪¡╪½ ┘ü┘è ╪º┘ä╪╣┘ç╪»╪⌐..."
+ placeholder="بحث في العهدة..."
  className="bg-white border text-sm border-[#E0E3E5] rounded-xl py-2 pr-10 pl-4 focus:ring-1 focus:ring-black outline-none w-64"
  value={searchTerm}
  onChange={(e) => setSearchTerm(e.target.value)}
@@ -921,10 +921,10 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <table className="w-full text-right border-collapse">
  <thead>
  <tr className="bg-[#F9FAFB] border-b border-[#E0E3E5]">
- <th className="p-4 text-sm font-bold text-[#44474D]">╪º╪│┘à ╪º┘ä╪╡┘å┘ü</th>
- <th className="p-4 text-sm font-bold text-[#44474D]">╪º┘ä┘â┘à┘è╪⌐ ╪º┘ä┘à╪¬┘ê┘ü╪▒╪⌐</th>
- <th className="p-4 text-sm font-bold text-[#44474D]">╪º┘ä╪│╪╣╪▒ ╪º┘ä┘à┘é╪¬╪▒╪¡</th>
- <th className="p-4 text-sm font-bold text-[#44474D]">╪º┘ä╪¡╪º┘ä╪⌐</th>
+ <th className="p-4 text-sm font-bold text-[#44474D]">اسم الصنف</th>
+ <th className="p-4 text-sm font-bold text-[#44474D]">الكمية المتوفرة</th>
+ <th className="p-4 text-sm font-bold text-[#44474D]">السعر المقترح</th>
+ <th className="p-4 text-sm font-bold text-[#44474D]">الحالة</th>
  </tr>
  </thead>
  <tbody className="divide-y divide-[#F2F4F6]">
@@ -940,12 +940,12 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <p className="text-[10px] text-[#44474D]">{item.sku}</p>
  </td>
  <td className="p-4 font-bold">{inv.quantity}</td>
- <td className="p-4">{item.sellingPrice} ╪¼.┘à</td>
+ <td className="p-4">{item.sellingPrice} ج.م</td>
  <td className="p-4">
  {inv.quantity < 5 ? (
- <span className="bg-orange-100 text-orange-800 text-[10px] px-2 py-1 rounded-full font-bold">┘à┘å╪«┘ü╪╢</span>
+ <span className="bg-orange-100 text-orange-800 text-[10px] px-2 py-1 rounded-full font-bold">منخفض</span>
  ) : (
- <span className="bg-green-100 text-green-800 text-[10px] px-2 py-1 rounded-full font-bold">┘à╪¬┘ê┘ü╪▒</span>
+ <span className="bg-green-100 text-green-800 text-[10px] px-2 py-1 rounded-full font-bold">متوفر</span>
  )}
  </td>
  </tr>
@@ -964,7 +964,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#44474D]" />
  <input 
  type="text" 
- placeholder="╪¿╪¡╪½ ┘ü┘è ╪º┘ä╪╣┘à┘ä╪º╪í..."
+ placeholder="بحث في العملاء..."
  className="bg-white border text-sm border-[#E0E3E5] rounded-xl py-2 pr-10 pl-4 w-64"
  value={searchTerm}
  onChange={(e) => setSearchTerm(e.target.value)}
@@ -975,7 +975,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  className="bg-black text-white px-4 py-2 rounded-xl flex items-center gap-2 font-bold text-sm"
  >
  <Plus className="w-4 h-4" />
- ╪Ñ╪╢╪º┘ü╪⌐ ╪╣┘à┘è┘ä ╪¼╪»┘è╪»
+ إضافة عميل جديد
  </button>
  </div>
 
@@ -1005,7 +1005,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  target="_blank"
  rel="noreferrer"
  className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
- title="╪╣╪▒╪╢ ╪º┘ä┘à┘ê┘é╪╣ ╪╣┘ä┘ë ╪º┘ä╪«╪▒┘è╪╖╪⌐"
+ title="عرض الموقع على الخريطة"
  >
  <MapPin className="w-4 h-4 text-red-500" />
  </a>
@@ -1017,7 +1017,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  setCollectionModalOpen(true);
  }}
  className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
- title="╪¬╪│╪¼┘è┘ä ╪¬╪¡╪╡┘è┘ä"
+ title="تسجيل تحصيل"
  >
  <Coins className="w-4 h-4" />
  </button>
@@ -1030,7 +1030,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <div className="p-4 border-b bg-gray-50/50">
  <h3 className="text-sm font-bold text-black flex items-center gap-2">
  <ClipboardList className="w-4 h-4 text-blue-600" />
- ╪ó╪«╪▒ ┘ü┘ê╪º╪¬┘è╪▒ ╪º┘ä╪╣┘à┘ä╪º╪í (╪º┘ä┘à╪¿┘è╪╣╪º╪¬)
+ آخر فواتير العملاء (المبيعات)
  </h3>
  </div>
  <div className="divide-y max-h-[600px] overflow-y-auto no-scrollbar">
@@ -1044,7 +1044,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   <span className={cn("text-[9px] px-2 py-0.5 rounded-full font-bold",
  order.paymentStatus === 'paid' ?"bg-green-100 text-green-600" : (order.paymentStatus === 'partial' ?"bg-orange-100 text-orange-600" :"bg-red-100 text-red-600")
  )}>
- {order.paymentStatus === 'paid' ? '╪«╪º┘ä╪╡' : (order.paymentStatus === 'partial' ? '╪¼╪▓╪ª┘è' : '╪ó╪¼┘ä')}
+ {order.paymentStatus === 'paid' ? 'خالص' : (order.paymentStatus === 'partial' ? 'جزئي' : 'آجل')}
  </span>
  </div>
  <p className="text-[10px] text-gray-500 font-bold">{customer?.name}</p>
@@ -1057,24 +1057,24 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  setInvoiceOpen(true);
  }}
  className="p-1 text-black hover:bg-gray-200 rounded transition-colors"
- title="╪╣╪▒╪╢ ╪º┘ä┘ü╪º╪¬┘ê╪▒╪⌐"
+ title="عرض الفاتورة"
  >
  <Eye className="w-3 h-3" />
  </button>
- <span className="font-bold">{order.totalAmount.toLocaleString()} ╪¼.┘à</span>
+ <span className="font-bold">{order.totalAmount.toLocaleString()} ج.م</span>
  </div>
  </div>
  {remaining > 0 && (
  <div className="flex justify-between items-center pt-1 border-t border-dashed border-gray-100 italic">
- <p className="text-[9px] text-[#44474D]">╪º┘ä┘à╪¬╪¿┘é┘è:</p>
- <p className="text-[9px] text-red-600 font-bold">{remaining.toLocaleString()} ╪¼.┘à</p>
+ <p className="text-[9px] text-[#44474D]">المتبقي:</p>
+ <p className="text-[9px] text-red-600 font-bold">{remaining.toLocaleString()} ج.م</p>
  </div>
  )}
  </div>
  )
  })}
  {mySales?.length === 0 && (
- <div className="p-10 text-center text-gray-400 text-xs italic">┘ä╪º ╪¬┘ê╪¼╪» ╪│╪¼┘ä╪º╪¬ ┘à╪¿┘è╪╣╪º╪¬ ╪¿╪╣╪»</div>
+ <div className="p-10 text-center text-gray-400 text-xs italic">لا توجد سجلات مبيعات بعد</div>
  )}
  </div>
  </div>
@@ -1085,13 +1085,13 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  {activeTab === 'sales' && (
  <div className="space-y-4">
  <div className="flex justify-between items-center">
- <h3 className="text-lg font-bold text-black">╪│╪¼┘ä ┘à╪¿┘è╪╣╪º╪¬ ╪º┘ä┘à┘å╪»┘ê╪¿</h3>
+ <h3 className="text-lg font-bold text-black">سجل مبيعات المندوب</h3>
  <button 
  onClick={() => setSaleModalOpen(true)}
  className="bg-green-600 text-white px-6 py-2.5 rounded-xl flex items-center gap-2 font-bold -100 hover:bg-green-700 transition-all"
  >
  <Plus className="w-5 h-5" />
- ╪¬╪¡╪▒┘è╪▒ ┘ü╪º╪¬┘ê╪▒╪⌐ ╪¿┘è╪╣ ╪¼╪»┘è╪»╪⌐
+ تحرير فاتورة بيع جديدة
  </button>
  </div>
 
@@ -1099,11 +1099,11 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <table className="w-full text-right">
  <thead>
  <tr className="bg-[#F9FAFB] border-b">
- <th className="p-4 text-sm font-bold text-[#44474D]">╪▒┘é┘à ╪º┘ä┘ü╪º╪¬┘ê╪▒╪⌐</th>
- <th className="p-4 text-sm font-bold text-[#44474D]">╪º┘ä╪╣┘à┘è┘ä</th>
- <th className="p-4 text-sm font-bold text-[#44474D]">╪º┘ä┘é┘è┘à╪⌐</th>
- <th className="p-4 text-sm font-bold text-[#44474D]">╪º┘ä╪¬╪º╪▒┘è╪«</th>
- <th className="p-4 text-sm font-bold text-[#44474D] text-left">╪º┘ä╪Ñ╪¼╪▒╪º╪í╪º╪¬</th>
+ <th className="p-4 text-sm font-bold text-[#44474D]">رقم الفاتورة</th>
+ <th className="p-4 text-sm font-bold text-[#44474D]">العميل</th>
+ <th className="p-4 text-sm font-bold text-[#44474D]">القيمة</th>
+ <th className="p-4 text-sm font-bold text-[#44474D]">التاريخ</th>
+ <th className="p-4 text-sm font-bold text-[#44474D] text-left">الإجراءات</th>
  </tr>
  </thead>
  <tbody className="divide-y">
@@ -1111,7 +1111,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   <tr key={order.id} className="hover:bg-gray-50">
   <td className="p-4 font-bold">{order.orderNumber}</td>
   <td className="p-4">{customers?.find((c: any) => c.id === order.customerId)?.name}</td>
-  <td className="p-4 font-bold">{order.totalAmount.toLocaleString()} ╪¼.┘à</td>
+  <td className="p-4 font-bold">{order.totalAmount.toLocaleString()} ج.م</td>
   <td className="p-4 text-xs text-[#44474D]">{formatDate(order.date)}</td>
  <td className="p-4 text-left">
  <button 
@@ -1120,7 +1120,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  setInvoiceOpen(true);
  }}
  className="p-2 text-black hover:bg-gray-100 rounded-lg transition-colors"
- title="╪╣╪▒╪╢ ╪º┘ä┘ü╪º╪¬┘ê╪▒╪⌐"
+ title="عرض الفاتورة"
  >
  <Eye className="w-4 h-4" />
  </button>
@@ -1136,13 +1136,13 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  {activeTab === 'requests' && (
  <div className="space-y-4">
  <div className="flex justify-between items-center">
- <h3 className="text-lg font-bold text-black">╪╖┘ä╪¿╪º╪¬ ╪¬┘ê╪▒┘è╪» ┘à╪«╪▓┘ê┘å ╪¼╪»┘è╪»</h3>
+ <h3 className="text-lg font-bold text-black">طلبات توريد مخزون جديد</h3>
  <button 
  onClick={() => setRequestModalOpen(true)}
  className="bg-black text-white px-6 py-2.5 rounded-xl flex items-center gap-2 font-bold transition-all"
  >
  <Plus className="w-5 h-5" />
- ╪Ñ┘å╪┤╪º╪í ╪╖┘ä╪¿ ╪¬┘ê╪▒┘è╪» ╪¼╪»┘è╪»
+ إنشاء طلب توريد جديد
  </button>
  </div>
 
@@ -1150,10 +1150,10 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <table className="w-full text-right border-collapse">
  <thead>
  <tr className="bg-[#F9FAFB] border-b border-[#E0E3E5]">
- <th className="p-4 text-sm font-bold text-[#44474D]">╪▒┘é┘à ╪º┘ä╪╖┘ä╪¿</th>
- <th className="p-4 text-sm font-bold text-[#44474D]">╪╣╪»╪» ╪º┘ä╪ú╪╡┘å╪º┘ü</th>
- <th className="p-4 text-sm font-bold text-[#44474D]">╪º┘ä╪¡╪º┘ä╪⌐</th>
- <th className="p-4 text-sm font-bold text-[#44474D]">╪º┘ä╪¬╪º╪▒┘è╪«</th>
+ <th className="p-4 text-sm font-bold text-[#44474D]">رقم الطلب</th>
+ <th className="p-4 text-sm font-bold text-[#44474D]">عدد الأصناف</th>
+ <th className="p-4 text-sm font-bold text-[#44474D]">الحالة</th>
+ <th className="p-4 text-sm font-bold text-[#44474D]">التاريخ</th>
  </tr>
  </thead>
  <tbody className="divide-y divide-[#F2F4F6]">
@@ -1167,15 +1167,15 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   >
   <td className="p-4 font-bold">REQ-{req.id}</td>
   <td className="p-4">
- <p className="font-bold">{req.items.length} ╪ú╪╡┘å╪º┘ü</p>
+ <p className="font-bold">{req.items.length} أصناف</p>
  <p className="text-[9px] text-blue-600 font-bold">
- {isExpanded ? '╪Ñ╪«┘ü╪º╪í ╪º┘ä╪¬┘ü╪º╪╡┘è┘ä' : '╪╣╪▒╪╢ ╪º┘ä╪¬┘ü╪º╪╡┘è┘ä'}
+ {isExpanded ? 'إخفاء التفاصيل' : 'عرض التفاصيل'}
  </p>
  </td>
  <td className="p-4">
- {req.status === 'pending' && <span className="bg-orange-100 text-orange-800 text-[10px] px-2 py-1 rounded-full font-bold">┘é┘è╪» ╪º┘ä┘à╪▒╪º╪¼╪╣╪⌐</span>}
- {req.status === 'approved' && <span className="bg-green-100 text-green-800 text-[10px] px-2 py-1 rounded-full font-bold">╪¬┘à╪¬ ╪º┘ä┘à┘ê╪º┘ü┘é╪⌐</span>}
- {req.status === 'rejected' && <span className="bg-red-100 text-red-800 text-[10px] px-2 py-1 rounded-full font-bold">┘à╪▒┘ü┘ê╪╢</span>}
+ {req.status === 'pending' && <span className="bg-orange-100 text-orange-800 text-[10px] px-2 py-1 rounded-full font-bold">قيد المراجعة</span>}
+ {req.status === 'approved' && <span className="bg-green-100 text-green-800 text-[10px] px-2 py-1 rounded-full font-bold">تمت الموافقة</span>}
+ {req.status === 'rejected' && <span className="bg-red-100 text-red-800 text-[10px] px-2 py-1 rounded-full font-bold">مرفوض</span>}
  </td>
  <td className="p-4 text-xs text-[#44474D]">{formatDate(req.date)}</td>
  </tr>
@@ -1189,8 +1189,8 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <div key={idx} className="bg-white border border-gray-100 px-3 py-2 rounded-xl flex items-center gap-3">
  <Package className="w-4 h-4 text-gray-300" />
  <div>
- <p className="text-xs font-bold text-black">{item?.name || '╪╡┘å┘ü ╪║┘è╪▒ ┘à╪╣╪▒┘ê┘ü'}</p>
- <p className="text-[10px] text-gray-500">╪º┘ä┘â┘à┘è╪⌐ ╪º┘ä┘à╪╖┘ä┘ê╪¿╪⌐: <span className="font-bold text-black">{reqItem.quantity}</span></p>
+ <p className="text-xs font-bold text-black">{item?.name || 'صنف غير معروف'}</p>
+ <p className="text-[10px] text-gray-500">الكمية المطلوبة: <span className="font-bold text-black">{reqItem.quantity}</span></p>
  </div>
  </div>
  );
@@ -1200,17 +1200,17 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <button 
  onClick={(e) => {
  e.stopPropagation();
- const text = `*╪╖┘ä╪¿ ╪¬┘ê╪▒┘è╪» ┘à╪«╪▓┘ê┘å ╪¼╪»┘è╪»*
-╪▒┘é┘à ╪º┘ä╪╖┘ä╪¿: REQ-${req.id}
-╪º┘ä┘à┘å╪»┘ê╪¿: ${currentUser?.username}
-╪º┘ä╪¬╪º╪▒┘è╪«: ${formatDate(req.date)}
-╪╣╪»╪» ╪º┘ä╪ú╪╡┘å╪º┘ü: ${req.items.length}`;
+ const text = `*طلب توريد مخزون جديد*
+رقم الطلب: REQ-${req.id}
+المندوب: ${currentUser?.username}
+التاريخ: ${formatDate(req.date)}
+عدد الأصناف: ${req.items.length}`;
  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
  }}
  className="bg-green-500 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-green-600 transition-all flex items-center gap-2"
  >
  <Send className="w-3.5 h-3.5" />
- ╪Ñ╪▒╪│╪º┘ä ┘ä┘ä┘à╪»┘è╪▒ ┘ä┘ä┘à┘ê╪º┘ü┘é╪⌐
+ إرسال للمدير للموافقة
  </button>
  </div>
  </td>
@@ -1221,7 +1221,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  })}
  {myRequests?.length === 0 && (
  <tr>
- <td colSpan={4} className="p-10 text-center text-gray-400">┘ä╪º ╪¬┘ê╪¼╪» ╪╖┘ä╪¿╪º╪¬ ╪¬┘ê╪▒┘è╪» ╪¡╪º┘ä┘è╪⌐</td>
+ <td colSpan={4} className="p-10 text-center text-gray-400">لا توجد طلبات توريد حالية</td>
  </tr>
  )}
  </tbody>
@@ -1245,11 +1245,11 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-[2rem] w-full max-w-lg p-6 relative overflow-hidden text-right">
  <div className="absolute top-0 right-0 w-32 h-32 bg-green-50 rounded-full -translate-y-16 translate-x-16" />
  
- <h3 className="text-2xl font-bold text-black mb-1">┘à╪¿┘ä╪║ ╪Ñ╪╢╪º┘ü┘è ┘à┘â╪¬╪┤┘ü!</h3>
- <p className="text-sm text-gray-500 font-bold mb-6">┘ä┘é╪» ╪»┘ü╪╣ ╪º┘ä╪╣┘à┘è┘ä <span className="text-green-600">({excessAmount.toLocaleString()} ╪¼.┘à)</span> ╪▓┘è╪º╪»╪⌐ ╪╣┘å ┘é┘è┘à╪⌐ ╪º┘ä┘ü╪º╪¬┘ê╪▒╪⌐ ╪º┘ä╪¡╪º┘ä┘è╪⌐.</p>
+ <h3 className="text-2xl font-bold text-black mb-1">مبلغ إضافي مكتشف!</h3>
+ <p className="text-sm text-gray-500 font-bold mb-6">لقد دفع العميل <span className="text-green-600">({excessAmount.toLocaleString()} ج.م)</span> زيادة عن قيمة الفاتورة الحالية.</p>
  
  <div className="space-y-4">
- <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">╪¬┘ê╪¼┘è┘ç ╪º┘ä┘à╪¿┘ä╪║ ╪º┘ä╪▓╪º╪ª╪» ╪Ñ┘ä┘ë:</p>
+ <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">توجيه المبلغ الزائد إلى:</p>
  
  {unpaidInvoices.length > 0 ? (
  <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 no-scrollbar">
@@ -1272,25 +1272,25 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  qc.invalidateQueries({ queryKey: ['sales-orders'] });
  } catch (error) {
  console.error(error);
- toast.error('┘ü╪┤┘ä ╪¬╪╖╪¿┘è┘é ╪º┘ä╪»┘ü╪╣╪⌐');
+ toast.error('فشل تطبيق الدفعة');
  }
  }}
  className="w-full text-right p-4 bg-gray-50 border border-gray-100 rounded-2xl hover:border-green-500 hover:bg-green-50 group transition-all"
  >
  <div className="flex justify-between items-center mb-1">
- <span className="text-xs font-bold text-black">┘ü╪º╪¬┘ê╪▒╪⌐: {order.orderNumber}</span>
+ <span className="text-xs font-bold text-black">فاتورة: {order.orderNumber}</span>
  <span className="text-[10px] text-gray-400">{formatDate(order.date)}</span>
  </div>
  <div className="flex justify-between items-center">
- <span className="text-[10px] text-red-500 font-bold">╪¿╪º┘é┘è ╪╣┘ä┘è┘ç╪º: {(order.totalAmount - (order.paidAmount || 0)).toLocaleString()} ╪¼.┘à</span>
- <span className="text-xs font-bold text-green-600 group-hover:underline">╪│╪»╪» ╪º┘ä╪ó┘å</span>
+ <span className="text-[10px] text-red-500 font-bold">باقي عليها: {(order.totalAmount - (order.paidAmount || 0)).toLocaleString()} ج.م</span>
+ <span className="text-xs font-bold text-green-600 group-hover:underline">سدد الآن</span>
  </div>
  </button>
  ))}
  </div>
  ) : (
  <div className="p-10 border-2 border-dashed border-gray-100 rounded-3xl text-center">
- <p className="text-xs text-gray-400 font-bold italic">┘ä╪º ╪¬┘ê╪¼╪» ┘à╪»┘è┘ê┘å┘è╪º╪¬ ╪│╪º╪¿┘é╪⌐ ┘ä┘ç╪░╪º ╪º┘ä╪╣┘à┘è┘ä</p>
+ <p className="text-xs text-gray-400 font-bold italic">لا توجد مديونيات سابقة لهذا العميل</p>
  </div>
  )}
 
@@ -1301,7 +1301,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  }}
  className="w-full py-4 bg-black text-white rounded-2xl font-bold text-sm mt-4 hover:opacity-90 transition-opacity"
  >
- ╪¬╪¼╪º┘ç┘ä ┘ê╪Ñ╪╕┘ç╪º╪▒ ┘ü╪º╪¬┘ê╪▒╪⌐ ╪º┘ä┘è┘ê┘à ┘ü┘é╪╖
+ تجاهل وإظهار فاتورة اليوم فقط
  </button>
  </div>
  </motion.div>
@@ -1314,27 +1314,27 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-md rounded-3xl p-6 relative z-10 overflow-hidden">
  <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
  <UserCircle className="w-6 h-6" />
- ╪Ñ╪╢╪º┘ü╪⌐ ╪╣┘à┘è┘ä ╪¼╪»┘è╪»
+ إضافة عميل جديد
  </h2>
  <form onSubmit={handleAddCustomer} className="space-y-4">
  <div className="space-y-2">
- <label className="text-sm font-bold text-[#44474D]">╪º╪│┘à ╪º┘ä╪╣┘à┘è┘ä</label>
- <input required type="text" value={newCustomer.name} onChange={e => setNewCustomer({...newCustomer, name: e.target.value})} className="w-full bg-[#F2F4F6] border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-black outline-none" placeholder="╪º┘ä╪º╪│┘à ╪º┘ä╪▒╪¿╪º╪╣┘è" />
+ <label className="text-sm font-bold text-[#44474D]">اسم العميل</label>
+ <input required type="text" value={newCustomer.name} onChange={e => setNewCustomer({...newCustomer, name: e.target.value})} className="w-full bg-[#F2F4F6] border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-black outline-none" placeholder="الاسم الرباعي" />
  </div>
  <div className="grid grid-cols-2 gap-4">
  <div className="space-y-2">
- <label className="text-sm font-bold text-[#44474D]">╪▒┘é┘à ╪º┘ä┘ç╪º╪¬┘ü</label>
+ <label className="text-sm font-bold text-[#44474D]">رقم الهاتف</label>
  <input required type="tel" value={newCustomer.phone} onChange={e => setNewCustomer({...newCustomer, phone: e.target.value})} className="w-full bg-[#F2F4F6] border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-black outline-none" placeholder="01xxxxxxxxx" />
  </div>
  <div className="space-y-2">
- <label className="text-sm font-bold text-[#44474D]">╪º┘ä╪¿╪▒┘è╪» ╪º┘ä╪Ñ┘ä┘â╪¬╪▒┘ê┘å┘è</label>
+ <label className="text-sm font-bold text-[#44474D]">البريد الإلكتروني</label>
  <input type="email" value={newCustomer.email} onChange={e => setNewCustomer({...newCustomer, email: e.target.value})} className="w-full bg-[#F2F4F6] border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-black outline-none" placeholder="example@mail.com" />
  </div>
  </div>
  <div className="space-y-2">
- <label className="text-sm font-bold text-[#44474D]">╪º┘ä╪╣┘å┘ê╪º┘å / ╪º┘ä┘à┘ê┘é╪╣</label>
+ <label className="text-sm font-bold text-[#44474D]">العنوان / الموقع</label>
  <div className="flex gap-2">
- <input required type="text" value={newCustomer.address} onChange={e => setNewCustomer({...newCustomer, address: e.target.value})} className="flex-1 bg-[#F2F4F6] border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-black outline-none" placeholder="╪º┘ä┘à╪¡╪º┘ü╪╕╪⌐ - ╪º┘ä┘à╪»┘è┘å╪⌐ - ╪º┘ä┘à╪▒╪¿╪╣ ╪º┘ä╪│┘â┘å┘è" />
+ <input required type="text" value={newCustomer.address} onChange={e => setNewCustomer({...newCustomer, address: e.target.value})} className="flex-1 bg-[#F2F4F6] border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-black outline-none" placeholder="المحافظة - المدينة - المربع السكني" />
  <button 
  type="button" 
  onClick={captureLocation}
@@ -1344,7 +1344,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  ?"bg-green-100 text-green-600 border border-green-200" 
  :"bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100"
  )}
- title="╪¬╪¡╪»┘è╪» ╪º┘ä┘à┘ê┘é╪╣ ╪º┘ä╪¼╪║╪▒╪º┘ü┘è"
+ title="تحديد الموقع الجغرافي"
  >
  {isLocating ? (
  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent animate-spin rounded-full" />
@@ -1356,13 +1356,13 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  {newCustomer.latitude && (
  <p className="text-[10px] text-green-600 font-bold flex items-center gap-1">
  <CheckCircle2 className="w-3 h-3" />
- ╪¬┘à ╪º┘ä╪¬┘é╪º╪╖ ╪Ñ╪¡╪»╪º╪½┘è╪º╪¬ ╪º┘ä┘à┘ê┘é╪╣ ╪¿┘å╪¼╪º╪¡
+ تم التقاط إحداثيات الموقع بنجاح
  </p>
  )}
  </div>
  <div className="flex gap-3 pt-4">
- <button type="submit" className="flex-1 bg-black text-white py-3 rounded-xl font-bold hover:opacity-90">╪¡┘ü╪╕ ╪º┘ä╪╣┘à┘è┘ä</button>
- <button type="button" onClick={() => setCustomerModalOpen(false)} className="flex-1 bg-gray-100 text-[#44474D] py-3 rounded-xl font-bold hover:bg-gray-200">╪Ñ┘ä╪║╪º╪í</button>
+ <button type="submit" className="flex-1 bg-black text-white py-3 rounded-xl font-bold hover:opacity-90">حفظ العميل</button>
+ <button type="button" onClick={() => setCustomerModalOpen(false)} className="flex-1 bg-gray-100 text-[#44474D] py-3 rounded-xl font-bold hover:bg-gray-200">إلغاء</button>
  </div>
  </form>
  </motion.div>
@@ -1375,19 +1375,19 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-2xl rounded-3xl p-6 relative z-10 max-h-[90vh] overflow-y-auto no-scrollbar">
  <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
  <ShoppingCart className="w-6 h-6" />
- ╪¬╪¡╪▒┘è╪▒ ┘ü╪º╪¬┘ê╪▒╪⌐ ╪¿┘è╪╣
+ تحرير فاتورة بيع
  </h2>
  <form onSubmit={handleCreateSale} className="space-y-4">
  <div className="space-y-2">
  <div className="flex justify-between items-center">
- <label className="text-sm font-bold text-[#44474D]">╪º╪«╪¬┘è╪º╪▒ ╪º┘ä╪╣┘à┘è┘ä</label>
+ <label className="text-sm font-bold text-[#44474D]">اختيار العميل</label>
  <button 
  type="button"
  onClick={() => setCustomerModalOpen(true)}
  className="text-[10px] font-bold text-blue-600 flex items-center gap-1 hover:underline"
  >
  <Plus className="w-3 h-3" />
- ╪ú╪╢┘ü ╪╣┘à┘è┘ä ╪¼╪»┘è╪»
+ أضف عميل جديد
  </button>
  </div>
  <select 
@@ -1396,22 +1396,22 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  value={newSale.customerId}
  onChange={e => setNewSale({...newSale, customerId: parseInt(e.target.value)})}
  >
- <option value="">╪º╪«╪¬╪▒ ╪º┘ä╪╣┘à┘è┘ä...</option>
+ <option value="">اختر العميل...</option>
  {customers?.map((c: any) => <option key={c.id} value={c.id}>{c.name} - {c.phone}</option>)}
  </select>
  </div>
 
  <div className="space-y-4">
  <div className="flex justify-between items-center">
- <label className="text-sm font-bold text-[#44474D]">╪Ñ╪╢╪º┘ü╪⌐ ╪ú╪╡┘å╪º┘ü ┘à┘å ╪º┘ä╪╣┘ç╪»╪⌐</label>
+ <label className="text-sm font-bold text-[#44474D]">إضافة أصناف من العهدة</label>
  <select 
  onChange={(e) => e.target.value !=="0" && addItemToSale(parseInt(e.target.value))}
  className="bg-black text-white px-4 py-2 rounded-xl text-xs font-bold outline-none"
  >
- <option value="0">╪º╪«╪¬╪▒ ┘à┘å ╪╣┘ç╪»╪¬┘è...</option>
+ <option value="0">اختر من عهدتي...</option>
  {myInventory?.map((inv: any) => {
  const item = allItems?.find(i => i.id === inv.itemId);
- return <option key={inv.id} value={inv.itemId}>{item?.name} (┘à╪¬╪º╪¡: {inv.quantity})</option>
+ return <option key={inv.id} value={inv.itemId}>{item?.name} (متاح: {inv.quantity})</option>
  })}
  </select>
  </div>
@@ -1425,7 +1425,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <div key={idx} className="bg-gray-50 p-3 rounded-xl flex items-center justify-between gap-4 border border-gray-100">
  <div className="flex-1">
  <p className="font-bold text-sm text-black">{itemDetails?.name}</p>
- <p className="text-[10px] text-[#44474D]">╪│╪╣╪▒ ╪º┘ä┘ê╪¡╪»╪⌐: {saleItem.price} ╪¼.┘à</p>
+ <p className="text-[10px] text-[#44474D]">سعر الوحدة: {saleItem.price} ج.م</p>
  </div>
  <div className="flex items-center gap-2">
  <input 
@@ -1457,14 +1457,14 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  })}
  {newSale.items.length === 0 && (
  <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-xl">
- <p className="text-xs text-gray-400">┘ä┘à ┘è╪¬┘à ╪º╪«╪¬┘è╪º╪▒ ╪ú╪╡┘å╪º┘ü ╪¿╪╣╪»</p>
+ <p className="text-xs text-gray-400">لم يتم اختيار أصناف بعد</p>
  </div>
  )}
  </div>
  </div>
 
  <div className="space-y-2">
- <label className="text-sm font-bold text-[#44474D]">╪º┘ä┘à╪¿┘ä╪║ ╪º┘ä┘à╪»┘ü┘ê╪╣ ╪¡╪º┘ä┘è╪º┘ï (╪¼.┘à)</label>
+ <label className="text-sm font-bold text-[#44474D]">المبلغ المدفوع حالياً (ج.م)</label>
  <input 
  type="number" 
  value={newSale.paidAmount || ''} 
@@ -1472,21 +1472,21 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  className="w-full bg-[#F2F4F6] border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-black outline-none font-bold text-green-600" 
  placeholder="0.00" 
  />
- <p className="text-[9px] text-[#44474D] font-bold">╪º┘ä┘à╪¬╪¿┘é┘è ╪│┘è╪¬┘à ╪¬╪│╪¼┘è┘ä┘ç ┘â┘Ç"╪ó╪¼┘ä" ╪╣┘ä┘ë ╪¡╪│╪º╪¿ ╪º┘ä╪╣┘à┘è┘ä</p>
+ <p className="text-[9px] text-[#44474D] font-bold">المتبقي سيتم تسجيله كـ"آجل" على حساب العميل</p>
  </div>
 
  <div className="bg-black text-white p-6 rounded-2xl flex justify-between items-center">
  <div>
- <p className="text-[10px] text-white/60">╪Ñ╪¼┘à╪º┘ä┘è ╪º┘ä┘ü╪º╪¬┘ê╪▒╪⌐</p>
+ <p className="text-[10px] text-white/60">إجمالي الفاتورة</p>
  <h4 className="text-2xl font-bold">
- {newSale.items.reduce((sum, item) => sum + (item.quantity * item.price), 0).toLocaleString()} ╪¼.┘à
+ {newSale.items.reduce((sum, item) => sum + (item.quantity * item.price), 0).toLocaleString()} ج.م
  </h4>
  </div>
  <button 
  type="submit"
  className="bg-green-500 hover:bg-green-600 px-8 py-3 rounded-xl font-bold text-sm transition-all"
  >
- ╪¬╪½╪¿┘è╪¬ ┘ê╪¿┘è╪╣
+ تثبيت وبيع
  </button>
  </div>
  </form>
@@ -1500,12 +1500,12 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-2xl rounded-3xl p-6 relative z-10 max-h-[90vh] overflow-y-auto no-scrollbar">
  <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
  <ArrowRightLeft className="w-6 h-6" />
- ╪╖┘ä╪¿ ╪¬┘ê╪▒┘è╪» ╪¿╪╢╪º╪╣╪⌐ ╪¼╪»┘è╪»╪⌐
+ طلب توريد بضاعة جديدة
  </h2>
  <form onSubmit={handleCreateRequest} className="space-y-4">
  <div className="space-y-4">
  <div className="flex justify-between items-center">
- <label className="text-sm font-bold text-[#44474D]">╪Ñ╪╢╪º┘ü╪⌐ ╪ú╪╡┘å╪º┘ü ┘ä┘ä╪╖┘ä╪¿</label>
+ <label className="text-sm font-bold text-[#44474D]">إضافة أصناف للطلب</label>
  <select 
  onChange={(e) => {
  const itemId = parseInt(e.target.value);
@@ -1515,7 +1515,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  }}
  className="bg-black text-white px-4 py-2 rounded-xl text-xs font-bold outline-none"
  >
- <option value="0">╪º╪«╪¬╪▒ ╪╡┘å┘ü...</option>
+ <option value="0">اختر صنف...</option>
  {allItems?.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
  </select>
  </div>
@@ -1560,8 +1560,8 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  </div>
 
  <div className="flex gap-4 pt-4 border-t">
- <button type="submit" disabled={newRequest.items.length === 0} className="flex-1 bg-black text-white py-3 rounded-xl font-bold disabled:opacity-50">╪Ñ╪▒╪│╪º┘ä ╪º┘ä╪╖┘ä╪¿ ┘ä┘ä┘à╪▒╪º╪¼╪╣╪⌐</button>
- <button type="button" onClick={() => setRequestModalOpen(false)} className="flex-1 bg-gray-100 text-[#44474D] py-3 rounded-xl font-bold">╪Ñ┘ä╪║╪º╪í</button>
+ <button type="submit" disabled={newRequest.items.length === 0} className="flex-1 bg-black text-white py-3 rounded-xl font-bold disabled:opacity-50">إرسال الطلب للمراجعة</button>
+ <button type="button" onClick={() => setRequestModalOpen(false)} className="flex-1 bg-gray-100 text-[#44474D] py-3 rounded-xl font-bold">إلغاء</button>
  </div>
  </form>
  </motion.div>
@@ -1574,11 +1574,11 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-md rounded-3xl p-6 relative z-10">
  <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
  <Coins className="w-6 h-6 text-green-600" />
- ╪¬╪│╪¼┘è┘ä ╪¬╪¡╪╡┘è┘ä ┘å┘é╪»┘è╪⌐
+ تسجيل تحصيل نقدية
  </h2>
  <form onSubmit={handleCreateCollection} className="space-y-4">
  <div className="space-y-2">
- <label className="text-sm font-bold text-[#44474D]">╪º┘ä╪╣┘à┘è┘ä</label>
+ <label className="text-sm font-bold text-[#44474D]">العميل</label>
  <select 
  required 
  disabled
@@ -1589,7 +1589,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  </select>
  </div>
  <div className="space-y-2">
- <label className="text-sm font-bold text-[#44474D]">╪º┘ä┘à╪¿┘ä╪║ ╪º┘ä┘à╪¡╪╡┘ä (╪¼.┘à)</label>
+ <label className="text-sm font-bold text-[#44474D]">المبلغ المحصل (ج.م)</label>
  <input 
  required 
  type="number" 
@@ -1600,23 +1600,23 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  />
  </div>
  <div className="space-y-2">
- <label className="text-sm font-bold text-[#44474D]">╪╖╪▒┘è┘é╪⌐ ╪º┘ä╪¬╪¡╪╡┘è┘ä</label>
+ <label className="text-sm font-bold text-[#44474D]">طريقة التحصيل</label>
  <select 
  className="w-full bg-[#F2F4F6] border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-black outline-none font-bold"
  value={newCollection.method}
  onChange={e => setNewCollection({...newCollection, method: e.target.value as any})}
  >
- <option value="cash">┘å┘é╪»╪º┘ï</option>
- <option value="transfer">╪¬╪¡┘ê┘è┘ä ╪¿┘å┘â┘è</option>
- <option value="check">╪┤┘è┘â</option>
+ <option value="cash">نقداً</option>
+ <option value="transfer">تحويل بنكي</option>
+ <option value="check">شيك</option>
  </select>
  </div>
  <p className="text-[10px] text-orange-600 font-bold bg-orange-50 p-2 rounded-lg">
- * ╪│┘è╪¬┘à ╪¬╪│╪¼┘è┘ä ╪º┘ä╪¬╪¡╪╡┘è┘ä ┘â┘Ç"┘é┘è╪» ╪º┘ä╪º┘å╪¬╪╕╪º╪▒" ┘ê┘ä┘å ┘è╪¬┘à ╪«╪╡┘à┘ç ┘à┘å ┘à╪»┘è┘ê┘å┘è╪⌐ ╪º┘ä╪╣┘à┘è┘ä ╪Ñ┘ä╪º ╪¿╪╣╪» ╪¬╪ú┘â┘è╪» ╪º┘ä╪Ñ╪»╪º╪▒╪⌐ ╪╣┘å╪» ╪º┘ä╪º╪│╪¬┘ä╪º┘à.
+ * سيتم تسجيل التحصيل كـ"قيد الانتظار" ولن يتم خصمه من مديونية العميل إلا بعد تأكيد الإدارة عند الاستلام.
  </p>
  <div className="flex gap-3 pt-4">
- <button type="submit" className="flex-1 bg-black text-white py-3 rounded-xl font-bold">╪¬╪│╪¼┘è┘ä ╪º┘ä╪╖┘ä╪¿</button>
- <button type="button" onClick={() => setCollectionModalOpen(false)} className="flex-1 bg-gray-100 text-[#44474D] py-3 rounded-xl font-bold">╪Ñ┘ä╪║╪º╪í</button>
+ <button type="submit" className="flex-1 bg-black text-white py-3 rounded-xl font-bold">تسجيل الطلب</button>
+ <button type="button" onClick={() => setCollectionModalOpen(false)} className="flex-1 bg-gray-100 text-[#44474D] py-3 rounded-xl font-bold">إلغاء</button>
  </div>
  </form>
  </motion.div>

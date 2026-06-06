@@ -31,7 +31,7 @@ import {
 import { cn, formatCurrency, formatDate } from '../lib/utils';
 import { Tabs, WorkspaceLayout } from '../components/design-system';
 
-// ─── Types ───────────────────────────────────────────────
+// ��� Types �����������������������������������������������
 type MetricType = 'sales' | 'gross_profit' | 'net_profit' | 'inventory' | 'expenses' | 'customers' | 'delivered_orders' | 'top_selling' | null;
 
 interface KPICardData {
@@ -49,12 +49,12 @@ interface StatRow { id: number | string; [key: string]: unknown; raw_search?: st
 
 interface ModalContent { title: string; subtitle: string; headers: string[]; rows: StatRow[]; }
 
-// ─── Color palette ───────────────────────────────────────
+// ��� Color palette ���������������������������������������
 const CHART_COLORS = ['#0A0A0B', '#2563EB', '#F59E0B', '#EF4444', '#10B981', '#8B5CF6', '#EC4899', '#14B8A6'];
 const GRADIENT_CHART = { offset: '0%', color: '#0A0A0B', opacity: 0.2 };
 const GRADIENT_CHART_END = { offset: '100%', color: '#0A0A0B', opacity: 0.02 };
 
-// ─── Error Boundary ──────────────────────────────────────
+// ��� Error Boundary ��������������������������������������
 class ReportErrorBoundary extends React.Component<{ children: React.ReactNode; fallback?: React.ReactNode }, { hasError: boolean; error: Error | null }> {
   constructor(props: { children: React.ReactNode; fallback?: React.ReactNode }) {
     super(props);
@@ -79,12 +79,12 @@ class ReportErrorBoundary extends React.Component<{ children: React.ReactNode; f
   }
 }
 
-// ─── Skeleton loader ─────────────────────────────────────
+// ��� Skeleton loader �������������������������������������
 function SkeletonBlock({ className }: { className?: string }) {
   return <div className={cn('skeleton-pulse', className)} />;
 }
 
-// ─── Animated counter ────────────────────────────────────
+// ��� Animated counter ������������������������������������
 function AnimatedValue({ value, prefix = '', suffix = '' }: { value: string; prefix?: string; suffix?: string }) {
   return (
     
@@ -99,7 +99,7 @@ function AnimatedValue({ value, prefix = '', suffix = '' }: { value: string; pre
   );
 }
 
-// ─── Premium KPI Card ────────────────────────────────────
+// ��� Premium KPI Card ������������������������������������
 function KPICard({
   stat, index, onClick,
 }: {
@@ -146,7 +146,7 @@ function KPICard({
   );
 }
 
-// ─── KPI Mini Sparkline ──────────────────────────────────
+// ��� KPI Mini Sparkline ����������������������������������
 function MiniSparkline({ data, color }: { data: { value: number }[]; color: string }) {
   if (!data.length) return null;
   const max = Math.max(...data.map(d => d.value), 1);
@@ -160,7 +160,7 @@ function MiniSparkline({ data, color }: { data: { value: number }[]; color: stri
   );
 }
 
-// ─── Custom Chart Tooltip ────────────────────────────────
+// ��� Custom Chart Tooltip ��������������������������������
 function ChartTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
@@ -180,7 +180,7 @@ function ChartTooltip({ active, payload, label }: any) {
   );
 }
 
-// ─── Custom Pie Tooltip ──────────────────────────────────
+// ��� Custom Pie Tooltip ����������������������������������
 function PieTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const d = payload[0];
@@ -196,7 +196,7 @@ function PieTooltip({ active, payload }: any) {
   );
 }
 
-// ─── Modal Section Wrapper ───────────────────────────────
+// ��� Modal Section Wrapper �������������������������������
 function ModalSection({ title, icon: Icon, children, className }: {
   title: string; icon?: React.ComponentType<{ className?: string }>; children: React.ReactNode; className?: string;
 }) {
@@ -214,7 +214,7 @@ function ModalSection({ title, icon: Icon, children, className }: {
   );
 }
 
-// ─── Premium Analytics Modal ─────────────────────────────
+// ��� Premium Analytics Modal �����������������������������
 function AnalyticsModal({
   metric, content, onClose, searchTerm, onSearchChange, monthlyData, distributionData,
   topSellingProducts, validSales, items, totalRevenue, grossProfit, netProfit, totalExpenses,
@@ -271,7 +271,7 @@ function AnalyticsModal({
         className="relative w-full max-w-5xl max-h-[90vh] flex flex-col bg-white rounded-2xl shadow-[var(--shadow-modal)] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* ── Sticky Header ── */}
+        {/* �� Sticky Header �� */}
         <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-[var(--border-light)] px-6 py-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center shadow-sm">
@@ -298,7 +298,7 @@ function AnalyticsModal({
           </div>
         </div>
 
-        {/* ── Tabs + Filter Bar ── */}
+        {/* �� Tabs + Filter Bar �� */}
         <div className="sticky top-[73px] z-10 bg-white border-b border-[var(--border-light)] px-6 py-3 flex items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-1 bg-gray-100/50 p-0.5 rounded-lg">
             {tabs.map(tab => {
@@ -324,7 +324,7 @@ function AnalyticsModal({
           </div>
         </div>
 
-        {/* ── Scrollable Content ── */}
+        {/* �� Scrollable Content �� */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {modalTab === 'overview' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
@@ -543,7 +543,7 @@ function AnalyticsModal({
           )}
         </div>
 
-        {/* ── Footer ── */}
+        {/* �� Footer �� */}
         <div className="sticky bottom-0 bg-white/90 backdrop-blur-md border-t border-[var(--border-light)] px-6 py-3 flex items-center justify-between shrink-0">
           <span className="text-[11px] text-[var(--text-tertiary)] font-bold">
             إجمالي النتائج: {content.rows.length}
@@ -557,28 +557,28 @@ function AnalyticsModal({
   );
 }
 
-// ═══════════════════════════════════════════════════════════
+// �����������������������������������������������������������
 //  MAIN REPORTS PAGE
-// ═══════════════════════════════════════════════════════════
+// �����������������������������������������������������������
 export default function Reports({ setActivePage }: { setActivePage: (page: string) => void }) {
   const [activeTab, setActiveTab] = useState<'analytics' | 'audit'>('analytics');
   const [selectedMetric, setSelectedMetric] = useState<MetricType>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // ── Backend Analytics (React Query) ──
+  // �� Backend Analytics (React Query) ��
   const summaryQuery = useAnalyticsSummary();
   const profitQuery = useProfitDetails();
   const salesQuery = useSalesDetails();
   const inventoryQuery = useInventoryAnalytics();
 
-  // ── Backend Data — replaces Dexie ──
+  // �� Backend Data — replaces Dexie ��
   const inventoryReportsQuery = useInventoryReports();
   const customerBalancesQuery = useCustomerBalances();
   const items = inventoryReportsQuery.data?.tables?.items ?? [];
   const inventoryTransactions = inventoryReportsQuery.data?.tables?.transactions ?? [];
   const customers = customerBalancesQuery.data?.data ?? [];
 
-  // ── Computed from API ──
+  // �� Computed from API ��
   const s = summaryQuery.data?.summary;
   const totalRevenue = s?.totalSales ?? 0;
   const totalExpenses = s?.totalExpenses ?? 0;
@@ -596,7 +596,7 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
 
   const totalTaxCollected = 0;
 
-  // ── Monthly Chart Data from API ──
+  // �� Monthly Chart Data from API ��
   const monthlyData = useMemo(() => {
     const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
     const trends = profitQuery.data?.charts?.trends ?? [];
@@ -608,19 +608,19 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
     });
   }, [profitQuery.data]);
 
-  // ── Distribution Data (category-based) from API ──
+  // �� Distribution Data (category-based) from API ��
   const distributionData = useMemo(() => {
     const catDist = inventoryQuery.data?.charts?.categoryDistribution ?? [];
     return catDist.slice(0, 4).map(d => ({ name: d.category, value: d.value }));
   }, [inventoryQuery.data]);
 
-  // ── Top Selling from API ──
+  // �� Top Selling from API ��
   const topSellingProducts = useMemo(() => {
     const topItems = salesQuery.data?.charts?.topItems ?? [];
     return topItems.slice(0, 5).map(i => ({ name: i.name, quantity: i.totalQuantity, revenue: i.totalRevenue }));
   }, [salesQuery.data]);
 
-  // ── Modal Content ──
+  // �� Modal Content ��
   const modalContent = useMemo((): ModalContent | null => {
     if (!selectedMetric) return null;
     let title = '', subtitle = '', headers: string[] = [], rows: StatRow[] = [];
@@ -685,14 +685,14 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
     return { title, subtitle, headers, rows: filteredRows };
   }, [selectedMetric, salesQuery.data, customers, items, searchTerm, totalRevenue, totalCostOfGoodsSold, totalExpenses, grossProfit, netProfit, topSellingProducts, profitQuery.data, inventoryQuery.data]);
 
-  // ── KPI Card Definitions ──
+  // �� KPI Card Definitions ��
   const netLabel = profitVal > 0 ? 'صافي الأرباح' : lossVal > 0 ? 'إجمالي الخسائر' : 'صافي الربح/الخسارة';
   const netValue = profitVal > 0 ? profitVal : lossVal > 0 ? lossVal : 0;
   const netIcon = profitVal > 0 ? CheckCircle2 : lossVal > 0 ? TrendingDown : Minus;
   const netGradient = profitVal > 0 ? 'bg-gradient-to-r from-green-500 to-emerald-400' : lossVal > 0 ? 'bg-gradient-to-r from-red-500 to-rose-400' : 'bg-gradient-to-r from-gray-500 to-gray-400';
   const netIconBg = profitVal > 0 ? 'bg-green-500' : lossVal > 0 ? 'bg-red-500' : 'bg-gray-500';
   const netTrendDir = profitVal > 0 ? 'up' : lossVal > 0 ? 'down' : 'neutral';
-  const netTrendLabel = profitVal > 0 ? 'ربح' : lossVal > 0 ? 'خسارة' : '─';
+  const netTrendLabel = profitVal > 0 ? 'ربح' : lossVal > 0 ? 'خسارة' : '�';
 
   const kpiCards: KPICardData[] = [
     {
@@ -745,7 +745,7 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
     },
   ];
 
-  // ── Loading State ──
+  // �� Loading State ��
   const isLoading = summaryQuery.isLoading || profitQuery.isLoading || salesQuery.isLoading || inventoryQuery.isLoading;
   const isError = summaryQuery.isError || profitQuery.isError || salesQuery.isError || inventoryQuery.isError;
 
@@ -800,7 +800,7 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
             </div>
           </motion.div>
 
-          {/* ── KPI Cards Grid ── */}
+          {/* �� KPI Cards Grid �� */}
           {isLoading ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {Array.from({ length: 8 }).map((_, i) => (
@@ -830,7 +830,7 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
             </div>
           )}
 
-          {/* ── Charts Section ── */}
+          {/* �� Charts Section �� */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main Chart */}
             <div className="lg:col-span-2 bg-white rounded-2xl border border-[var(--border-light)] p-6 shadow-[var(--shadow-card)]">
@@ -926,7 +926,7 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
           </div>
         </>
       ) : (
-        /* ── Audit Log Tab ── */
+        /* �� Audit Log Tab �� */
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
           className="bg-white rounded-2xl border border-[var(--border-light)] overflow-hidden shadow-[var(--shadow-card)]"
         >
@@ -996,7 +996,7 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
         </motion.div>
       )}
 
-      {/* ── Analytics Modal ── */}
+      {/* �� Analytics Modal �� */}
       <AnimatePresence>
         {selectedMetric && modalContent && (
           <AnalyticsModal

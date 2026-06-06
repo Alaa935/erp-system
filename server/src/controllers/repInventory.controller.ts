@@ -16,6 +16,8 @@ export const repInventoryController = {
 
   async update(req: Request, res: Response, next: NextFunction) {
     try {
+      console.log('[REP INVENTORY BODY]', JSON.stringify(req.body));
+      console.log('[REP INVENTORY PARAMS]', JSON.stringify(req.params));
       const id = Number(req.params.id);
       const { quantity } = req.body;
       if (quantity === undefined || quantity === null) {
@@ -24,6 +26,9 @@ export const repInventoryController = {
       }
       const result = await repInventoryService.updateQuantity(id, Number(quantity));
       res.json({ success: true, data: result });
-    } catch (err) { next(err); }
+    } catch (err) {
+      console.log('[REP INVENTORY ERROR]', err);
+      next(err);
+    }
   },
 };

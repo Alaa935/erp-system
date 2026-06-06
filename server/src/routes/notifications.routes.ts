@@ -11,6 +11,6 @@ router.get('/unread', authorize('admin', 'manager', 'rep'), notificationsControl
 router.put('/:id/read', authorize('admin', 'manager', 'rep'), notificationsController.markRead);
 router.put('/read-all', authorize('admin', 'manager', 'rep'), notificationsController.markAllRead);
 router.delete('/:id', authorize('admin'), notificationsController.remove);
-router.post('/', authorize('admin', 'manager'), notificationsController.create);
+router.post('/', authorize('admin', 'manager', 'rep'), notificationsController.create);
 
 export default router;

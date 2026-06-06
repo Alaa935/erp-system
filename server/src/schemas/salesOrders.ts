@@ -4,6 +4,7 @@ export const createSalesOrderSchema = z.object({
   customerId: z.number().int().positive(),
   repId: z.number().int().positive().optional().nullable(),
   taxId: z.number().int().positive().optional().nullable(),
+  paidAmount: z.number().min(0).optional().default(0),
   items: z.array(z.object({
     itemId: z.number().int().positive(),
     quantity: z.number().positive(),

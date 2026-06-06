@@ -109,6 +109,7 @@ export const salesOrdersService = {
     items: { itemId: number; quantity: number; price: number }[];
     taxId?: number | null;
     repId?: number | null;
+    paidAmount?: number;
   }) {
     const customer = await prisma.customer.findUnique({ where: { id: data.customerId } });
     if (!customer) throw new AppError(404, 'Customer not found');
@@ -152,27 +153,54 @@ export const salesOrdersService = {
     }
 
     const orderNumber = generateOrderNumber();
+    const paidAmount = data.paidAmount ?? 0;
+    const paid = Math.min(paidAmount, totalAmount);
+    const paymentStatus = paid >= totalAmount ? 'paid' : (paid > 0 ? 'partial' : 'unpaid');
 
-    const order = await prisma.salesOrder.create({
-      data: {
-        orderNumber,
-        customerId: data.customerId,
-        repId: data.repId ?? undefined,
-        subtotal: new Decimal(subtotal),
-        taxId: data.taxId ?? undefined,
-        taxAmount: new Decimal(taxAmount),
-        totalAmount: new Decimal(totalAmount),
-        status: 'pending',
-        paymentStatus: 'unpaid',
-        paidAmount: new Decimal(0),
-        items: {
-          create: orderItems,
+    const order = await prisma.$transaction(async (tx) => {
+      const created = await tx.salesOrder.create({
+        data: {
+          orderNumber,
+          customerId: data.customerId,
+          repId: data.repId ?? undefined,
+          subtotal: new Decimal(subtotal),
+          taxId: data.taxId ?? undefined,
+          taxAmount: new Decimal(taxAmount),
+          totalAmount: new Decimal(totalAmount),
+          status: 'pending',
+          paymentStatus,
+          paidAmount: new Decimal(paid),
+          items: { create: orderItems },
         },
-      },
-      include: {
-        customer: { select: { id: true, name: true } },
-        items: { include: { item: { select: { id: true, name: true, sku: true } } } },
-      },
+        include: {
+          customer: { select: { id: true, name: true } },
+          items: { include: { item: { select: { id: true, name: true, sku: true } } } },
+        },
+      });
+
+      if (paid > 0) {
+        await tx.financialTransaction.create({
+          data: {
+            type: 'income',
+            category: 'sale',
+            amount: new Decimal(paid),
+            description: `دفعة على فاتورة ${orderNumber}`,
+            referenceId: created.id,
+          },
+        });
+      }
+
+      if (data.repId) {
+        await tx.salesRep.update({
+          where: { id: data.repId },
+          data: {
+            currentSales: { increment: new Decimal(totalAmount) },
+            balance: { increment: new Decimal(paid) },
+          },
+        });
+      }
+
+      return created;
     });
 
     return order;

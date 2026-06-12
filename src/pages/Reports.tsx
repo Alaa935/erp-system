@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useAnalyticsSummary, useSalesDetails, useInventoryAnalytics, useProfitDetails } from '../hooks/useAnalytics';
+import { useAnalyticsSummary, useSalesDetails, useInventoryAnalytics, useProfitDetails, useExpensesDetails } from '../hooks/useAnalytics';
 import { useInventoryReports, useCustomerBalances } from '../hooks/useReports';
 import {
   BarChart3, TrendingUp, TrendingDown, Package, FileText, Download,
@@ -32,7 +32,7 @@ import { cn, formatCurrency, formatDate } from '../lib/utils';
 import { Tabs, WorkspaceLayout } from '../components/design-system';
 
 // ��� Types �����������������������������������������������
-type MetricType = 'sales' | 'gross_profit' | 'net_profit' | 'inventory' | 'expenses' | 'customers' | 'delivered_orders' | 'top_selling' | null;
+type MetricType = 'sales' | 'gross_profit' | 'net_profit' | 'inventory' | 'expenses' | 'customers' | 'delivered_orders' | 'top_selling' | 'tax' | null;
 
 interface KPICardData {
   label: string;
@@ -50,7 +50,7 @@ interface StatRow { id: number | string; [key: string]: unknown; raw_search?: st
 interface ModalContent { title: string; subtitle: string; headers: string[]; rows: StatRow[]; }
 
 // ��� Color palette ���������������������������������������
-const CHART_COLORS = ['#0A0A0B', '#2563EB', '#F59E0B', '#EF4444', '#10B981', '#8B5CF6', '#EC4899', '#14B8A6'];
+
 const GRADIENT_CHART = { offset: '0%', color: '#0A0A0B', opacity: 0.2 };
 const GRADIENT_CHART_END = { offset: '100%', color: '#0A0A0B', opacity: 0.02 };
 
@@ -196,6 +196,90 @@ function PieTooltip({ active, payload }: any) {
   );
 }
 
+// ��� Metric-specific overview helpers �������������������
+function metricSectionTitle(metric: MetricType): string {
+  const titles: Record<string, string> = {
+    sales: 'تحليل المبيعات (آخر 6 أشهر)', gross_profit: 'تحليل مجمل الربح (آخر 6 أشهر)',
+    net_profit: 'تحليل صافي الربح (آخر 6 أشهر)', tax: 'تحليل الضرائب (آخر 6 أشهر)',
+    inventory: 'تحليل المخزون (آخر 6 أشهر)', expenses: 'تحليل المصروفات (آخر 6 أشهر)',
+    customers: 'تحليل العملاء (آخر 6 أشهر)', delivered_orders: 'تحليل الفواتير المسلمة (آخر 6 أشهر)',
+  };
+  return titles[metric ?? ''] || 'تحليل الأداء (آخر 6 أشهر)';
+}
+function metricPieTitle(metric: MetricType): string {
+  const titles: Record<string, string> = {
+    sales: 'توزيع المبيعات', gross_profit: 'توزيع الإيرادات',
+    net_profit: 'توزيع الإيرادات', tax: 'توزيع الضرائب',
+    inventory: 'توزيع المخزون', expenses: 'توزيع المصروفات',
+    customers: 'توزيع العملاء', delivered_orders: 'توزيع التوصيلات',
+  };
+  return titles[metric ?? ''] || 'توزيع المخزون';
+}
+function metricPieData(metric: MetricType, distributionData: { name: string; value: number }[], monthlyData: any[]): { name: string; value: number }[] {
+  if (metric === 'expenses' && monthlyData.length > 0) {
+    return monthlyData.map(d => ({ name: d.month, value: d.مصاريف || 0 }));
+  }
+  if (metric === 'sales' && monthlyData.length > 0) {
+    return monthlyData.map(d => ({ name: d.month, value: d.مبيعات || 0 }));
+  }
+  return distributionData;
+}
+
+interface OverviewCard { label: string; value: string; icon: React.ComponentType<{ className?: string }>; gradient: string; }
+
+const metricOverviewCards: Record<string, (ctx: any) => OverviewCard[]> = {
+  sales: (ctx) => [
+    { label: 'إجمالي الإيرادات', value: formatCurrency(ctx.totalRevenue), icon: DollarSign, gradient: 'from-black/5 to-transparent' },
+    { label: 'عدد الفواتير', value: String(ctx.deliveredOrdersCount), icon: FileText, gradient: 'from-blue-500/10 to-transparent' },
+    { label: 'صافي الربح', value: formatCurrency(ctx.netProfit), icon: CheckCircle2, gradient: 'from-green-500/10 to-transparent' },
+    { label: 'المصاريف', value: formatCurrency(ctx.totalExpenses), icon: Wallet, gradient: 'from-red-500/10 to-transparent' },
+  ],
+  gross_profit: (ctx) => [
+    { label: 'الإيرادات', value: formatCurrency(ctx.totalRevenue), icon: DollarSign, gradient: 'from-black/5 to-transparent' },
+    { label: 'COGS', value: formatCurrency(ctx.totalCostOfGoodsSold), icon: TrendingDown, gradient: 'from-orange-500/10 to-transparent' },
+    { label: 'مجمل الربح', value: formatCurrency(ctx.grossProfit), icon: TrendingUp, gradient: 'from-blue-500/10 to-transparent' },
+    { label: 'الهامش', value: ctx.totalRevenue ? ((ctx.grossProfit / ctx.totalRevenue) * 100).toFixed(1) + '%' : '0%', icon: Percent, gradient: 'from-green-500/10 to-transparent' },
+  ],
+  net_profit: (ctx) => [
+    { label: 'الإيرادات', value: formatCurrency(ctx.totalRevenue), icon: DollarSign, gradient: 'from-black/5 to-transparent' },
+    { label: 'مجمل الربح', value: formatCurrency(ctx.grossProfit), icon: TrendingUp, gradient: 'from-blue-500/10 to-transparent' },
+    { label: 'المصاريف', value: formatCurrency(ctx.totalExpenses), icon: Wallet, gradient: 'from-red-500/10 to-transparent' },
+    { label: 'صافي الربح', value: formatCurrency(ctx.netProfit), icon: CheckCircle2, gradient: ctx.netProfit >= 0 ? 'from-green-500/10 to-transparent' : 'from-red-500/10 to-transparent' },
+  ],
+  tax: (ctx) => [
+    { label: 'الضريبة المحصلة', value: formatCurrency(ctx.totalTaxCollected), icon: Percent, gradient: 'from-purple-500/10 to-transparent' },
+    { label: 'عدد الفواتير', value: String(ctx.deliveredOrdersCount), icon: FileText, gradient: 'from-blue-500/10 to-transparent' },
+    { label: 'الإيرادات', value: formatCurrency(ctx.totalRevenue), icon: DollarSign, gradient: 'from-black/5 to-transparent' },
+    { label: 'نسبة الضريبة', value: '14%', icon: BadgePercent, gradient: 'from-indigo-500/10 to-transparent' },
+  ],
+  inventory: (ctx) => [
+    { label: 'قيمة المخزون', value: formatCurrency(ctx.inventoryTotalValue), icon: Package, gradient: 'from-orange-500/10 to-transparent' },
+    { label: 'إجمالي الأصناف', value: String(ctx.totalItemsCount), icon: Layers, gradient: 'from-blue-500/10 to-transparent' },
+    { label: 'العملاء', value: String(ctx.totalCustomersCount), icon: Users, gradient: 'from-purple-500/10 to-transparent' },
+    { label: 'فواتير مسلمة', value: String(ctx.deliveredOrdersCount), icon: Receipt, gradient: 'from-emerald-500/10 to-transparent' },
+  ],
+  expenses: (ctx) => [
+    { label: 'إجمالي المصروفات', value: formatCurrency(ctx.totalExpenses), icon: Wallet, gradient: 'from-red-500/10 to-transparent' },
+    { label: 'عدد المعاملات', value: String(ctx.expensesQuery?.data?.summary?.totalTransactions ?? 0), icon: FileText, gradient: 'from-orange-500/10 to-transparent' },
+    { label: 'الإيرادات', value: formatCurrency(ctx.totalRevenue), icon: DollarSign, gradient: 'from-black/5 to-transparent' },
+    { label: 'نسبة المصروفات', value: ctx.totalRevenue ? ((ctx.totalExpenses / ctx.totalRevenue) * 100).toFixed(1) + '%' : '0%', icon: Percent, gradient: 'from-amber-500/10 to-transparent' },
+  ],
+  customers: (ctx) => [
+    { label: 'إجمالي العملاء', value: String(ctx.totalCustomersCount), icon: Users, gradient: 'from-purple-500/10 to-transparent' },
+    { label: 'الإيرادات', value: formatCurrency(ctx.totalRevenue), icon: DollarSign, gradient: 'from-black/5 to-transparent' },
+    { label: 'فواتير مسلمة', value: String(ctx.deliveredOrdersCount), icon: Receipt, gradient: 'from-emerald-500/10 to-transparent' },
+    { label: 'متوسط لكل عميل', value: ctx.totalCustomersCount ? formatCurrency(ctx.totalRevenue / ctx.totalCustomersCount) : '0', icon: Target, gradient: 'from-blue-500/10 to-transparent' },
+  ],
+  delivered_orders: (ctx) => [
+    { label: 'فواتير مسلمة', value: String(ctx.deliveredOrdersCount), icon: Receipt, gradient: 'from-emerald-500/10 to-transparent' },
+    { label: 'الإيرادات', value: formatCurrency(ctx.totalRevenue), icon: DollarSign, gradient: 'from-black/5 to-transparent' },
+    { label: 'صافي الربح', value: formatCurrency(ctx.netProfit), icon: CheckCircle2, gradient: 'from-green-500/10 to-transparent' },
+    { label: 'المصاريف', value: formatCurrency(ctx.totalExpenses), icon: Wallet, gradient: 'from-red-500/10 to-transparent' },
+  ],
+};
+
+const CHART_COLORS = ['#0A0A0B', '#2563EB', '#EF4444', '#F59E0B', '#22C55E', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#6366F1'];
+
 // ��� Modal Section Wrapper �������������������������������
 function ModalSection({ title, icon: Icon, children, className }: {
   title: string; icon?: React.ComponentType<{ className?: string }>; children: React.ReactNode; className?: string;
@@ -219,7 +303,7 @@ function AnalyticsModal({
   metric, content, onClose, searchTerm, onSearchChange, monthlyData, distributionData,
   topSellingProducts, validSales, items, totalRevenue, grossProfit, netProfit, totalExpenses,
   totalCostOfGoodsSold, totalTaxCollected, inventoryTotalValue, totalCustomersCount,
-  deliveredOrdersCount, customers, warehouses,
+  deliveredOrdersCount, totalItemsCount, customers, warehouses, expensesQuery,
 }: {
   metric: MetricType; content: ModalContent; onClose: () => void;
   searchTerm: string; onSearchChange: (v: string) => void;
@@ -229,7 +313,9 @@ function AnalyticsModal({
   totalRevenue: number; grossProfit: number; netProfit: number; totalExpenses: number;
   totalCostOfGoodsSold: number; totalTaxCollected: number; inventoryTotalValue: number;
   totalCustomersCount: number; deliveredOrdersCount: number;
+  totalItemsCount: number;
   customers: any[] | undefined; warehouses: any[] | undefined;
+  expensesQuery: any;
 }) {
   const [modalTab, setModalTab] = useState<'overview' | 'chart' | 'table' | 'insights'>('overview');
 
@@ -328,30 +414,27 @@ function AnalyticsModal({
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {modalTab === 'overview' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-              {/* KPI mini cards row */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {[
-                  { label: 'إجمالي الإيرادات', value: formatCurrency(totalRevenue), icon: DollarSign, gradient: 'from-black/5 to-transparent' },
-                  { label: 'مجمل الربح', value: formatCurrency(grossProfit), icon: TrendingUp, gradient: 'from-blue-500/10 to-transparent' },
-                  { label: 'صافي الربح', value: formatCurrency(netProfit), icon: CheckCircle2, gradient: 'from-green-500/10 to-transparent' },
-                  { label: 'المصاريف', value: formatCurrency(totalExpenses), icon: Wallet, gradient: 'from-red-500/10 to-transparent' },
-                ].map((kpi, i) => (
-                  <div key={i} className="relative rounded-xl border border-[var(--border-light)] bg-gradient-to-br from-white to-gray-50/50 p-4 overflow-hidden">
-                    <div className={cn('absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r', kpi.gradient)} />
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center">
-                        <kpi.icon className="w-3.5 h-3.5 text-gray-600" />
+              {/* Metric-specific KPI mini cards row */}
+              {metric && metricOverviewCards[metric] && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {metricOverviewCards[metric]({ totalRevenue, grossProfit, netProfit, totalExpenses, totalCostOfGoodsSold, totalTaxCollected, inventoryTotalValue, totalCustomersCount, deliveredOrdersCount, totalItemsCount, expensesQuery }).map((kpi, i) => (
+                    <div key={i} className="relative rounded-xl border border-[var(--border-light)] bg-gradient-to-br from-white to-gray-50/50 p-4 overflow-hidden">
+                      <div className={cn('absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r', kpi.gradient)} />
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center">
+                          <kpi.icon className="w-3.5 h-3.5 text-gray-600" />
+                        </div>
+                        <p className="text-[10px] font-bold text-[var(--text-tertiary)]">{kpi.label}</p>
                       </div>
-                      <p className="text-[10px] font-bold text-[var(--text-tertiary)]">{kpi.label}</p>
+                      <p className="text-lg font-black">{kpi.value}</p>
                     </div>
-                    <p className="text-lg font-black">{kpi.value}</p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
 
               {/* Charts row */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <ModalSection title="تحليل الأداء المالي (آخر 6 أشهر)" icon={ChartLine}>
+                <ModalSection title={metricSectionTitle(metric)} icon={ChartLine}>
                   <div className="min-h-[256px] h-64" style={{ position: 'relative' }}>
                     <ResponsiveContainer width="100%" height="100%" debounce={100}>
                       <BarChart data={monthlyData}>
@@ -367,24 +450,23 @@ function AnalyticsModal({
                   </div>
                 </ModalSection>
 
-                <ModalSection title="توزيع المخزون" icon={PieChart}>
+                <ModalSection title={metricPieTitle(metric)} icon={PieChart}>
                   <div className="min-h-[256px] h-64 flex items-center justify-center" style={{ position: 'relative' }}>
                     <ResponsiveContainer width="100%" height="100%" debounce={100}>
                       <RePieChart>
                         <RePie
-                          data={distributionData.length > 0 ? distributionData : [{ name: 'لا توجد بيانات', value: 1 }]}
+                          data={metricPieData(metric, distributionData, monthlyData).length > 0 ? metricPieData(metric, distributionData, monthlyData) : [{ name: 'لا توجد بيانات', value: 1 }]}
                           innerRadius={55} outerRadius={85} paddingAngle={4} dataKey="value"
                         >
-                          {distributionData.map((_e, i) => (
+                          {metricPieData(metric, distributionData, monthlyData).map((_e, i) => (
                             <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                           ))}
                         </RePie>
                         <Tooltip content={<PieTooltip />} />
                       </RePieChart>
                     </ResponsiveContainer>
-                    {/* Legend */}
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 flex-wrap justify-center">
-                      {distributionData.map((d, i) => (
+                      {metricPieData(metric, distributionData, monthlyData).map((d, i) => (
                         <div key={i} className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500">
                           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
                           {d.name}
@@ -395,7 +477,7 @@ function AnalyticsModal({
                 </ModalSection>
               </div>
 
-              {/* Top selling items */}
+              {/* Top selling items — only for sales metric */}
               {metric === 'top_selling' && topSellingProducts && topSellingProducts.length > 0 && (
                 <ModalSection title="أكثر المنتجات مبيعاً" icon={Target}>
                   <div className="space-y-2">
@@ -570,6 +652,7 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
   const profitQuery = useProfitDetails();
   const salesQuery = useSalesDetails();
   const inventoryQuery = useInventoryAnalytics();
+  const expensesQuery = useExpensesDetails();
 
   // �� Backend Data — replaces Dexie ��
   const inventoryReportsQuery = useInventoryReports();
@@ -625,9 +708,8 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
     if (!selectedMetric) return null;
     let title = '', subtitle = '', headers: string[] = [], rows: StatRow[] = [];
     switch (selectedMetric) {
-      case 'sales': case 'delivered_orders':
-        title = selectedMetric === 'sales' ? 'تفاصيل إجمالي المبيعات' : 'تفاصيل الفواتير المسلمة';
-        subtitle = selectedMetric === 'sales' ? 'جميع المبيعات المكتملة والنشطة' : 'الفواتير التي تم تسليمها بالكامل';
+      case 'sales':
+        title = 'تفاصيل إجمالي المبيعات'; subtitle = 'جميع المبيعات المكتملة والنشطة';
         headers = ['رقم الفاتورة', 'العميل', 'التاريخ', 'الحالة', 'المبلغ'];
         rows = (salesQuery.data?.tables?.orders ?? []).map((o: any) => ({
           id: o.id, number: o.orderNumber, customer: o.customer,
@@ -635,10 +717,35 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
           raw_search: `${o.orderNumber} ${o.customer}`,
         }));
         break;
+      case 'delivered_orders':
+        title = 'تفاصيل الفواتير المسلمة'; subtitle = 'الفواتير التي تم تسليمها بالكامل';
+        headers = ['رقم الفاتورة', 'العميل', 'التاريخ', 'الحالة', 'المبلغ'];
+        rows = (salesQuery.data?.tables?.orders ?? [])
+          .filter((o: any) => o.status === 'delivered')
+          .map((o: any) => ({
+            id: o.id, number: o.orderNumber, customer: o.customer,
+            date: formatDate(o.date), status: 'مستلم', amount: formatCurrency(o.totalAmount),
+            raw_search: `${o.orderNumber} ${o.customer}`,
+          }));
+        break;
+      case 'tax':
+        title = 'تفاصيل الضرائب المحصلة'; subtitle = 'ضريبة القيمة المضافة على الفواتير';
+        headers = ['رقم الفاتورة', 'العميل', 'التاريخ', 'قبل الضريبة', 'الضريبة', 'الإجمالي'];
+        rows = (salesQuery.data?.tables?.orders ?? []).map((o: any) => ({
+          id: o.id, number: o.orderNumber, customer: o.customer,
+          date: formatDate(o.date), subtotal: formatCurrency((o.totalAmount || 0) / 1.14),
+          tax: formatCurrency((o.totalAmount || 0) * 0.14 / 1.14), total: formatCurrency(o.totalAmount || 0),
+          raw_search: `${o.orderNumber} ${o.customer}`,
+        }));
+        break;
       case 'expenses':
         title = 'بيان المصروفات التشغيلية'; subtitle = 'جميع المصاريف باستثناء المشتريات وتكلفة البضاعة';
         headers = ['التاريخ', 'البند', 'المبلغ', 'الوصف'];
-        rows = [];
+        rows = (expensesQuery.data?.tables?.transactions ?? []).map((t: any) => ({
+          id: t.id, date: formatDate(t.date), name: t.category || t.description,
+          amount: formatCurrency(t.amount || 0), description: t.description || '-',
+          raw_search: `${t.category} ${t.description}`,
+        }));
         break;
       case 'inventory':
         title = 'قيمة المخزون الحالي'; subtitle = 'محسوب بسعر الشراء الأصلي';
@@ -683,7 +790,7 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
     }
     const filteredRows = rows.filter(r => !searchTerm || Object.values(r).some(v => String(v ?? '').toLowerCase().includes(searchTerm.toLowerCase())));
     return { title, subtitle, headers, rows: filteredRows };
-  }, [selectedMetric, salesQuery.data, customers, items, searchTerm, totalRevenue, totalCostOfGoodsSold, totalExpenses, grossProfit, netProfit, topSellingProducts, profitQuery.data, inventoryQuery.data]);
+  }, [selectedMetric, salesQuery.data, expensesQuery.data, customers, items, searchTerm, totalRevenue, totalCostOfGoodsSold, totalExpenses, grossProfit, netProfit, topSellingProducts, profitQuery.data, inventoryQuery.data]);
 
   // �� KPI Card Definitions ��
   const netLabel = profitVal > 0 ? 'صافي الأرباح' : lossVal > 0 ? 'إجمالي الخسائر' : 'صافي الربح/الخسارة';
@@ -717,7 +824,7 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
       label: 'الضرائب المحصلة', value: formatCurrency(totalTaxCollected), icon: Percent,
       gradient: 'bg-gradient-to-r from-purple-500 to-violet-400', iconBg: 'bg-purple-500',
       trend: { direction: 'neutral', value: 'VAT', color: 'text-gray-500' },
-      type: 'delivered_orders', rawValue: totalTaxCollected,
+      type: 'tax', rawValue: totalTaxCollected,
     },
     {
       label: 'رأس مال المخزون', value: formatCurrency(inventoryTotalValue || 0), icon: Package,
@@ -1019,8 +1126,10 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
             inventoryTotalValue={inventoryTotalValue}
             totalCustomersCount={totalCustomersCount}
             deliveredOrdersCount={deliveredOrdersCount}
+            totalItemsCount={totalItemsCount}
             customers={customers}
             warehouses={[]}
+            expensesQuery={expensesQuery}
           />
         )}
       </AnimatePresence>

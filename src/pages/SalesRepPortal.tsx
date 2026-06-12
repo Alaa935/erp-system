@@ -72,12 +72,10 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  const [excessAmount, setExcessAmount] = useState(0);
 
  const [newCustomer, setNewCustomer] = useState({
- name: '',
- phone: '',
- email: '',
- address: '',
- latitude: undefined as number | undefined,
- longitude: undefined as number | undefined
+  name: '',
+  phone: '',
+  latitude: undefined as number | undefined,
+  longitude: undefined as number | undefined
  });
  const [isLocating, setIsLocating] = useState(false);
  const [isSubmitting, setIsSubmitting] = useState(false);
@@ -491,36 +489,42 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   }
 
   const handleAddCustomer = async (e: React.FormEvent) => {
- e.preventDefault();
- if (!newCustomer.name) {
- toast.error('يرجى إدخال اسم العميل');
- return;
- }
+  e.preventDefault();
+  if (!newCustomer.name) {
+  toast.error('يرجى إدخال اسم العميل');
+  return;
+  }
 
- try {
- setIsSubmitting(true);
- await createCustomer.mutateAsync({
- ...newCustomer,
- createdAt: Date.now()
- } as any);
- 
- toast.success('تمت إضافة العميل بنجاح');
- setCustomerModalOpen(false);
- setNewCustomer({ 
- name: '', 
- phone: '', 
- email: '', 
- address: '', 
- latitude: undefined, 
- longitude: undefined 
- });
- } catch (error) {
- console.error(error);
- toast.error('فشل إضافة العميل');
- } finally {
- setIsSubmitting(false);
- }
- };
+  if (isSubmitting) return;
+
+  const phoneRegex = /^(010|011|012|015)\d{8}$/;
+  if (!phoneRegex.test(newCustomer.phone)) {
+  toast.error('رقم الهاتف يجب أن يبدأ بـ 010 أو 011 أو 012 أو 015 ويتكون من 11 رقم');
+  return;
+  }
+
+  try {
+  setIsSubmitting(true);
+  await createCustomer.mutateAsync({
+  ...newCustomer,
+  createdAt: Date.now()
+  } as any);
+  
+  toast.success('تمت إضافة العميل بنجاح');
+  setCustomerModalOpen(false);
+  setNewCustomer({ 
+  name: '', 
+  phone: '', 
+  latitude: undefined, 
+  longitude: undefined 
+  });
+  } catch (error: any) {
+  console.error(error);
+  toast.error(error?.message || 'فشل إضافة العميل');
+  } finally {
+  setIsSubmitting(false);
+  }
+  };
 
  const captureLocation = () => {
  if (!navigator.geolocation) {
@@ -1000,35 +1004,36 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <h3 className="font-bold text-black">{customer.name}</h3>
  <p className="text-sm text-[#44474D]">{customer.phone}</p>
  </div>
- <div className="pt-3 border-t border-gray-50 flex items-center justify-between">
- <div className="flex items-center gap-2">
- <div className="flex items-center gap-2 text-xs text-[#44474D]">
- <MapPin className="w-3 h-3" />
- {customer.address}
- </div>
- {customer.latitude && customer.longitude && (
- <a 
- href={`https://www.google.com/maps?q=${customer.latitude},${customer.longitude}`}
- target="_blank"
- rel="noreferrer"
- className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
- title="عرض الموقع على الخريطة"
- >
- <MapPin className="w-4 h-4 text-red-500" />
- </a>
- )}
- </div>
- <button 
- onClick={() => {
- setNewCollection({...newCollection, customerId: customer.id!});
- setCollectionModalOpen(true);
- }}
- className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
- title="تسجيل تحصيل"
- >
- <Coins className="w-4 h-4" />
- </button>
- </div>
+  <div className="pt-3 border-t border-gray-50 flex items-center justify-between">
+  <div className="flex items-center gap-2">
+  {customer.latitude && customer.longitude ? (
+  <a 
+  href={`https://www.google.com/maps?q=${customer.latitude},${customer.longitude}`}
+  target="_blank"
+  rel="noreferrer"
+  className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 p-2 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+  >
+  <MapPin className="w-3.5 h-3.5" />
+  عرض الموقع
+  </a>
+  ) : (
+  <span className="text-xs text-[#44474D] flex items-center gap-1">
+  <MapPin className="w-3 h-3" />
+  لا يوجد موقع مسجل لهذا العميل
+  </span>
+  )}
+  </div>
+  <button 
+  onClick={() => {
+  setNewCollection({...newCollection, customerId: customer.id!});
+  setCollectionModalOpen(true);
+  }}
+  className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
+  title="تسجيل تحصيل"
+  >
+  <Coins className="w-4 h-4" />
+  </button>
+  </div>
  </div>
  ))}
  </div>
@@ -1323,55 +1328,40 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <UserCircle className="w-6 h-6" />
  إضافة عميل جديد
  </h2>
- <form onSubmit={handleAddCustomer} className="space-y-4">
- <div className="space-y-2">
- <label className="text-sm font-bold text-[#44474D]">اسم العميل</label>
- <input required type="text" value={newCustomer.name} onChange={e => setNewCustomer({...newCustomer, name: e.target.value})} className="w-full bg-[#F2F4F6] border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-black outline-none" placeholder="الاسم الرباعي" />
- </div>
- <div className="grid grid-cols-2 gap-4">
- <div className="space-y-2">
- <label className="text-sm font-bold text-[#44474D]">رقم الهاتف</label>
- <input required type="tel" value={newCustomer.phone} onChange={e => setNewCustomer({...newCustomer, phone: e.target.value})} className="w-full bg-[#F2F4F6] border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-black outline-none" placeholder="01xxxxxxxxx" />
- </div>
- <div className="space-y-2">
- <label className="text-sm font-bold text-[#44474D]">البريد الإلكتروني</label>
- <input type="email" value={newCustomer.email} onChange={e => setNewCustomer({...newCustomer, email: e.target.value})} className="w-full bg-[#F2F4F6] border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-black outline-none" placeholder="example@mail.com" />
- </div>
- </div>
- <div className="space-y-2">
- <label className="text-sm font-bold text-[#44474D]">العنوان / الموقع</label>
- <div className="flex gap-2">
- <input required type="text" value={newCustomer.address} onChange={e => setNewCustomer({...newCustomer, address: e.target.value})} className="flex-1 bg-[#F2F4F6] border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-black outline-none" placeholder="المحافظة - المدينة - المربع السكني" />
- <button 
- type="button" 
- onClick={captureLocation}
- disabled={isLocating}
- className={cn("px-4 rounded-xl flex items-center justify-center transition-all",
- newCustomer.latitude 
- ?"bg-green-100 text-green-600 border border-green-200" 
- :"bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100"
- )}
- title="تحديد الموقع الجغرافي"
- >
- {isLocating ? (
- <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent animate-spin rounded-full" />
- ) : (
- newCustomer.latitude ? <CheckCircle2 className="w-5 h-5" /> : <MapPin className="w-5 h-5" />
- )}
- </button>
- </div>
- {newCustomer.latitude && (
- <p className="text-[10px] text-green-600 font-bold flex items-center gap-1">
- <CheckCircle2 className="w-3 h-3" />
- تم التقاط إحداثيات الموقع بنجاح
- </p>
- )}
- </div>
- <div className="flex gap-3 pt-4">
- <button type="submit" className="flex-1 bg-black text-white py-3 rounded-xl font-bold hover:opacity-90">حفظ العميل</button>
- <button type="button" onClick={() => setCustomerModalOpen(false)} className="flex-1 bg-gray-100 text-[#44474D] py-3 rounded-xl font-bold hover:bg-gray-200">إلغاء</button>
- </div>
- </form>
+   <form onSubmit={handleAddCustomer} className="space-y-4">
+  <div className="space-y-2">
+  <label className="text-sm font-bold text-[#44474D]">اسم العميل</label>
+  <input required type="text" value={newCustomer.name} onChange={e => setNewCustomer({...newCustomer, name: e.target.value})} className="w-full bg-[#F2F4F6] border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-black outline-none" placeholder="الاسم الرباعي" />
+  </div>
+  <div className="space-y-2">
+  <label className="text-sm font-bold text-[#44474D]">رقم الهاتف</label>
+  <input required type="tel" value={newCustomer.phone} onChange={e => setNewCustomer({...newCustomer, phone: e.target.value})} className="w-full bg-[#F2F4F6] border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-black outline-none" placeholder="01xxxxxxxxx" />
+  </div>
+  <div className="space-y-2">
+  <label className="text-sm font-bold text-[#44474D]">الموقع الجغرافي</label>
+  <button 
+  type="button" 
+  onClick={captureLocation}
+  disabled={isLocating}
+  className={cn("w-full py-3 rounded-xl flex items-center justify-center gap-2 transition-all",
+  newCustomer.latitude 
+  ?"bg-green-100 text-green-600 border border-green-200" 
+  :"bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100"
+  )}
+  >
+  {isLocating ? (
+  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent animate-spin rounded-full" />
+  ) : (
+  newCustomer.latitude ? <CheckCircle2 className="w-5 h-5" /> : <MapPin className="w-5 h-5" />
+  )}
+  {newCustomer.latitude ? 'تم تحديد الموقع بنجاح' : 'تحديد الموقع الجغرافي'}
+  </button>
+  </div>
+  <div className="flex gap-3 pt-4">
+  <button type="submit" disabled={isSubmitting} className="flex-1 bg-black text-white py-3 rounded-xl font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed">{isSubmitting ? 'جاري الحفظ...' : 'حفظ العميل'}</button>
+  <button type="button" onClick={() => setCustomerModalOpen(false)} className="flex-1 bg-gray-100 text-[#44474D] py-3 rounded-xl font-bold hover:bg-gray-200">إلغاء</button>
+  </div>
+  </form>
  </motion.div>
  </div>
  )}

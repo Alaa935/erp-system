@@ -84,6 +84,14 @@ export const customersService = {
     latitude?: number | null;
     longitude?: number | null;
   }) {
+    if (data.phone) {
+      const existing = await prisma.customer.findFirst({
+        where: { phone: data.phone, deletedAt: null },
+      });
+      if (existing) {
+        throw new AppError(409, 'يوجد عميل مسجل بنفس رقم الهاتف');
+      }
+    }
     const customer = await prisma.customer.create({
       data: {
         name: data.name,

@@ -14,7 +14,9 @@ export const paymentCollectionsController = {
       const repId = Number(req.query.repId);
       if (!repId) return res.status(400).json({ success: false, error: 'repId is required' });
       const result = await paymentCollectionsService.getPendingSettlement(repId);
-      res.json({ success: true, data: result });
+      const response = { success: true, data: result };
+      console.log('[CONTROLLER getPendingSettlement] repId:', repId, 'response:', JSON.stringify(response));
+      res.json(response);
     } catch (err) { next(err); }
   },
 

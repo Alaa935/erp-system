@@ -34,6 +34,7 @@ export const paymentCollectionsService = {
       where: { repId, status: 'pending', type: 'rep_settlement' },
       orderBy: { date: 'desc' },
     });
+    console.log('[SERVICE getPendingSettlement] repId:', repId, 'collection:', collection);
     return collection ? { ...collection, amount: toNumber(collection.amount) } : null;
   },
 

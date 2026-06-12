@@ -61,8 +61,9 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  const [isRequestModalOpen, setRequestModalOpen] = useState(false);
  const [searchTerm, setSearchTerm] = useState('');
  const [isCustomerModalOpen, setCustomerModalOpen] = useState(false);
- const [isSaleModalOpen, setSaleModalOpen] = useState(false);
- const [isCollectionModalOpen, setCollectionModalOpen] = useState(false);
+  const [isSaleModalOpen, setSaleModalOpen] = useState(false);
+  const [requestId, setRequestId] = useState(() => crypto.randomUUID());
+  const [isCollectionModalOpen, setCollectionModalOpen] = useState(false);
 
  const [isInvoiceOpen, setInvoiceOpen] = useState(false);
  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
@@ -180,6 +181,9 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   enabled: !!selectedRepId,
   retry: false,
   });
+  console.log('[FRONTEND pendingSettlement] repId:', selectedRepId, 'value:', pendingSettlement, 'typeof:', typeof pendingSettlement);
+  console.log('pendingSettlement runtime value:', pendingSettlement);
+  console.log('typeof pendingSettlement:', typeof pendingSettlement);
 
   const { data: settledCommission } = useQuery({
   queryKey: ['settledCommission', selectedRepId],
@@ -292,12 +296,12 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   }) => {
     const total = data.items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
 
-    const repOrderNumber = `REP-${Math.floor(10000 + Math.random() * 90000)}`;
+    const repOrderNumber = `REP-${requestId.slice(0, 8).toUpperCase()}`;
 
     const orderRes = await api('/sales-orders', {
       method: 'POST',
       body: JSON.stringify({
-        orderNumber: repOrderNumber,
+        orderNumber: requestId,
         customerId: data.customerId,
         repId: data.repId,
         items: data.items,
@@ -331,16 +335,6 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
       await api(`/rep-inventory/${repInvItem.id}`, {
         method: 'PUT',
         body: JSON.stringify({ quantity: repInvItem.quantity - saleItem.quantity }),
-      });
-    }
-
-    if (selectedRep && selectedRep.id) {
-      await api(`/sales-reps/${selectedRep.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          currentSales: (selectedRep.currentSales || 0) + total,
-          balance: (selectedRep.balance || 0) + Math.min(data.paidAmount, total),
-        }),
       });
     }
 
@@ -565,12 +559,14 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  return;
  }
 
- if (newSale.items.some(i => i.quantity <= 0)) {
- toast.error('الكميات يجب أن تكون أكبر من صفر');
- return;
- }
+  if (newSale.items.some(i => i.quantity <= 0)) {
+  toast.error('الكميات يجب أن تكون أكبر من صفر');
+  return;
+  }
 
- try {
+  if (createSaleMutation.isPending) return;
+
+  try {
  const total = newSale.items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
  
   if (newSale.paidAmount > total) {
@@ -587,9 +583,10 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
    repId: selectedRepId!,
  });
 
- toast.success('تم تسجيل عملية البيع بنجاح');
- setSaleModalOpen(false);
- setNewSale({ customerId: 0, items: [], paidAmount: 0 });
+  toast.success('تم تسجيل عملية البيع بنجاح');
+  setSaleModalOpen(false);
+  setNewSale({ customerId: 0, items: [], paidAmount: 0 });
+  setRequestId(crypto.randomUUID());
  
  if (newSale.paidAmount <= total) {
  const lastOrderRes = await api(`/sales-orders?repId=${selectedRepId}&pageSize=1`);
@@ -867,8 +864,9 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <p className="text-sm text-white/60 font-bold">إجمالي مبالغ في حوزتك لم يتم توريدها للخزينة</p>
  </div>
  
- <div className="flex flex-col gap-3 w-full md:w-auto">
- {pendingSettlement ? (
+  <div className="flex flex-col gap-3 w-full md:w-auto">
+  {(() => { console.log('[RENDER pendingSettlement check] value:', pendingSettlement, 'typeof:', typeof pendingSettlement, 'isTruthy:', !!pendingSettlement); return null; })()}
+  {pendingSettlement ? (
  <div className="bg-orange-500/20 border border-orange-500/30 px-6 py-4 rounded-2xl flex items-center gap-4">
  <Clock className="w-6 h-6 text-orange-500 animate-pulse" />
  <div>
@@ -1106,7 +1104,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  <div className="flex justify-between items-center">
  <h3 className="text-lg font-bold text-black">سجل مبيعات المندوب</h3>
  <button 
- onClick={() => setSaleModalOpen(true)}
+  onClick={() => { setRequestId(crypto.randomUUID()); setSaleModalOpen(true); }}
  className="bg-green-600 text-white px-6 py-2.5 rounded-xl flex items-center gap-2 font-bold -100 hover:bg-green-700 transition-all"
  >
  <Plus className="w-5 h-5" />
@@ -1486,12 +1484,17 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  {newSale.items.reduce((sum, item) => sum + (item.quantity * item.price), 0).toLocaleString()} ج.م
  </h4>
  </div>
- <button 
- type="submit"
- className="bg-green-500 hover:bg-green-600 px-8 py-3 rounded-xl font-bold text-sm transition-all"
- >
- تثبيت وبيع
- </button>
+  <button 
+  type="submit"
+  disabled={createSaleMutation.isPending}
+  className={`px-8 py-3 rounded-xl font-bold text-sm transition-all ${
+    createSaleMutation.isPending
+      ? 'bg-gray-400 cursor-not-allowed'
+      : 'bg-green-500 hover:bg-green-600'
+  }`}
+  >
+  {createSaleMutation.isPending ? 'جاري الحفظ...' : 'تثبيت وبيع'}
+  </button>
  </div>
  </form>
  </motion.div>

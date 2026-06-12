@@ -153,7 +153,7 @@ export async function api<T = unknown>(
     throw new ApiError(response.status, data.error || `Request failed with status ${response.status}`);
   }
 
-  return (data.data ?? data) as T;
+  return (data.data !== undefined ? data.data : data) as T;
 }
 
 export default api;

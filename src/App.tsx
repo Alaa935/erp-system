@@ -38,9 +38,19 @@ const Profile = lazy(() => import('./pages/Profile'));
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
+const PAGE_STORAGE_KEY = 'wms_active_page';
+
+function getSavedPage(): string | null {
+  try { return localStorage.getItem(PAGE_STORAGE_KEY); } catch { return null; }
+}
+
+function savePage(page: string): void {
+  try { localStorage.setItem(PAGE_STORAGE_KEY, page); } catch {}
+}
+
 export default function App() {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
-  const [activePage, setActivePage] = useState('dashboard');
+  const [activePage, setActivePage] = useState(() => getSavedPage() || 'dashboard');
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setNotificationsOpen] = useState(false);
@@ -70,6 +80,10 @@ export default function App() {
   const unreadCount = (unreadData as any)?.unreadCount ?? notifications?.filter(n => !n.read).length ?? 0;
 
   const [isInitializing, setIsInitializing] = useState(true);
+
+  useEffect(() => {
+    if (currentUser) savePage(activePage);
+  }, [activePage, currentUser]);
 
   const handleUserUpdate = useCallback((user: UserAccount) => {
     setCurrentUser(user);
@@ -213,7 +227,12 @@ export default function App() {
     console.log('[APP handleLogin] called', { user, ts: Date.now(), accessToken: !!localStorage.getItem('wms_access_token'), refreshToken: !!localStorage.getItem('wms_refresh_token') });
     sessionManager.create(user);
     setCurrentUser(user);
-    setActivePage(getDefaultPage(user));
+    const saved = getSavedPage();
+    if (saved && canAccessPage(saved, user)) {
+      setActivePage(saved);
+    } else {
+      setActivePage(getDefaultPage(user));
+    }
   };
 
   const handleNavigate = (page: string) => {

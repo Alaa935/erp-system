@@ -32,7 +32,7 @@ export default function Suppliers() {
     taxNumber: ''
   });
 
-  const suppliersQuery = useSuppliers({ search: debouncedSearch || undefined });
+  const suppliersQuery = useSuppliers(debouncedSearch ? { search: debouncedSearch } : undefined);
   const createSupplier = useCreateSupplier();
   const updateSupplier = useUpdateSupplier();
   const deleteSupplier = useDeleteSupplier();

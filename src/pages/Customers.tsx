@@ -56,7 +56,7 @@ export default function Customers() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const customersQuery = useCustomers({ search: debouncedSearch || undefined });
+  const customersQuery = useCustomers(debouncedSearch ? { search: debouncedSearch } : undefined);
   const allCustomersQuery = useCustomers({ pageSize: 1000 });
   const createCustomer = useCreateCustomer();
   const updateCustomer = useUpdateCustomer();

@@ -188,13 +188,13 @@ export default function Dashboard({ setActivePage }: { setActivePage: (page: str
   const { data: activityRes } = useDashboardRecentActivity();
   const { data: notificationsRes } = useDashboardNotifications();
 
-  const s = summaryRes?.data;
-  const charts = chartsRes?.data;
-  const alerts = alertsRes?.data;
-  const topProducts = topProductsRes?.data?.items ?? [];
-  const topCust = topCustomersRes?.data?.items ?? [];
-  const activityLogs = activityRes?.data?.logs ?? [];
-  const notificationData = notificationsRes?.data;
+  const s = summaryRes;
+  const charts = chartsRes;
+  const alerts = alertsRes;
+  const topProducts = topProductsRes?.items ?? [];
+  const topCust = topCustomersRes?.items ?? [];
+  const activityLogs = activityRes?.logs ?? [];
+  const notificationData = notificationsRes;
 
   const totalSales = s?.totalSales ?? 0;
   const netProfit = s?.netProfit ?? 0;

@@ -45,7 +45,7 @@ export interface DashboardAlerts {
 export function useDashboardSummary() {
   return useQuery({
     queryKey: ['dashboard', 'summary'],
-    queryFn: () => api<{ success: boolean; data: DashboardSummary }>('/dashboard/summary'),
+    queryFn: () => api<DashboardSummary>('/dashboard/summary'),
     staleTime: 60_000,
   });
 }
@@ -53,7 +53,7 @@ export function useDashboardSummary() {
 export function useDashboardCharts() {
   return useQuery({
     queryKey: ['dashboard', 'charts'],
-    queryFn: () => api<{ success: boolean; data: DashboardCharts }>('/dashboard/charts'),
+    queryFn: () => api<DashboardCharts>('/dashboard/charts'),
     staleTime: 60_000,
   });
 }
@@ -61,7 +61,7 @@ export function useDashboardCharts() {
 export function useDashboardAlerts() {
   return useQuery({
     queryKey: ['dashboard', 'alerts'],
-    queryFn: () => api<{ success: boolean; data: DashboardAlerts }>('/dashboard/alerts'),
+    queryFn: () => api<DashboardAlerts>('/dashboard/alerts'),
     staleTime: 30_000,
   });
 }
@@ -69,7 +69,7 @@ export function useDashboardAlerts() {
 export function useTopProducts() {
   return useQuery({
     queryKey: ['dashboard', 'top-products'],
-    queryFn: () => api<{ success: boolean; data: { items: { name: string; qty: number; revenue: number }[] } }>('/dashboard/top-products'),
+    queryFn: () => api<{ items: { name: string; qty: number; revenue: number }[] }>('/dashboard/top-products'),
     staleTime: 60_000,
   });
 }
@@ -77,7 +77,7 @@ export function useTopProducts() {
 export function useTopCustomers() {
   return useQuery({
     queryKey: ['dashboard', 'top-customers'],
-    queryFn: () => api<{ success: boolean; data: { items: { name: string; total: number; orders: number }[] } }>('/dashboard/top-customers'),
+    queryFn: () => api<{ items: { name: string; total: number; orders: number }[] }>('/dashboard/top-customers'),
     staleTime: 60_000,
   });
 }
@@ -85,7 +85,7 @@ export function useTopCustomers() {
 export function useDashboardRecentActivity() {
   return useQuery({
     queryKey: ['dashboard', 'recent-activity'],
-    queryFn: () => api<{ success: boolean; data: { logs: { id: number; action: string; username: string; entity: string; entityId: string | null; details: string; timestamp: string }[] } }>('/dashboard/recent-activity'),
+    queryFn: () => api<{ logs: { id: number; action: string; username: string; entity: string; entityId: string | null; details: string; timestamp: string }[] }>('/dashboard/recent-activity'),
     staleTime: 15_000,
   });
 }
@@ -93,7 +93,7 @@ export function useDashboardRecentActivity() {
 export function useDashboardNotifications() {
   return useQuery({
     queryKey: ['dashboard', 'notifications'],
-    queryFn: () => api<{ success: boolean; data: { notifications: { id: number; title: string; message: string; type: string; read: boolean; date: string }[]; unreadCount: number } }>('/dashboard/notifications'),
+    queryFn: () => api<{ notifications: { id: number; title: string; message: string; type: string; read: boolean; date: string }[]; unreadCount: number }>('/dashboard/notifications'),
     staleTime: 15_000,
   });
 }
@@ -101,7 +101,7 @@ export function useDashboardNotifications() {
 export function useLowStockDashboard() {
   return useQuery({
     queryKey: ['dashboard', 'low-stock'],
-    queryFn: () => api<{ success: boolean; data: { items: any[] } }>('/dashboard/low-stock'),
+    queryFn: () => api<{ items: any[] }>('/dashboard/low-stock'),
     staleTime: 30_000,
   });
 }

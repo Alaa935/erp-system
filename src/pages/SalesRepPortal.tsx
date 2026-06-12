@@ -313,13 +313,6 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
     const order = (orderRes as any)?.data || orderRes;
     const orderId = order.id;
 
-    if (data.paidAmount > 0) {
-      await api(`/sales-orders/${orderId}/payments`, {
-        method: 'POST',
-        body: JSON.stringify({ amount: Math.min(data.paidAmount, total), method: 'cash' }),
-      });
-    }
-
     await api('/notifications', {
       method: 'POST',
       body: JSON.stringify({
@@ -567,13 +560,14 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  try {
  const total = newSale.items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
  
- if (newSale.paidAmount > total) {
- setExcessAmount(newSale.paidAmount - total);
- await fetchUnpaidInvoices(newSale.customerId);
- setExcessPaymentModal(true);
- }
+  if (newSale.paidAmount > total) {
+  setExcessAmount(newSale.paidAmount - total);
+  await fetchUnpaidInvoices(newSale.customerId);
+  setExcessPaymentModal(true);
+  return;
+  }
 
- const result = await createSaleMutation.mutateAsync({
+  const result = await createSaleMutation.mutateAsync({
    customerId: newSale.customerId,
    items: newSale.items,
    paidAmount: newSale.paidAmount,

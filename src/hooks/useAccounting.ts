@@ -39,7 +39,11 @@ export function useConfirmCollection() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => api(`/accounting/collections/${id}/confirm`, { method: 'POST' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['accounting'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['accounting'] });
+      qc.invalidateQueries({ queryKey: ['paymentCollections'] });
+      qc.invalidateQueries({ queryKey: ['pendingSettlement'] });
+    },
   });
 }
 

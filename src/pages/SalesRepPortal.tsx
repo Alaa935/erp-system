@@ -181,9 +181,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   enabled: !!selectedRepId,
   retry: false,
   });
-  console.log('[FRONTEND pendingSettlement] repId:', selectedRepId, 'value:', pendingSettlement, 'typeof:', typeof pendingSettlement);
-  console.log('pendingSettlement runtime value:', pendingSettlement);
-  console.log('typeof pendingSettlement:', typeof pendingSettlement);
+  console.log('[FRONTEND pendingSettlement]', pendingSettlement);
 
   const { data: settledCommission } = useQuery({
   queryKey: ['settledCommission', selectedRepId],
@@ -865,7 +863,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  </div>
  
   <div className="flex flex-col gap-3 w-full md:w-auto">
-  {(() => { console.log('[RENDER pendingSettlement check] value:', pendingSettlement, 'typeof:', typeof pendingSettlement, 'isTruthy:', !!pendingSettlement); return null; })()}
+  {(() => { console.log('[RENDER pendingSettlement check]', { value: pendingSettlement, isTruthy: !!pendingSettlement, hasId: !!(pendingSettlement as any)?.id }); return null; })()}
   {pendingSettlement ? (
  <div className="bg-orange-500/20 border border-orange-500/30 px-6 py-4 rounded-2xl flex items-center gap-4">
  <Clock className="w-6 h-6 text-orange-500 animate-pulse" />

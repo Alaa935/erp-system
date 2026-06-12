@@ -144,7 +144,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   enabled: !!selectedRepId,
   retry: false,
   });
- const myInventory = repInvData as any[] | undefined;
+  const myInventory = Array.isArray(repInvData) ? repInvData : (repInvData as any)?.items ?? [];
 
  const { data: inventoryData } = useInventory();
  const allItems = inventoryData?.items;

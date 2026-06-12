@@ -520,30 +520,43 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   };
 
  const captureLocation = () => {
- if (!navigator.geolocation) {
- toast.error('متصفحك لا يدعم تحديد الموقع');
- return;
- }
+  if (!navigator.geolocation) {
+  toast.error('متصفحك لا يدعم تحديد الموقع');
+  return;
+  }
 
- setIsLocating(true);
- navigator.geolocation.getCurrentPosition(
- (position) => {
- setNewCustomer({
- ...newCustomer,
- latitude: position.coords.latitude,
- longitude: position.coords.longitude
- });
- toast.success('تم تحديد الموقع بنجاح');
- setIsLocating(false);
- },
- (error) => {
- console.error('Geolocation error:', error);
- toast.error('فشل تحديد الموقع. تأكد من تفعيل الـ GPS وإعطاء الإذن للمتصفح.');
- setIsLocating(false);
- },
-  { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  setIsLocating(true);
+
+  const attemptLocation = (isRetry: boolean) => {
+  const options: PositionOptions = isRetry
+  ? { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+  : { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 };
+
+  navigator.geolocation.getCurrentPosition(
+  (position) => {
+  setNewCustomer({
+  ...newCustomer,
+  latitude: position.coords.latitude,
+  longitude: position.coords.longitude
+  });
+  toast.success('تم تحديد الموقع بنجاح');
+  setIsLocating(false);
+  },
+  (error) => {
+  console.error('Geolocation error:', { code: error.code, message: error.message });
+  if (!isRetry && error.code === 3) {
+  attemptLocation(true);
+  return;
+  }
+  toast.error('تعذر تحديد الموقع الحالي، يمكنك المحاولة لاحقاً');
+  setIsLocating(false);
+  },
+  options
   );
   };
+
+  attemptLocation(false);
+   };
 
   const handleCreateSale = async (e: React.FormEvent) => {
  e.preventDefault();

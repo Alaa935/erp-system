@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useProtectedMutation } from '../hooks/useProtectedMutation';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
  Users, 
@@ -29,6 +30,7 @@ import { useSalesReps } from '../hooks/useSalesReps';
 import { useInventory } from '../hooks/useInventory';
 import { useCustomers, useCreateCustomer } from '../hooks/useCustomers';
 import api from '../lib/api-client';
+import { LoadingButton } from '../components/ui/LoadingButton';
 import type { UserAccount } from '../types';
 
 interface SalesRepPortalProps {
@@ -285,8 +287,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
 
   const createCustomer = useCreateCustomer();
 
-  const createSaleMutation = useMutation({
-  mutationFn: async (data: {
+  const createSaleMutation = useProtectedMutation(async (data: {
     customerId: number;
     items: { itemId: number; quantity: number; price: number }[];
     paidAmount: number;
@@ -349,15 +350,18 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
 
     return { orderId, total, repOrderNumber };
   },
-  onSuccess: () => {
-    qc.invalidateQueries({ queryKey: ['sales-orders'] });
-    qc.invalidateQueries({ queryKey: ['repInventory'] });
-    qc.invalidateQueries({ queryKey: ['salesReps'] });
+  {
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['sales-orders'] });
+      qc.invalidateQueries({ queryKey: ['repInventory'] });
+      qc.invalidateQueries({ queryKey: ['salesReps'] });
+    },
   },
-  });
+);
 
   const handleCreateRequest = async (e: React.FormEvent) => {
   e.preventDefault();
+  if (isSubmitting) return;
   if (newRequest.items.length === 0) return;
 
   const existingPending = myRequests?.find((r: { repId: number; status: string }) => r.repId === selectedRepId && r.status === 'pending');
@@ -366,6 +370,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
    return;
   }
 
+  setIsSubmitting(true);
   try {
   const requestRes = await api('/stock-requests', {
   method: 'POST',
@@ -405,6 +410,8 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   } catch (error) {
   console.error(error);
   toast.error('فشل إرسال الطلب');
+  } finally {
+  setIsSubmitting(false);
   }
   };
 
@@ -598,12 +605,14 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  }
  };
 
- const handleCreateCollection = async (e: React.FormEvent) => {
- e.preventDefault();
- if (!newCollection.customerId || newCollection.amount <= 0) return;
+  const handleCreateCollection = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (isSubmitting) return;
+  if (!newCollection.customerId || newCollection.amount <= 0) return;
 
- try {
- await api('/payment-collections', {
+  setIsSubmitting(true);
+  try {
+  await api('/payment-collections', {
  method: 'POST',
  body: JSON.stringify({
  repId: selectedRepId!,
@@ -626,12 +635,14 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
 
  setCollectionModalOpen(false);
  setNewCollection({ customerId: 0, amount: 0, method: 'cash' });
- toast.success('تم تسجيل التحصيل بنجاح');
- } catch (error) {
- console.error(error);
- toast.error('فشل تسجيل التحصيل');
- }
- };
+  toast.success('تم تسجيل التحصيل بنجاح');
+  } catch (error) {
+  console.error(error);
+  toast.error('فشل تسجيل التحصيل');
+  } finally {
+  setIsSubmitting(false);
+  }
+  };
 
  const addItemToSale = (itemId: number) => {
  const item = allItems?.find(i => i.id === itemId);
@@ -1361,7 +1372,16 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   </button>
   </div>
   <div className="flex gap-3 pt-4">
-  <button type="submit" disabled={isSubmitting} className="flex-1 bg-black text-white py-3 rounded-xl font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed">{isSubmitting ? 'جاري الحفظ...' : 'حفظ العميل'}</button>
+  <LoadingButton
+  type="submit"
+  isPending={isSubmitting}
+  loadingText="جاري الحفظ..."
+  variant="primary"
+  size="lg"
+  className="w-full"
+>
+  حفظ العميل
+</LoadingButton>
   <button type="button" onClick={() => setCustomerModalOpen(false)} className="flex-1 bg-gray-100 text-[#44474D] py-3 rounded-xl font-bold hover:bg-gray-200">إلغاء</button>
   </div>
   </form>
@@ -1482,17 +1502,14 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  {newSale.items.reduce((sum, item) => sum + (item.quantity * item.price), 0).toLocaleString()} ج.م
  </h4>
  </div>
-  <button 
-  type="submit"
-  disabled={createSaleMutation.isPending}
-  className={`px-8 py-3 rounded-xl font-bold text-sm transition-all ${
-    createSaleMutation.isPending
-      ? 'bg-gray-400 cursor-not-allowed'
-      : 'bg-green-500 hover:bg-green-600'
-  }`}
-  >
-  {createSaleMutation.isPending ? 'جاري الحفظ...' : 'تثبيت وبيع'}
-  </button>
+   <LoadingButton
+   type="submit"
+   isPending={createSaleMutation.isPending}
+   loadingText="جاري الحفظ..."
+   className="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-xl font-bold text-sm"
+   >
+   تثبيت وبيع
+   </LoadingButton>
  </div>
  </form>
  </motion.div>
@@ -1565,7 +1582,16 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  </div>
 
  <div className="flex gap-4 pt-4 border-t">
- <button type="submit" disabled={newRequest.items.length === 0} className="flex-1 bg-black text-white py-3 rounded-xl font-bold disabled:opacity-50">إرسال الطلب للمراجعة</button>
+ <LoadingButton
+  type="submit"
+  isPending={isSubmitting}
+  loadingText="جاري الإرسال..."
+  variant="primary"
+  size="lg"
+  className="w-full"
+>
+  إرسال الطلب للمراجعة
+</LoadingButton>
  <button type="button" onClick={() => setRequestModalOpen(false)} className="flex-1 bg-gray-100 text-[#44474D] py-3 rounded-xl font-bold">إلغاء</button>
  </div>
  </form>
@@ -1620,7 +1646,16 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  * سيتم تسجيل التحصيل كـ"قيد الانتظار" ولن يتم خصمه من مديونية العميل إلا بعد تأكيد الإدارة عند الاستلام.
  </p>
  <div className="flex gap-3 pt-4">
- <button type="submit" className="flex-1 bg-black text-white py-3 rounded-xl font-bold">تسجيل الطلب</button>
+ <LoadingButton
+  type="submit"
+  isPending={isSubmitting}
+  loadingText="جاري التسجيل..."
+  variant="primary"
+  size="lg"
+  className="w-full"
+>
+  تسجيل الطلب
+</LoadingButton>
  <button type="button" onClick={() => setCollectionModalOpen(false)} className="flex-1 bg-gray-100 text-[#44474D] py-3 rounded-xl font-bold">إلغاء</button>
  </div>
  </form>

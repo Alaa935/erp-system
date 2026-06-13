@@ -1,5 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api-client';
+import { useProtectedMutation } from './useProtectedMutation';
 import type { Customer } from '../types';
 
 interface ListResponse {
@@ -29,37 +30,34 @@ export function useCustomer(id: number | undefined) {
 }
 
 export function useCreateCustomer() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: Partial<Customer>) =>
+  return useProtectedMutation(
+    (data: Partial<Customer>) =>
       api<SingleResponse>('/customers', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['customers'] }); },
-  });
+    { invalidates: [['customers']] },
+  );
 }
 
 export function useUpdateCustomer() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<Customer> }) =>
+  return useProtectedMutation(
+    ({ id, data }: { id: number; data: Partial<Customer> }) =>
       api<SingleResponse>(`/customers/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),
       }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['customers'] }); },
-  });
+    { invalidates: [['customers']] },
+  );
 }
 
 export function useDeleteCustomer() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
+  return useProtectedMutation(
+    ({ id, reason }: { id: number; reason: string }) =>
       api(`/customers/${id}`, {
         method: 'DELETE',
         body: JSON.stringify({ reason }),
       }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['customers'] }); },
-  });
+    { invalidates: [['customers']] },
+  );
 }

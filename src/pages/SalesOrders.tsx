@@ -20,6 +20,7 @@ import { useCustomers } from '../hooks/useCustomers';
 import { useInventory } from '../hooks/useInventory';
 import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api-client';
+import { LoadingButton } from '../components/ui/LoadingButton';
 
 import { toast } from 'sonner';
 
@@ -83,9 +84,16 @@ export default function SalesOrders() {
           </button>
           {order.status === 'pending' && (
             <>
-              <button onClick={() => order.id && handleDispatchOrder(order.id)} className='bg-black text-white px-3 py-1 rounded-lg text-xs font-bold hover:opacity-80 transition-opacity'>
+              <LoadingButton
+                onClick={() => order.id && handleDispatchOrder(order.id)}
+                isPending={dispatchOrder.isPending}
+                loadingText="جاري التنفيذ..."
+                variant="outline"
+                size="sm"
+                className="bg-emerald-50 text-emerald-700 border-0 hover:bg-emerald-100"
+              >
                 صرف وشحن
-              </button>
+              </LoadingButton>
               <button onClick={() => order.id !== undefined && confirmCancel(order.id)} className='text-orange-500 hover:bg-orange-50 p-1.5 rounded-lg transition-colors cursor-pointer' title='إلغاء الطلب'>
                 <XCircle className='w-4 h-4' />
               </button>
@@ -402,7 +410,7 @@ export default function SalesOrders() {
             primaryLabel="تأكيد وإنشاء الفاتورة"
             secondaryLabel="إلغاء"
             onSecondary={() => setModalOpen(false)}
-            loading={isSubmitting}
+            loading={isSubmitting || createOrder.isPending}
             primaryClassName="flex items-center justify-center gap-2"
           />
         </Form>
@@ -421,12 +429,16 @@ export default function SalesOrders() {
           <p className="text-[#44474D] text-sm mb-8">هل أنت متأكد من رغبتك في إلغاء أمر البيع هذا؟ لا يمكن التراجع عن هذا الإجراء.</p>
           
           <div className="flex gap-3">
-            <button
+            <LoadingButton
               onClick={handleCancelOrder}
-              className="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition-colors"
+              isPending={cancelOrder.isPending}
+              loadingText="جاري التنفيذ..."
+              variant="outline"
+              size="sm"
+              className="bg-amber-50 text-amber-700 border-0 hover:bg-amber-100"
             >
               نعم، إلغاء
-            </button>
+            </LoadingButton>
             <button
               onClick={() => {
                 setDeleteModalOpen(false);
@@ -470,12 +482,15 @@ export default function SalesOrders() {
           </div>
 
           <div className="flex gap-3 pt-4">
-            <button
+            <LoadingButton
               onClick={confirmDelete}
-              className="flex-1 bg-red-600 text-white py-4 rounded-2xl font-black shadow-lg hover:bg-red-700 transition-colors"
+              isPending={deleteOrder.isPending}
+              loadingText="جاري الحذف..."
+              variant="danger"
+              size="md"
             >
               تأكيد الحذف
-            </button>
+            </LoadingButton>
             <button
               onClick={() => setDeleteReasonModalOpen(false)}
               className="flex-1 bg-gray-100 text-gray-600 py-4 rounded-2xl font-black hover:bg-gray-200 transition-colors"

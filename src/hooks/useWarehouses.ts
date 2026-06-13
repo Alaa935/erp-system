@@ -1,5 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api-client';
+import { useProtectedMutation } from './useProtectedMutation';
 
 interface Warehouse {
   id: number;
@@ -40,28 +41,25 @@ export function useWarehouse(id: number | undefined) {
 }
 
 export function useCreateWarehouse() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: Partial<Warehouse>) =>
+  return useProtectedMutation(
+    (data: Partial<Warehouse>) =>
       api<SingleResponse>('/warehouses', { method: 'POST', body: JSON.stringify(data) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['warehouses'] }); },
-  });
+    { invalidates: [['warehouses']] },
+  );
 }
 
 export function useUpdateWarehouse() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<Warehouse> }) =>
+  return useProtectedMutation(
+    ({ id, data }: { id: number; data: Partial<Warehouse> }) =>
       api<SingleResponse>(`/warehouses/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['warehouses'] }); },
-  });
+    { invalidates: [['warehouses']] },
+  );
 }
 
 export function useDeleteWarehouse() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
+  return useProtectedMutation(
+    ({ id, reason }: { id: number; reason: string }) =>
       api(`/warehouses/${id}`, { method: 'DELETE', body: JSON.stringify({ reason }) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['warehouses'] }); },
-  });
+    { invalidates: [['warehouses']] },
+  );
 }

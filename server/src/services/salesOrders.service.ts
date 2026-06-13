@@ -189,6 +189,7 @@ export const salesOrdersService = {
               amount: new Decimal(paid),
               description: `دفعة على فاتورة ${orderNumber}`,
               referenceId: created.id,
+              transactionNumber: 'TXN-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase(),
             },
           });
         }
@@ -274,6 +275,7 @@ export const salesOrdersService = {
           amount: order.totalAmount,
           description: `مبيعات - فاتورة صرف رقم ${order.orderNumber}`,
           referenceId: order.id,
+          transactionNumber: 'TXN-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase(),
         },
       });
 
@@ -357,6 +359,7 @@ export const salesOrdersService = {
           amount: new Decimal(amount),
           description: `دفعة على فاتورة ${order.orderNumber}`,
           referenceId: order.id,
+          transactionNumber: 'TXN-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase(),
         },
       }),
       prisma.notification.create({

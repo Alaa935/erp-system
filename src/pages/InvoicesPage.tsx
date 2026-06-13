@@ -8,6 +8,7 @@ import {
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
+import { LoadingButton } from '../components/ui/LoadingButton';
 
 const paperSizes = [
   { value: 'A4', label: 'A4', icon: FileText, desc: '297 × 210 مم' },
@@ -55,11 +56,15 @@ export default function InvoicesPage() {
           <h1 className="text-2xl font-black text-black">الفواتير والطباعة</h1>
           <p className="text-sm text-gray-500 mt-1">إعدادات قوالب الفواتير وأحجام الطباعة</p>
         </div>
-        <button onClick={handleSave}
-          className="bg-black text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:opacity-90 transition-all flex items-center gap-2 shadow-lg"
+        <LoadingButton
+          onClick={handleSave}
+          isPending={updateConfig.isPending}
+          loadingText="جاري الحفظ..."
+          variant="primary"
+          size="md"
         >
-          <Save className="w-4 h-4" />حفظ الإعدادات
-        </button>
+          حفظ الإعدادات
+        </LoadingButton>
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">

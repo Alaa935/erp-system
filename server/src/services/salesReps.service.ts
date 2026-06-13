@@ -65,18 +65,26 @@ export const salesRepsService = {
     commissionRate?: number;
     balance?: number;
   }) {
-    return prisma.salesRep.create({
-      data: {
-        name: data.name,
-        phone: data.phone ?? '',
-        email: data.email ?? '',
-        zone: data.zone ?? '',
-        target: new Decimal(data.target ?? 0),
-        currentSales: new Decimal(data.currentSales ?? 0),
-        commissionRate: new Decimal(data.commissionRate ?? 0),
-        balance: new Decimal(data.balance ?? 0),
-      },
-    });
+    try {
+      const rep = await prisma.salesRep.create({
+        data: {
+          name: data.name,
+          phone: data.phone ?? '',
+          email: data.email ?? '',
+          zone: data.zone ?? '',
+          target: new Decimal(data.target ?? 0),
+          currentSales: new Decimal(data.currentSales ?? 0),
+          commissionRate: new Decimal(data.commissionRate ?? 0),
+          balance: new Decimal(data.balance ?? 0),
+        },
+      });
+      return rep;
+    } catch (err: any) {
+      if (err?.code === 'P2002') {
+        throw new AppError(409, 'رقم الهاتف موجود مسبقاً');
+      }
+      throw err;
+    }
   },
 
   async updateSalesRep(id: number, data: Partial<{

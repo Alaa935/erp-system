@@ -56,16 +56,24 @@ take: pageSizeNum,
     taxNumber?: string | null;
     address?: string;
   }) {
-    return prisma.supplier.create({
-      data: {
-        name: data.name,
-        contactName: data.contactName ?? '',
-        phone: data.phone ?? '',
-        email: data.email ?? '',
-        taxNumber: data.taxNumber ?? undefined,
-        address: data.address ?? '',
-      },
-    });
+    try {
+      const supplier = await prisma.supplier.create({
+        data: {
+          name: data.name,
+          contactName: data.contactName ?? '',
+          phone: data.phone ?? '',
+          email: data.email ?? '',
+          taxNumber: data.taxNumber ?? undefined,
+          address: data.address ?? '',
+        },
+      });
+      return supplier;
+    } catch (err: any) {
+      if (err?.code === 'P2002') {
+        throw new AppError(409, 'اسم المورد موجود مسبقاً');
+      }
+      throw err;
+    }
   },
 
   async updateSupplier(id: number, data: Partial<{

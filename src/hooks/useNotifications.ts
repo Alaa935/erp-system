@@ -1,5 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '../lib/api-client';
+import { useQuery } from '@tanstack/react-query'; import api from '../lib/api-client'; import { useProtectedMutation } from './useProtectedMutation';
 
 export function useNotifications(limit?: number) {
   return useQuery({
@@ -20,34 +19,30 @@ export function useUnreadNotifications() {
 }
 
 export function useMarkNotificationRead() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) => api(`/notifications/${id}/read`, { method: 'PUT' }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['notifications'] }); },
-  });
+  return useProtectedMutation(
+    (id: number) => api(`/notifications/${id}/read`, { method: 'PUT' }),
+    { invalidates: [['notifications']] },
+  );
 }
 
 export function useMarkAllNotificationsRead() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: () => api('/notifications/read-all', { method: 'PUT' }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['notifications'] }); },
-  });
+  return useProtectedMutation(
+    () => api('/notifications/read-all', { method: 'PUT' }),
+    { invalidates: [['notifications']] },
+  );
 }
 
 export function useDeleteNotification() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) => api(`/notifications/${id}`, { method: 'DELETE' }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['notifications'] }); },
-  });
+  return useProtectedMutation(
+    (id: number) => api(`/notifications/${id}`, { method: 'DELETE' }),
+    { invalidates: [['notifications']] },
+  );
 }
 
 export function useCreateNotification() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: { title: string; message: string; type: string }) =>
+  return useProtectedMutation(
+    (data: { title: string; message: string; type: string }) =>
       api('/notifications', { method: 'POST', body: JSON.stringify(data) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['notifications'] }); },
-  });
+    { invalidates: [['notifications']] },
+  );
 }

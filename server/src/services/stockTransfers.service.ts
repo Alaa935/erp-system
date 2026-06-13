@@ -1,6 +1,6 @@
 ﻿import { prisma } from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 
 export const stockTransfersService = {
@@ -62,30 +62,35 @@ export const stockTransfersService = {
     status?: string;
     date?: string;
   }) {
-    const transferNumber = data.transferNumber || 'ST-' + Date.now();
-
-    return prisma.$transaction(async (tx) => {
-      const transfer = await tx.stockTransfer.create({
-        data: {
-          transferNumber,
-          fromType: data.fromType,
-          fromId: data.fromId,
-          toType: data.toType,
-          toId: data.toId,
-          status: (data.status as any) || 'pending',
-          date: data.date ? new Date(data.date) : undefined,
-          items: {
-            create: data.items.map((item) => ({
-              itemId: item.itemId,
-              quantity: new Decimal(item.quantity),
-            })),
+    const transferNumber = data.transferNumber || 'ST-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+    try {
+      return prisma.$transaction(async (tx) => {
+        const transfer = await tx.stockTransfer.create({
+          data: {
+            transferNumber,
+            fromType: data.fromType,
+            fromId: data.fromId,
+            toType: data.toType,
+            toId: data.toId,
+            status: (data.status as any) || 'pending',
+            date: data.date ? new Date(data.date) : undefined,
+            items: {
+              create: data.items.map((item) => ({
+                itemId: item.itemId,
+                quantity: new Decimal(item.quantity),
+              })),
+            },
           },
-        },
-        include: { items: { include: { item: true } } },
+          include: { items: { include: { item: true } } },
+        });
+        return transfer;
       });
-
-      return transfer;
-    });
+    } catch (err: any) {
+      if (err?.code === 'P2002') {
+        throw new AppError(409, 'رقم التحويل مكرر، يرجى المحاولة مرة أخرى');
+      }
+      throw err;
+    }
   },
 
   async updateStockTransfer(

@@ -1,5 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api-client';
+import { useProtectedMutation } from './useProtectedMutation';
 import type { TaxConfig } from '../types';
 
 interface ListResponse {
@@ -29,28 +30,25 @@ export function useTaxConfig(id: number | undefined) {
 }
 
 export function useCreateTaxConfig() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: Partial<TaxConfig>) =>
+  return useProtectedMutation(
+    (data: Partial<TaxConfig>) =>
       api<SingleResponse>('/tax-configs', { method: 'POST', body: JSON.stringify(data) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['taxConfigs'] }); },
-  });
+    { invalidates: [['taxConfigs']] },
+  );
 }
 
 export function useUpdateTaxConfig() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<TaxConfig> }) =>
+  return useProtectedMutation(
+    ({ id, data }: { id: number; data: Partial<TaxConfig> }) =>
       api<SingleResponse>(`/tax-configs/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['taxConfigs'] }); },
-  });
+    { invalidates: [['taxConfigs']] },
+  );
 }
 
 export function useDeleteTaxConfig() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
+  return useProtectedMutation(
+    ({ id, reason }: { id: number; reason: string }) =>
       api(`/tax-configs/${id}`, { method: 'DELETE', body: JSON.stringify({ reason }) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['taxConfigs'] }); },
-  });
+    { invalidates: [['taxConfigs']] },
+  );
 }

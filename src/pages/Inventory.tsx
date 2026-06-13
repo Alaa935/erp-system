@@ -22,6 +22,7 @@ import {
 import { TableActionMenu, type ActionItem } from '../components/ui/TableActionMenu';
 import { useInventory, useCreateInventoryItem, useUpdateInventoryItem, useDeleteInventoryItem, useAdjustInventoryItem } from '../hooks/useInventory';
 import { useSuppliers } from '../hooks/useSuppliers';
+import { LoadingButton } from '../components/ui/LoadingButton';
 
 export default function Inventory({ 
   setActivePage 
@@ -522,6 +523,7 @@ const inventoryStats = useMemo(() => [
             primaryLabel={editingItem ? 'تحديث الصنف' : 'حفظ الصنف'}
             secondaryLabel="إلغاء"
             onSecondary={() => { setModalOpen(false); setEditingItem(null); }}
+            loading={createMutation.isPending || updateMutation.isPending}
           />
         </Form>
       </Modal>
@@ -534,12 +536,25 @@ const inventoryStats = useMemo(() => [
         size="sm"
         titleIcon={<Trash2 className="text-white w-6 h-6" />}
         footer={
-          <FormActions
-            primaryLabel="تأكيد الحذف"
-            primaryClassName="bg-red-600 hover:bg-red-700"
-            secondaryLabel="تراجع"
-            onSecondary={() => { setDeleteModalOpen(false); setItemToDelete(null); setDeleteReason(''); }}
-          />
+          <div className="flex gap-4 pt-6">
+            <LoadingButton
+              onClick={handleDelete}
+              isPending={deleteMutation.isPending}
+              loadingText="جاري الحذف..."
+              variant="danger"
+              size="md"
+              className="flex-[2]"
+            >
+              تأكيد الحذف
+            </LoadingButton>
+            <button
+              type="button"
+              onClick={() => { setDeleteModalOpen(false); setItemToDelete(null); setDeleteReason(''); }}
+              className="flex-1 bg-white border-2 border-[#E0E3E5] text-[#44474D] py-4 rounded-2xl font-bold hover:bg-gray-100 transition-colors"
+            >
+              تراجع
+            </button>
+          </div>
         }
       >
         <div className="space-y-4">
@@ -588,19 +603,33 @@ const inventoryStats = useMemo(() => [
           <ArrowRightLeft className="text-white w-6 h-6" />
         }
         footer={
-          <FormActions
-            primaryLabel="تأكيد وحفظ الحركة"
-            secondaryLabel="إلغاء"
-            onSecondary={() => {
-              setAdjustmentModalOpen(false);
-              setNewItem({
-                ...newItem, 
-                quantity: adjustmentData.oldQty,
-                purchasePrice: adjustmentData.oldPurchasePrice,
-                sellingPrice: adjustmentData.oldSellingPrice
-              });
-            }}
-          />
+          <div className="flex gap-4 pt-6">
+            <LoadingButton
+              onClick={finalizeAdjustment}
+              isPending={adjustMutation.isPending}
+              loadingText="جاري التنفيذ..."
+              variant="primary"
+              size="md"
+              className="flex-[2]"
+            >
+              تأكيد وحفظ الحركة
+            </LoadingButton>
+            <button
+              type="button"
+              onClick={() => {
+                setAdjustmentModalOpen(false);
+                setNewItem({
+                  ...newItem, 
+                  quantity: adjustmentData.oldQty,
+                  purchasePrice: adjustmentData.oldPurchasePrice,
+                  sellingPrice: adjustmentData.oldSellingPrice
+                });
+              }}
+              className="flex-1 bg-white border-2 border-[#E0E3E5] text-[#44474D] py-4 rounded-2xl font-bold hover:bg-gray-100 transition-colors"
+            >
+              إلغاء
+            </button>
+          </div>
         }
       >
         <div className="space-y-4">

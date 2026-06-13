@@ -1,5 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api-client';
+import { useProtectedMutation } from './useProtectedMutation';
 import type { Item } from '../types';
 
 interface ListResponse {
@@ -29,42 +30,38 @@ export function useInventoryItem(id: number | undefined) {
 }
 
 export function useCreateInventoryItem() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: Partial<Item>) =>
+  return useProtectedMutation(
+    (data: Partial<Item>) =>
       api<SingleResponse>('/inventory', { method: 'POST', body: JSON.stringify(data) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['inventory'] }); },
-  });
+    { invalidates: [['inventory']] },
+  );
 }
 
 export function useUpdateInventoryItem() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<Item> }) =>
+  return useProtectedMutation(
+    ({ id, data }: { id: number; data: Partial<Item> }) =>
       api<SingleResponse>(`/inventory/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['inventory'] }); },
-  });
+    { invalidates: [['inventory']] },
+  );
 }
 
 export function useDeleteInventoryItem() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
+  return useProtectedMutation(
+    ({ id, reason }: { id: number; reason: string }) =>
       api(`/inventory/${id}`, { method: 'DELETE', body: JSON.stringify({ reason }) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['inventory'] }); },
-  });
+    { invalidates: [['inventory']] },
+  );
 }
 
 export function useAdjustInventoryItem() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, diff, type, reason }: { id: number; diff: number; type: 'increase' | 'decrease'; reason: string }) =>
+  return useProtectedMutation(
+    ({ id, diff, type, reason }: { id: number; diff: number; type: 'increase' | 'decrease'; reason: string }) =>
       api<SingleResponse>(`/inventory/${id}/adjust`, {
         method: 'POST',
         body: JSON.stringify({ diff, type, reason }),
       }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['inventory'] }); },
-  });
+    { invalidates: [['inventory']] },
+  );
 }
 
 export function useLowStockItems(minStockLevel?: number) {

@@ -63,17 +63,25 @@ take: pageSizeNum,
     isActive?: boolean;
     isInclusive?: boolean;
   }) {
-    return prisma.taxConfig.create({
-      data: {
-        name: data.name,
-        rate: new Decimal(data.rate),
-        type: data.type ?? 'VAT',
-        code: data.code ?? undefined,
-        description: data.description ?? undefined,
-        isActive: data.isActive ?? true,
-        isInclusive: data.isInclusive ?? false,
-      },
-    });
+    try {
+      const config = await prisma.taxConfig.create({
+        data: {
+          name: data.name,
+          rate: new Decimal(data.rate),
+          type: data.type ?? 'VAT',
+          code: data.code ?? undefined,
+          description: data.description ?? undefined,
+          isActive: data.isActive ?? true,
+          isInclusive: data.isInclusive ?? false,
+        },
+      });
+      return config;
+    } catch (err: any) {
+      if (err?.code === 'P2002') {
+        throw new AppError(409, 'اسم الضريبة موجود مسبقاً');
+      }
+      throw err;
+    }
   },
 
   async updateTaxConfig(id: number, data: Partial<{

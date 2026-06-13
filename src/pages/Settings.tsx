@@ -26,6 +26,7 @@ import { useEmployees, useCreateEmployee, useDeleteEmployee } from '../hooks/use
 import { useBranches, useCreateBranch, useDeleteBranch } from '../hooks/useBranches';
 import { useActivityLogs } from '../hooks/useActivityLogs';
 import api from '../lib/api-client';
+import { LoadingButton } from '../components/ui/LoadingButton';
 import type { SystemConfig, Employee } from '../types';
 
 type TabType = 'general' | 'security' | 'activity' | 'employees' | 'invoices' | 'inventory' | 'backup' | 'notifications' | 'branches' | 'appearance';
@@ -460,7 +461,16 @@ export default function SettingsPage({ activeTab: propTab }: { activeTab?: TabTy
   </div>
   </div>
   <div className="flex gap-3 pt-2">
-  <button type="submit" className="flex-1 bg-black text-white py-3.5 rounded-xl font-bold text-sm active:scale-[0.98] transition-all">حفظ بيانات الموظف</button>
+  <LoadingButton
+  type="submit"
+  isPending={createEmployee.isPending}
+  loadingText="جاري الحفظ..."
+  variant="primary"
+  size="lg"
+  className="w-full"
+>
+  حفظ بيانات الموظف
+</LoadingButton>
   <button type="button" onClick={() => setModalOpen(false)} className="flex-1 bg-gray-100 text-gray-700 py-3.5 rounded-xl font-bold text-sm hover:bg-gray-200 active:scale-[0.98] transition-all">إلغاء</button>
   </div>
   </form>
@@ -494,12 +504,15 @@ export default function SettingsPage({ activeTab: propTab }: { activeTab?: TabTy
   </p>
 
   <div className="space-y-3">
-  <button
+  <LoadingButton
   onClick={executeDelete}
-  className="w-full bg-rose-600 text-white py-3.5 rounded-xl font-bold text-sm hover:bg-rose-700 active:scale-[0.98] transition-all"
-  >
+  isPending={deleteEmployee.isPending || deleteBranch.isPending}
+  loadingText="جاري الحذف..."
+  variant="danger"
+  size="md"
+>
   {deleteType === 'all' ? 'نعم، احذف كل شيء' : 'نعم، قم بالحذف'}
-  </button>
+</LoadingButton>
   <button
   onClick={() => {
   setDeleteModalOpen(false);

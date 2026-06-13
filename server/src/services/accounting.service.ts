@@ -79,17 +79,40 @@ export const accountingService = {
   },
 
   async createTransaction(data: { type: 'income' | 'expense'; amount: number; category: string; description?: string; referenceId?: number; date?: string }) {
-    const transaction = await prisma.financialTransaction.create({
+    const transactionNumber = 'TXN-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+    try {
+      const transaction = await prisma.financialTransaction.create({
+        data: {
+          type: data.type,
+          amount: new Decimal(data.amount),
+          category: data.category as any,
+          description: data.description || '',
+          referenceId: data.referenceId ?? null,
+          date: data.date ? new Date(data.date) : new Date(),
+          transactionNumber,
+        },
+      });
+      return { ...transaction, amount: toNumber(transaction.amount) };
+    } catch (err: any) {
+      if (err?.code === 'P2002') {
+        throw new AppError(409, 'رقم المعاملة مكرر، يرجى المحاولة مرة أخرى');
+      }
+      throw err;
+    }
+  },
+
+  async createPayroll(data: { employeeId: number; baseSalary: number; advances?: number; bonuses?: number; deductions?: number; month: number }) {
+    const payroll = await prisma.employeePayroll.create({
       data: {
-        type: data.type,
-        amount: new Decimal(data.amount),
-        category: data.category as any,
-        description: data.description || '',
-        referenceId: data.referenceId ?? null,
-        date: data.date ? new Date(data.date) : new Date(),
+        employeeId: data.employeeId,
+        baseSalary: new Decimal(data.baseSalary),
+        advances: new Decimal(data.advances ?? 0),
+        bonuses: new Decimal(data.bonuses ?? 0),
+        deductions: new Decimal(data.deductions ?? 0),
+        month: data.month,
       },
     });
-    return { ...transaction, amount: toNumber(transaction.amount) };
+    return { ...payroll, baseSalary: toNumber(payroll.baseSalary), advances: toNumber(payroll.advances), bonuses: toNumber(payroll.bonuses), deductions: toNumber(payroll.deductions) };
   },
 
   async getPaymentHistory(referenceId: number, category: string) {
@@ -117,25 +140,12 @@ export const accountingService = {
           category: 'other',
           description: `تحصيل من ${username}`,
           referenceId: collection.orderId ?? collection.customerId,
+          transactionNumber: 'TXN-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase(),
           date: new Date(),
         },
       }),
     ]);
     return { ...updated, amount: toNumber(updated.amount) };
-  },
-
-  async createPayroll(data: { employeeId: number; baseSalary: number; advances?: number; bonuses?: number; deductions?: number; month: number }) {
-    const payroll = await prisma.employeePayroll.create({
-      data: {
-        employeeId: data.employeeId,
-        baseSalary: new Decimal(data.baseSalary),
-        advances: new Decimal(data.advances ?? 0),
-        bonuses: new Decimal(data.bonuses ?? 0),
-        deductions: new Decimal(data.deductions ?? 0),
-        month: data.month,
-      },
-    });
-    return { ...payroll, baseSalary: toNumber(payroll.baseSalary), advances: toNumber(payroll.advances), bonuses: toNumber(payroll.bonuses), deductions: toNumber(payroll.deductions) };
   },
 
   async confirmSalaryPayroll(payrollId: number) {
@@ -162,6 +172,7 @@ export const accountingService = {
   },
 
   async addVehicleExpense(data: { vehicleId: number; amount: number; description: string; date?: string }) {
+    const transactionNumber = 'TXN-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
     const transaction = await prisma.financialTransaction.create({
       data: {
         type: 'expense',
@@ -169,6 +180,7 @@ export const accountingService = {
         category: 'vehicle',
         description: data.description,
         referenceId: data.vehicleId,
+        transactionNumber,
         date: data.date ? new Date(data.date) : new Date(),
       },
     });

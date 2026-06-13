@@ -1,5 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api-client';
+import { useProtectedMutation } from './useProtectedMutation';
 import type { SalesRep } from '../types';
 
 interface ListResponse {
@@ -29,28 +30,25 @@ export function useSalesRep(id: number | undefined) {
 }
 
 export function useCreateSalesRep() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: Partial<SalesRep>) =>
+  return useProtectedMutation(
+    (data: Partial<SalesRep>) =>
       api<SingleResponse>('/sales-reps', { method: 'POST', body: JSON.stringify(data) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['salesReps'] }); },
-  });
+    { invalidates: [['salesReps']] },
+  );
 }
 
 export function useUpdateSalesRep() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<SalesRep> }) =>
+  return useProtectedMutation(
+    ({ id, data }: { id: number; data: Partial<SalesRep> }) =>
       api<SingleResponse>(`/sales-reps/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['salesReps'] }); },
-  });
+    { invalidates: [['salesReps']] },
+  );
 }
 
 export function useDeleteSalesRep() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
+  return useProtectedMutation(
+    ({ id, reason }: { id: number; reason: string }) =>
       api(`/sales-reps/${id}`, { method: 'DELETE', body: JSON.stringify({ reason }) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['salesReps'] }); },
-  });
+    { invalidates: [['salesReps']] },
+  );
 }

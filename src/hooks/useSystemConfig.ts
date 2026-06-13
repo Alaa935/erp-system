@@ -1,5 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api-client';
+import { useProtectedMutation } from './useProtectedMutation';
 import type { SystemConfig } from '../types';
 
 interface SingleResponse {
@@ -16,10 +17,9 @@ export function useSystemConfig() {
 }
 
 export function useUpdateSystemConfig() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: Partial<SystemConfig>) =>
+  return useProtectedMutation(
+    (data: Partial<SystemConfig>) =>
       api<SingleResponse>('/system-config', { method: 'PUT', body: JSON.stringify(data) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['system-config'] }); },
-  });
+    { invalidates: [['system-config']] },
+  );
 }

@@ -10,6 +10,7 @@ import { useSuppliers, useCreateSupplier, useUpdateSupplier, useDeleteSupplier }
 import { useInventory } from '../hooks/useInventory';
 import { usePurchaseOrders, useCreatePurchaseOrder, useUpdatePurchaseOrder, useDeletePurchaseOrder } from '../hooks/usePurchaseOrders';
 import type { Item } from '../types';
+import { LoadingButton } from '../components/ui/LoadingButton';
 
 export default function Suppliers() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -452,13 +453,16 @@ export default function Suppliers() {
                 </div>
 
                 <div className="flex gap-4 pt-6 border-t border-[#E0E3E5]">
-                  <button 
+                  <LoadingButton
                     type="submit"
-                    className="flex-1 bg-black text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                    isPending={isSubmitting || createSupplier.isPending || updateSupplier.isPending}
+                    loadingText="جاري الحفظ..."
+                    icon={<Save className="w-5 h-5" />}
+                    className="flex-1 py-3 rounded-xl font-bold"
+                    size="lg"
                   >
-                    <Save className="w-5 h-5" />
                     حفظ المورد
-                  </button>
+                  </LoadingButton>
                   <button 
                     type="button"
                     onClick={() => setModalOpen(false)}
@@ -515,13 +519,15 @@ export default function Suppliers() {
                 </div>
 
                 <div className="flex gap-3 pt-4">
-                  <button 
+                  <LoadingButton
                     onClick={handleDeleteSupplier}
-                    disabled={isSubmitting}
-                    className="flex-1 bg-red-600 text-white py-4 rounded-2xl font-black shadow-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                    isPending={deleteSupplier.isPending}
+                    loadingText="جاري الحذف..."
+                    variant="danger"
+                    size="md"
                   >
                     تأكيد الحذف
-                  </button>
+                  </LoadingButton>
                   <button 
                     onClick={() => {
                       setDeleteReasonModalOpen(false);
@@ -985,7 +991,7 @@ export default function Suppliers() {
  
                 <div className="flex gap-4">
                   <button 
-                    disabled={isSubmitting || newOrder.items.length === 0}
+                    disabled={isSubmitting || createPurchaseOrder.isPending || updatePurchaseOrder.isPending || newOrder.items.length === 0}
                     type="submit"
                     className="flex-1 bg-black text-white py-4 rounded-2xl font-black shadow-lg hover:opacity-90 transition-all disabled:opacity-50"
                   >
@@ -1005,15 +1011,47 @@ export default function Suppliers() {
         )}
       </AnimatePresence>
 
-      <ConfirmDialog
-        open={!!deleteConfirmOrder}
-        title="حذف فاتورة توريد"
-        message={deleteConfirmOrder ? `هل أنت متأكد من حذف الفاتورة رقم ${deleteConfirmOrder.orderNumber}؟ سيتم خصم الكميات من المخزون.` : ''}
-        confirmLabel="تأكيد الحذف"
-        variant="danger"
-        onConfirm={executeDeleteInvoice}
-        onCancel={() => setDeleteConfirmOrder(null)}
-      />
+      <AnimatePresence>
+        {deleteConfirmOrder && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 modal-overlay text-right" dir="rtl">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden"
+            >
+              <div className="p-6 bg-red-50 border-b border-red-100 flex items-center gap-3">
+                <div className="w-12 h-12 bg-red-500 text-white rounded-2xl flex items-center justify-center shadow-lg">
+                  <Trash2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-red-900">حذف فاتورة توريد</h3>
+                  <p className="text-xs font-bold text-red-600">
+                    {deleteConfirmOrder ? `هل أنت متأكد من حذف الفاتورة رقم ${deleteConfirmOrder.orderNumber}؟ سيتم خصم الكميات من المخزون.` : ''}
+                  </p>
+                </div>
+              </div>
+              <div className="p-8 flex gap-3">
+                <LoadingButton
+                  onClick={executeDeleteInvoice}
+                  isPending={deletePurchaseOrder.isPending}
+                  loadingText="جاري الحذف..."
+                  variant="danger"
+                  size="md"
+                >
+                  تأكيد الحذف
+                </LoadingButton>
+                <button 
+                  onClick={() => setDeleteConfirmOrder(null)}
+                  className="flex-1 bg-gray-100 text-gray-600 py-4 rounded-2xl font-black hover:bg-gray-200 transition-colors"
+                >
+                  تراجع
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

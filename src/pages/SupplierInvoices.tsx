@@ -27,6 +27,7 @@ import { calculateTax } from '../utils/calculateTax';
 import { toast } from 'sonner';
 import { WorkspaceLayout, EnterpriseTable, type Column, Modal, Form, FormInput, FormSelect, FormTextarea, FormSection, FormActions } from '../components/design-system';
 import { TableActionMenu, type ActionItem } from '../components/ui/TableActionMenu';
+import { LoadingButton } from '../components/ui/LoadingButton';
 
 export default function SupplierInvoices() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -225,7 +226,7 @@ export default function SupplierInvoices() {
       primaryLabel="حفظ الفاتورة وتحديث المخزون"
       secondaryLabel="إلغاء الأمر"
       onSecondary={() => setModalOpen(false)}
-      loading={isSubmitting}
+      loading={isSubmitting || createPurchaseOrder.isPending}
       primaryClassName="flex items-center justify-center gap-3"
       secondaryClassName="border-2 border-[#E0E3E5]"
     />
@@ -347,13 +348,15 @@ export default function SupplierInvoices() {
                 onChange={(e) => setQuickItem({...quickItem, purchasePrice: parseFloat(e.target.value) || 0})}
                 className="[&_input]:bg-white [&_input]:border [&_input]:border-green-200 [&_input]:focus:ring-green-500"
               />
-              <button
-                type="button"
+              <LoadingButton
                 onClick={handleQuickAddItem}
-                className="bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 transition-colors"
+                isPending={createItem.isPending}
+                loadingText="جاري الحفظ..."
+                variant="primary"
+                size="sm"
               >
                 حفظ وإضافة للجدول
-              </button>
+              </LoadingButton>
             </div>
           </div>
         )}

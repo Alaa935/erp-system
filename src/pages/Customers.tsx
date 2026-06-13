@@ -9,6 +9,7 @@ import { useSalesReps } from '../hooks/useSalesReps';
 import { useInventory } from '../hooks/useInventory';
 import { useSalesOrders } from '../hooks/useSalesOrders';
 import { usePaymentCollections, useConfirmPaymentCollection } from '../hooks/usePaymentCollections';
+import { LoadingButton } from '../components/ui/LoadingButton';
 
 export default function Customers() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -373,20 +374,26 @@ export default function Customers() {
                       <div className="flex justify-center gap-2">
                         {col.status === 'pending' ? (
                           <>
-                            <button 
+                            <LoadingButton
                               onClick={() => handleConfirmCollection(col.id!)}
-                              className="p-2 bg-green-50 text-green-600 rounded-xl hover:bg-green-600 hover:text-white transition-all shadow-sm shadow-green-100"
-                              title="تأكيد"
+                              isPending={confirmCollectionMut.isPending}
+                              loadingText="جاري التنفيذ..."
+                              variant="outline"
+                              size="sm"
+                              className="bg-emerald-50 text-emerald-700 border-0 hover:bg-emerald-100"
                             >
-                              <CheckCircle2 className="w-4 h-4" />
-                            </button>
-                            <button 
+                              ✓
+                            </LoadingButton>
+                            <LoadingButton
                               onClick={() => handleRejectCollection(col.id!)}
-                              className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm shadow-red-100"
-                              title="رفض"
+                              isPending={confirmCollectionMut.isPending}
+                              loadingText="جاري التنفيذ..."
+                              variant="outline"
+                              size="sm"
+                              className="bg-rose-50 text-rose-700 border-0 hover:bg-rose-100"
                             >
-                              <XCircle className="w-4 h-4" />
-                            </button>
+                              ✕
+                            </LoadingButton>
                           </>
                         ) : (
                           <div className="text-[10px] text-gray-400 flex items-center gap-1 font-bold">
@@ -465,7 +472,7 @@ export default function Customers() {
             primaryLabel="حفظ البيانات"
             secondaryLabel="إلغاء"
             onSecondary={() => { setModalOpen(false); setEditingCustomer(null); }}
-            loading={isSubmitting}
+            loading={isSubmitting || createCustomer.isPending || updateCustomer.isPending}
           />
         </Form>
       </Modal>
@@ -480,13 +487,15 @@ export default function Customers() {
         size="md"
         footer={
           <div className="flex gap-3">
-            <button
+            <LoadingButton
               onClick={handleDelete}
-              disabled={isSubmitting}
-              className="flex-1 bg-red-600 text-white py-4 rounded-2xl font-black shadow-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+              isPending={deleteCustomer.isPending}
+              loadingText="جاري الحذف..."
+              variant="danger"
+              size="md"
             >
               تأكيد الحذف
-            </button>
+            </LoadingButton>
             <button
               onClick={() => { setDeleteReasonModalOpen(false); setCustomerToDelete(null); setDeleteReason(''); }}
               className="flex-1 bg-gray-100 text-gray-600 py-4 rounded-2xl font-black hover:bg-gray-200 transition-colors"

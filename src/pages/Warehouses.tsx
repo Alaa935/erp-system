@@ -3,6 +3,7 @@ import { Warehouse, MapPin, Package, Plus, Edit2, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { WorkspaceLayout, EmptyState, Modal, Form, FormInput, FormActions } from '../components/design-system';
 import { useWarehouses, useCreateWarehouse, useUpdateWarehouse, useDeleteWarehouse } from '../hooks/useWarehouses';
+import { LoadingButton } from '../components/ui/LoadingButton';
 
 export default function Warehouses({ setActivePage }: { setActivePage?: (page: string) => void }) {
   const [isModalOpen, setModalOpen] = useState(false);
@@ -88,7 +89,7 @@ export default function Warehouses({ setActivePage }: { setActivePage?: (page: s
         </div>
       )}
 
-      <Modal open={isModalOpen} onClose={() => { setModalOpen(false); setEditingWarehouse(null); }} title={editingWarehouse ? 'تعديل بيانات المخزن' : 'إضافة مخزن جديد'} subtitle="يرجى تعبئة كافة التفاصيل بدقة" titleIcon={<Warehouse className="text-white w-6 h-6" />} size="xl" footer={<FormActions primaryLabel="حفظ البيانات" secondaryLabel="إلغاء" onSecondary={() => { setModalOpen(false); setEditingWarehouse(null); }} />}>
+      <Modal open={isModalOpen} onClose={() => { setModalOpen(false); setEditingWarehouse(null); }} title={editingWarehouse ? 'تعديل بيانات المخزن' : 'إضافة مخزن جديد'} subtitle="يرجى تعبئة كافة التفاصيل بدقة" titleIcon={<Warehouse className="text-white w-6 h-6" />} size="xl" footer={<FormActions primaryLabel="حفظ البيانات" secondaryLabel="إلغاء" onSecondary={() => { setModalOpen(false); setEditingWarehouse(null); }} loading={createWarehouse.isPending || updateWarehouse.isPending} />}>
         <Form onSubmit={handleSaveWarehouse} autoFocusFirst>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormInput label="اسم المخزن/الفرع" type="text" value={newWarehouse.name} onChange={(e) => setNewWarehouse({...newWarehouse, name: e.target.value})} required autoFocus />
@@ -99,7 +100,7 @@ export default function Warehouses({ setActivePage }: { setActivePage?: (page: s
         </Form>
       </Modal>
 
-      <Modal open={deleteReasonModalOpen} onClose={() => { setDeleteReasonModalOpen(false); setWarehouseToDelete(null); setDeleteReason(''); }} title="حذف مخزن نهائياً" subtitle="سيتم إزالة كافة سجلات هذا المخزن من النظام" titleIcon={<Trash2 className="text-white w-6 h-6" />} size="md" footer={<form onSubmit={(e) => { e.preventDefault(); handleDelete(); }}><FormActions primaryLabel="تأكيد الحذف" secondaryLabel="تراجع" onSecondary={() => { setDeleteReasonModalOpen(false); setWarehouseToDelete(null); setDeleteReason(''); }} /></form>}>
+      <Modal open={deleteReasonModalOpen} onClose={() => { setDeleteReasonModalOpen(false); setWarehouseToDelete(null); setDeleteReason(''); }} title="حذف مخزن نهائياً" subtitle="سيتم إزالة كافة سجلات هذا المخزن من النظام" titleIcon={<Trash2 className="text-white w-6 h-6" />} size="md" footer={<form onSubmit={(e) => { e.preventDefault(); handleDelete(); }}><FormActions primaryLabel="تأكيد الحذف" secondaryLabel="تراجع" onSecondary={() => { setDeleteReasonModalOpen(false); setWarehouseToDelete(null); setDeleteReason(''); }} loading={deleteWarehouse.isPending} /></form>}>
         <div className="space-y-4">
           <label className="text-sm font-bold text-black">ما سبب حذف هذا المخزن؟</label>
           <div className="grid grid-cols-1 gap-2">

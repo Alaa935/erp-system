@@ -1,5 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api-client';
+import { useProtectedMutation } from './useProtectedMutation';
 import type { SalesOrder } from '../types';
 
 interface ListResponse {
@@ -30,49 +31,44 @@ export function useSalesOrder(id: number | undefined) {
 }
 
 export function useCreateSalesOrder() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: { customerId: number; items: { itemId: number; quantity: number; price: number }[]; taxId?: number | null }) =>
+  return useProtectedMutation(
+    (data: { customerId: number; items: { itemId: number; quantity: number; price: number }[]; taxId?: number | null }) =>
       api<SingleResponse>('/sales-orders', { method: 'POST', body: JSON.stringify(data) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['sales-orders'] }); },
-  });
+    { invalidates: [['sales-orders']] },
+  );
 }
 
 export function useDispatchSalesOrder() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) =>
+  return useProtectedMutation(
+    (id: number) =>
       api<SingleResponse>(`/sales-orders/${id}/dispatch`, { method: 'POST' }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['sales-orders'] }); },
-  });
+    { invalidates: [['sales-orders']] },
+  );
 }
 
 export function useCancelSalesOrder() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) =>
+  return useProtectedMutation(
+    (id: number) =>
       api<SingleResponse>(`/sales-orders/${id}/cancel`, { method: 'POST' }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['sales-orders'] }); },
-  });
+    { invalidates: [['sales-orders']] },
+  );
 }
 
 export function useDeleteSalesOrder() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
+  return useProtectedMutation(
+    ({ id, reason }: { id: number; reason: string }) =>
       api(`/sales-orders/${id}`, { method: 'DELETE', body: JSON.stringify({ reason }) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['sales-orders'] }); },
-  });
+    { invalidates: [['sales-orders']] },
+  );
 }
 
 export function useSalesOrderPayment() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, amount, method }: { id: number; amount: number; method: string }) =>
+  return useProtectedMutation(
+    ({ id, amount, method }: { id: number; amount: number; method: string }) =>
       api(`/sales-orders/${id}/payments`, {
         method: 'POST',
         body: JSON.stringify({ amount, method }),
       }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['sales-orders'] }); },
-  });
+    { invalidates: [['sales-orders']] },
+  );
 }

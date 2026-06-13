@@ -1,5 +1,6 @@
 import { prisma } from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 
 function toNumber(d: Decimal | null | undefined): number {
@@ -39,17 +40,26 @@ export const paymentCollectionsService = {
   },
 
   async create(data: { repId: number; amount: number; method: string; status?: string; type?: string; date?: number }) {
-    const collection = await prisma.paymentCollection.create({
-      data: {
-        repId: data.repId,
-        amount: new Decimal(data.amount),
-        method: data.method as any,
-        status: (data.status as any) || 'pending',
-        type: (data.type as any) || 'customer',
-        date: data.date ? new Date(data.date) : new Date(),
-      },
-    });
-    return { ...collection, amount: toNumber(collection.amount) };
+    const collectionNumber = 'COL-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+    try {
+      const collection = await prisma.paymentCollection.create({
+        data: {
+          collectionNumber,
+          repId: data.repId,
+          amount: new Decimal(data.amount),
+          method: data.method as any,
+          status: (data.status as any) || 'pending',
+          type: (data.type as any) || 'customer',
+          date: data.date ? new Date(data.date) : new Date(),
+        },
+      });
+      return { ...collection, amount: toNumber(collection.amount) };
+    } catch (err: any) {
+      if (err?.code === 'P2002') {
+        throw new AppError(409, 'رقم التحصيل مكرر، يرجى المحاولة مرة أخرى');
+      }
+      throw err;
+    }
   },
 
   async update(id: number, data: { status?: string }) {

@@ -1,6 +1,6 @@
 ﻿import { prisma } from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 
 export const stockRequestsService = {
@@ -67,25 +67,33 @@ export const stockRequestsService = {
     status?: string;
     date?: string;
   }) {
-    return prisma.$transaction(async (tx) => {
-      const request = await tx.stockRequest.create({
-        data: {
-          repId: data.repId,
-          status: (data.status as any) || 'pending',
-          date: data.date ? new Date(data.date) : undefined,
-          items: {
-            create: data.items.map((item) => ({
-              itemId: item.itemId,
-              quantity: new Decimal(item.quantity),
-              sellingPrice: item.sellingPrice != null ? new Decimal(item.sellingPrice) : null,
-            })),
+    const requestNumber = 'SR-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+    try {
+      return prisma.$transaction(async (tx) => {
+        const request = await tx.stockRequest.create({
+          data: {
+            requestNumber,
+            repId: data.repId,
+            status: (data.status as any) || 'pending',
+            date: data.date ? new Date(data.date) : undefined,
+            items: {
+              create: data.items.map((item) => ({
+                itemId: item.itemId,
+                quantity: new Decimal(item.quantity),
+                sellingPrice: item.sellingPrice != null ? new Decimal(item.sellingPrice) : null,
+              })),
+            },
           },
-        },
-        include: { rep: true, items: { include: { item: true } } },
+          include: { rep: true, items: { include: { item: true } } },
+        });
+        return request;
       });
-
-      return request;
-    });
+    } catch (err: any) {
+      if (err?.code === 'P2002') {
+        throw new AppError(409, 'رقم الطلب مكرر، يرجى المحاولة مرة أخرى');
+      }
+      throw err;
+    }
   },
 
   async updateStockRequest(

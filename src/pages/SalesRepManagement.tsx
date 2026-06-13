@@ -20,14 +20,15 @@ import {
   ShoppingCart,
   DollarSign
 } from 'lucide-react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api-client';
+import { LoadingButton } from '../components/ui/LoadingButton';
 import { useSalesReps, useCreateSalesRep, useDeleteSalesRep } from '../hooks/useSalesReps';
 import { useInventory } from '../hooks/useInventory';
 import { useCustomers } from '../hooks/useCustomers';
 import { useStockTransfers, useCreateStockTransfer } from '../hooks/useStockTransfers';
 import { useStockRequests, useUpdateStockRequest } from '../hooks/useStockRequests';
-import { useConfirmCollection } from '../hooks/useAccounting';
+import { useConfirmPaymentCollection } from '../hooks/usePaymentCollections';
 import { useCreateNotification } from '../hooks/useNotifications';
 import type { SalesRep } from '../types';
 import { cn, formatDate } from '../lib/utils';
@@ -49,7 +50,6 @@ export default function SalesRepManagement() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const queryClient = useQueryClient();
 
   const { data: repsData } = useSalesReps();
   const reps = repsData?.items;
@@ -134,7 +134,7 @@ export default function SalesRepManagement() {
   const deleteRep = useDeleteSalesRep();
   const createTransfer = useCreateStockTransfer();
   const updateStockRequest = useUpdateStockRequest();
-  const confirmCollection = useConfirmCollection();
+  const confirmCollection = useConfirmPaymentCollection();
   const createNotification = useCreateNotification();
 
   const handleApproveRequest = async (requestId: number, updatedItems?: { itemId: number; quantity: number; sellingPrice?: number }[], modificationReason?: string) => {
@@ -202,7 +202,7 @@ export default function SalesRepManagement() {
 
   const handleConfirmCollection = async (id: number) => {
     try {
-      await confirmCollection.mutateAsync(id);
+      await confirmCollection.mutateAsync({ id, status: 'collected' });
       toast.success('تم التأكيد بنجاح');
     } catch (error) {
       console.error(error);
@@ -212,8 +212,7 @@ export default function SalesRepManagement() {
 
   const handleRejectCollection = async (id: number) => {
     try {
-      await api(`/payment-collections/${id}`, { method: 'PUT', body: JSON.stringify({ status: 'rejected' }) });
-      queryClient.invalidateQueries({ queryKey: ['paymentCollections'] });
+      await confirmCollection.mutateAsync({ id, status: 'rejected' });
       toast.success('تم الرفض');
     } catch (error) {
       console.error(error);
@@ -540,25 +539,24 @@ export default function SalesRepManagement() {
                             {isExpanded ? 'إخفاء' : 'عرض'}
                           </button>
                           <div className="flex gap-2 border-r pr-2 border-gray-200">
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleApproveRequest(req.id!);
-                              }}
-                              className="bg-green-500 text-white px-4 py-1.5 rounded-lg text-[10px] font-black hover:bg-green-600 shadow-md shadow-green-100 transition-all flex items-center gap-1"
+                            <LoadingButton
+                              onClick={() => handleApproveRequest(req.id)}
+                              isPending={createTransfer.isPending || updateStockRequest.isPending}
+                              loadingText="جاري التنفيذ..."
+                              variant="primary"
+                              size="sm"
                             >
-                              <CheckCircle2 className="w-3.5 h-3.5" />
                               موافق
-                            </button>
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRejectRequest(req.id!);
-                              }}
-                              className="bg-red-50 text-red-600 px-4 py-1.5 rounded-lg text-[10px] font-black hover:bg-red-100 transition-all"
+                            </LoadingButton>
+                            <LoadingButton
+                              onClick={() => handleRejectRequest(req.id)}
+                              isPending={updateStockRequest.isPending}
+                              loadingText="جاري التنفيذ..."
+                              variant="danger"
+                              size="sm"
                             >
                               رفض
-                            </button>
+                            </LoadingButton>
                           </div>
                         </div>
                       </div>
@@ -613,13 +611,15 @@ export default function SalesRepManagement() {
                             </div>
                             
                             <div className="flex justify-end gap-3 pt-2">
-                              <button 
-                                onClick={() => handleApproveRequest(req.id!)}
-                                className="bg-black text-white px-8 py-2.5 rounded-xl text-xs font-black shadow-lg hover:opacity-90 transition-all flex items-center gap-2"
+                              <LoadingButton
+                                onClick={() => handleApproveRequest(req.id)}
+                                isPending={createTransfer.isPending || updateStockRequest.isPending}
+                                loadingText="جاري التنفيذ..."
+                                variant="primary"
+                                size="sm"
                               >
-                                <CheckCircle2 className="w-4 h-4" />
                                 اعتماد وتوريد الكميات
-                              </button>
+                              </LoadingButton>
                             </div>
                           </div>
                         </motion.div>
@@ -653,19 +653,24 @@ export default function SalesRepManagement() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                       <button 
-                        onClick={() => handleConfirmCollection(col.id!)}
-                        className="bg-green-500 text-white px-4 py-1.5 rounded-lg text-[10px] font-black hover:bg-green-600 flex items-center gap-1 shadow-md shadow-green-100"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        تأكيد الاستلام
-                      </button>
-                      <button 
-                        onClick={() => handleRejectCollection(col.id!)}
-                        className="bg-red-50 text-red-600 px-4 py-1.5 rounded-lg text-[10px] font-black hover:bg-red-100 transition-all"
+                       <LoadingButton
+                         onClick={() => handleConfirmCollection(col.id)}
+                         isPending={confirmCollection.isPending}
+                         loadingText="جاري التنفيذ..."
+                         variant="primary"
+                         size="sm"
+                       >
+                         تأكيد الاستلام
+                       </LoadingButton>
+                      <LoadingButton
+                        onClick={() => handleRejectCollection(col.id)}
+                        isPending={confirmCollection.isPending}
+                        loadingText="جاري التنفيذ..."
+                        variant="danger"
+                        size="sm"
                       >
                         رفض
-                      </button>
+                      </LoadingButton>
                     </div>
                   </div>
                 )
@@ -879,7 +884,16 @@ export default function SalesRepManagement() {
                   </div>
                 </div>
                 <div className="flex gap-4 pt-4">
-                  <button type="submit" disabled={isSubmitting} className="flex-1 bg-black text-white py-3 rounded-xl font-bold disabled:opacity-50">{isSubmitting ? 'جاري الحفظ...' : 'حفظ المندوب'}</button>
+                  <LoadingButton
+                    type="submit"
+                    isPending={createRep.isPending}
+                    loadingText="جاري الحفظ..."
+                    variant="primary"
+                    size="lg"
+                    className="w-full"
+                  >
+                    حفظ المندوب
+                  </LoadingButton>
                   <button type="button" onClick={() => setAddModalOpen(false)} className="flex-1 bg-gray-100 text-[#44474D] py-3 rounded-xl font-bold">إلغاء</button>
                 </div>
               </form>
@@ -981,7 +995,15 @@ export default function SalesRepManagement() {
                 </div>
 
                 <div className="flex gap-4 pt-4 border-t">
-                  <button type="submit" disabled={newTransfer.items.length === 0} className="flex-1 bg-black text-white py-3 rounded-xl font-bold disabled:opacity-50">تأكيد عملية التحويل</button>
+                  <LoadingButton
+                    onClick={handleTransfer}
+                    isPending={createTransfer.isPending}
+                    loadingText="جاري التنفيذ..."
+                    variant="primary"
+                    size="md"
+                  >
+                    تأكيد عملية التحويل
+                  </LoadingButton>
                   <button type="button" onClick={() => setTransferModalOpen(false)} className="flex-1 bg-gray-100 text-[#44474D] py-3 rounded-xl font-bold">إلغاء</button>
                 </div>
               </form>
@@ -1149,12 +1171,15 @@ export default function SalesRepManagement() {
                 </div>
 
                 <div className="flex gap-3 pt-4">
-                  <button 
+                  <LoadingButton
                     onClick={handleDeleteRep}
-                    className="flex-1 bg-red-600 text-white py-4 rounded-2xl font-black shadow-lg hover:bg-red-700 transition-colors"
+                    isPending={deleteRep.isPending}
+                    loadingText="جاري الحذف..."
+                    variant="danger"
+                    size="md"
                   >
                     تأكيد الحذف
-                  </button>
+                  </LoadingButton>
                   <button 
                     onClick={() => {
                       setDeleteReasonModalOpen(false);

@@ -17,8 +17,7 @@ router.get('/schema', authorize('admin'), async (_req, res) => {
     const enums = await prisma.$queryRawUnsafe(`SELECT t.typname, e.enumlabel FROM pg_type t JOIN pg_enum e ON t.oid = e.enumtypid ORDER BY t.typname, e.enumsortorder`);
     const triggers = await prisma.$queryRawUnsafe(`SELECT trigger_name, event_manipulation, action_statement FROM information_schema.triggers WHERE event_object_table = 'purchase_orders'`);
     const constraints = await prisma.$queryRawUnsafe(`SELECT conname, contype, pg_get_constraintdef(oid) as def FROM pg_constraint WHERE conrelid = 'purchase_orders'::regclass`);
-    const defaultColumns = await prisma.$queryRawUnsafe(`SELECT attname, atttypid::regtype::text, atthasdef, adsrc FROM pg_attribute LEFT JOIN pg_attrdef ON attrelid = adrelid AND attnum = adnum WHERE attrelid = 'purchase_orders'::regclass AND attnum > 0 AND NOT attisdropped ORDER BY attnum`);
-    res.json({ success: true, purchase_orders: pcols, purchase_order_items: picols, sales_orders: socols, sales_order_items: sicols, enums, triggers, constraints, defaultColumns });
+    res.json({ success: true, purchase_orders: pcols, purchase_order_items: picols, sales_orders: socols, sales_order_items: sicols, enums, triggers, constraints });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message, detail: err.meta || null });
   }
@@ -65,10 +64,11 @@ router.post('/purchase-order-create', authorize('admin', 'manager'), async (req,
       },
     });
 
-    // TEST 2: Now add items with minimal fields only
-    if (data.items) {
-      for (const item of data.items) {
-        // First try: bare minimum — only orderId and itemId
+    // TEST 2: Try creating SalesOrderItem to compare behavior
+    if (data.items && data.items.length > 0) {
+      const item = data.items[0];
+      // First test: PurchaseOrderItem
+      try {
         const pi = await prisma.purchaseOrderItem.create({
           data: {
             orderId: order.id,
@@ -77,9 +77,39 @@ router.post('/purchase-order-create', authorize('admin', 'manager'), async (req,
             price: new Decimal(item.price),
           },
         });
-        res.json({ success: true, message: 'PurchaseOrderItem created', id: pi.id });
-        return;
+        res.json({ success: true, message: 'PurchaseOrderItem created ok', pi: { id: pi.id, orderId: pi.orderId, itemId: pi.itemId } });
+      } catch (err2: any) {
+        // Second test: SalesOrderItem (create a minimal sales order first)
+        try {
+          const so = await prisma.salesOrder.create({
+            data: {
+              orderNumber: 'SO-DIAG-' + Date.now(),
+              customerId: 1,
+              totalAmount: new Decimal(data.totalAmount),
+              status: 'pending',
+              paymentStatus: 'unpaid',
+              paidAmount: new Decimal(0),
+            },
+          });
+          const si = await prisma.salesOrderItem.create({
+            data: {
+              orderId: so.id,
+              itemId: item.itemId,
+              quantity: new Decimal(item.quantity),
+              price: new Decimal(item.price),
+            },
+          });
+          res.json({ success: true, message: 'PurchaseOrderItem failed but SalesOrderItem worked', poError: { code: err2.code, column: err2.meta?.column, model: err2.meta?.modelName }, si: { id: si.id } });
+          // Cleanup
+          await prisma.salesOrder.delete({ where: { id: so.id } }).catch(() => {});
+        } catch (err3: any) {
+          // Both failed - this is a broader Prisma issue
+          res.json({ success: true, message: 'Both item types failed', poError: { code: err2.code, column: err2.meta?.column, model: err2.meta?.modelName }, soError: { code: err3.code, column: err3.meta?.column, model: err3.meta?.modelName } });
+        }
       }
+      // Cleanup the order created above
+      await prisma.purchaseOrder.delete({ where: { id: order.id } }).catch(() => {});
+      return;
     }
 
     // Return with includes

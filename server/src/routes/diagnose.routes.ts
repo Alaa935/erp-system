@@ -10,12 +10,13 @@ router.use(authenticate);
 
 router.get('/schema', authorize('admin'), async (_req, res) => {
   try {
-    const columns = await prisma.$queryRawUnsafe(`SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = 'purchase_orders' ORDER BY ordinal_position`);
-    const columns2 = await prisma.$queryRawUnsafe(`SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = 'purchase_order_items' ORDER BY ordinal_position`);
-    const columns3 = await prisma.$queryRawUnsafe(`SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = 'sales_orders' ORDER BY ordinal_position`);
+    const pcols = await prisma.$queryRawUnsafe(`SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = 'purchase_orders' ORDER BY ordinal_position`);
+    const picols = await prisma.$queryRawUnsafe(`SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = 'purchase_order_items' ORDER BY ordinal_position`);
+    const socols = await prisma.$queryRawUnsafe(`SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = 'sales_orders' ORDER BY ordinal_position`);
     const enums = await prisma.$queryRawUnsafe(`SELECT t.typname, e.enumlabel FROM pg_type t JOIN pg_enum e ON t.oid = e.enumtypid ORDER BY t.typname, e.enumsortorder`);
     const triggers = await prisma.$queryRawUnsafe(`SELECT trigger_name, event_manipulation, action_statement FROM information_schema.triggers WHERE event_object_table = 'purchase_orders'`);
-    res.json({ success: true, purchase_orders: columns, purchase_order_items: columns2, sales_orders: columns3, enums, triggers });
+    const constraints = await prisma.$queryRawUnsafe(`SELECT conname, contype, pg_get_constraintdef(oid) as def FROM pg_constraint WHERE conrelid = 'purchase_order_items'::regclass`);
+    res.json({ success: true, purchase_orders: pcols, purchase_order_items: picols, sales_orders: socols, enums, triggers, constraints });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message, detail: err.meta || null });
   }
@@ -62,10 +63,11 @@ router.post('/purchase-order-create', authorize('admin', 'manager'), async (req,
       },
     });
 
-    // TEST 2: Now add items
+    // TEST 2: Now add items with minimal fields only
     if (data.items) {
       for (const item of data.items) {
-        await prisma.purchaseOrderItem.create({
+        // First try: bare minimum — only orderId and itemId
+        const pi = await prisma.purchaseOrderItem.create({
           data: {
             orderId: order.id,
             itemId: item.itemId,
@@ -73,6 +75,8 @@ router.post('/purchase-order-create', authorize('admin', 'manager'), async (req,
             price: new Decimal(item.price),
           },
         });
+        res.json({ success: true, message: 'PurchaseOrderItem created', id: pi.id });
+        return;
       }
     }
 

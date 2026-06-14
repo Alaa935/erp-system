@@ -35,6 +35,7 @@ const LoginPage = lazy(() => import('./pages/LoginPage'));
 const TaxManagement = lazy(() => import('./pages/TaxManagement'));
 const InvoiceVerificationPage = lazy(() => import('./pages/InvoiceVerificationPage'));
 const Profile = lazy(() => import('./pages/Profile'));
+const SupplierInvoiceCreate = lazy(() => import('./pages/SupplierInvoiceCreate'));
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
@@ -280,7 +281,8 @@ export default function App() {
             case 'inventory': return <Inventory setActivePage={setActivePage} />;
             case 'suppliers': return <Suppliers />;
             case 'customers': return <Customers />;
-            case 'supplier-invoices': return <SupplierInvoices />;
+            case 'supplier-invoices': return <SupplierInvoices onNavigate={handleNavigate} />;
+            case 'supplier-invoice-create': return <SupplierInvoiceCreate onNavigate={handleNavigate} />;
             case 'sales-orders': return <SalesOrders />;
             case 'reports': return <Reports setActivePage={setActivePage} />;
             case 'warehouses': return <Warehouses setActivePage={setActivePage} />;

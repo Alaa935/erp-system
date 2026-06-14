@@ -20,6 +20,8 @@ export const salesOrdersService = {
     paymentStatus?: string;
   }) {
     const { page = 1, pageSize = 10, search, status, customerId, paymentStatus } = params;
+    const pageNum = Number(page) || 1;
+    const pageSizeNum = Number(pageSize) || 10;
     const where: any = { deletedAt: null };
 
     if (status) where.status = status;
@@ -36,8 +38,8 @@ export const salesOrdersService = {
       prisma.salesOrder.findMany({
         where,
         orderBy: { date: 'desc' },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
+        skip: (pageNum - 1) * pageSizeNum,
+        take: pageSizeNum,
         include: {
           customer: { select: { id: true, name: true } },
           items: {
@@ -72,7 +74,7 @@ export const salesOrdersService = {
           purchasePrice: toNumber(i.purchasePrice),
         })),
       })),
-      meta: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+      meta: { page: pageNum, pageSize: pageSizeNum, total, totalPages: Math.ceil(total / pageSizeNum) },
     };
   },
 

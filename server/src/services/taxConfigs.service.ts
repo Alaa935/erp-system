@@ -25,7 +25,7 @@ const pageSizeNum = Number(pageSize) || 10;
     }
 
     if (isActive !== undefined) {
-      where.isActive = isActive;
+      where.isActive = String(isActive) === 'true';
     }
 
     const orderBy: Prisma.TaxConfigOrderByWithRelationInput = {};

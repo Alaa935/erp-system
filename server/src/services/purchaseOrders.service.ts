@@ -18,6 +18,8 @@ export const purchaseOrdersService = {
     sortOrder?: 'asc' | 'desc';
   }) {
     const { page = 1, pageSize = 10, search, status, paymentStatus, supplierId, sortBy, sortOrder } = params;
+    const pageNum = Number(page) || 1;
+    const pageSizeNum = Number(pageSize) || 10;
     const where: any = { deletedAt: null };
     if (status) where.status = status;
     if (paymentStatus) where.paymentStatus = paymentStatus;
@@ -36,7 +38,7 @@ export const purchaseOrdersService = {
     const [orders, total] = await Promise.all([
       prisma.purchaseOrder.findMany({
         where, orderBy,
-        skip: (page - 1) * pageSize, take: pageSize,
+        skip: (pageNum - 1) * pageSizeNum, take: pageSizeNum,
         include: { supplier: { select: { id: true, name: true } }, items: { include: { item: { select: { id: true, name: true, sku: true } } } } },
       }),
       prisma.purchaseOrder.count({ where }),
@@ -51,7 +53,7 @@ export const purchaseOrdersService = {
         paymentMethod: o.paymentMethod,
         items: o.items.map(i => ({ id: i.id, itemId: i.itemId, name: i.item.name, sku: i.item.sku, quantity: toNumber(i.quantity), price: toNumber(i.price) })),
       })),
-      meta: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+      meta: { page: pageNum, pageSize: pageSizeNum, total, totalPages: Math.ceil(total / pageSizeNum) },
     };
   },
 
@@ -94,7 +96,8 @@ export const purchaseOrdersService = {
         },
         include: { supplier: { select: { id: true, name: true } }, items: { include: { item: { select: { id: true, name: true, sku: true } } } } },
       });
-      if (data.status === 'received') {
+      const effectiveStatus = data.status ?? 'received';
+      if (effectiveStatus === 'received') {
         for (const item of data.items) {
           const dbItem = dbItems.find(i => i.id === item.itemId)!;
           const newQty = new Decimal(toNumber(dbItem.quantity)).plus(item.quantity);

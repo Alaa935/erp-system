@@ -14,6 +14,8 @@ export const stockRequestsService = {
     sortOrder?: 'asc' | 'desc';
   }) {
     const { page = 1, pageSize = 10, search, status, sortBy, sortOrder } = params;
+    const pageNum = Number(page) || 1;
+    const pageSizeNum = Number(pageSize) || 10;
     const rawRepId = (params as any).repId;
     const repId = rawRepId ? Number(rawRepId) : undefined;
     const where: Record<string, unknown> = { deletedAt: null };
@@ -42,14 +44,14 @@ export const stockRequestsService = {
       prisma.stockRequest.findMany({
         where,
         orderBy,
-        skip: (page - 1) * pageSize,
-        take: pageSize,
+        skip: (pageNum - 1) * pageSizeNum,
+        take: pageSizeNum,
         include: { rep: true, items: { include: { item: true } } },
       }),
       prisma.stockRequest.count({ where }),
     ]);
 
-    return { items, meta: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) } };
+    return { items, meta: { page: pageNum, pageSize: pageSizeNum, total, totalPages: Math.ceil(total / pageSizeNum) } };
   },
 
   async getStockRequest(id: number) {

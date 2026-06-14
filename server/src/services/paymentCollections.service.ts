@@ -9,8 +9,8 @@ function toNumber(d: Decimal | null | undefined): number {
 
 export const paymentCollectionsService = {
   async list(params: { page?: number; pageSize?: number; repId?: number; customerId?: number; status?: string }) {
-    const page = params.page || 1;
-    const pageSize = params.pageSize || 100;
+    const pageNum = Number(params.page) || 1;
+    const pageSizeNum = Number(params.pageSize) || 100;
     const where: any = {};
     if (params.repId) where.repId = params.repId;
     if (params.customerId) where.customerId = params.customerId;
@@ -19,14 +19,14 @@ export const paymentCollectionsService = {
       prisma.paymentCollection.findMany({
         where,
         orderBy: { date: 'desc' },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
+        skip: (pageNum - 1) * pageSizeNum,
+        take: pageSizeNum,
       }),
       prisma.paymentCollection.count({ where }),
     ]);
     return {
       items: items.map(c => ({ ...c, amount: toNumber(c.amount) })),
-      meta: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+      meta: { page: pageNum, pageSize: pageSizeNum, total, totalPages: Math.ceil(total / pageSizeNum) },
     };
   },
 

@@ -22,6 +22,7 @@ import salesRepsRoutes from './salesReps.routes.js';
 import repInventoryRoutes from './repInventory.routes.js';
 import employeesRoutes from './employees.routes.js';
 import branchesRoutes from './branches.routes.js';
+import diagnoseRoutes from './diagnose.routes.js';
 
 const router = Router();
 
@@ -48,5 +49,6 @@ router.use('/rep-inventory', repInventoryRoutes);
 router.use('/employees', employeesRoutes);
 router.use('/branches', branchesRoutes);
 router.use('/payment-collections', paymentCollectionsRoutes);
+router.use('/diagnose', diagnoseRoutes);
 
 export default router;

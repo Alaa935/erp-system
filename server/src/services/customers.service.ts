@@ -22,6 +22,8 @@ export const customersService = {
     sortOrder?: 'asc' | 'desc';
   }) {
     const { page = 1, pageSize = 10, search, sortBy, sortOrder } = params;
+    const pageNum = Number(page) || 1;
+    const pageSizeNum = Number(pageSize) || 10;
     const where: Prisma.CustomerWhereInput = { deletedAt: null };
 
     if (search) {
@@ -42,8 +44,8 @@ export const customersService = {
       prisma.customer.findMany({
         where,
         orderBy,
-        skip: (page - 1) * pageSize,
-        take: pageSize,
+        skip: (pageNum - 1) * pageSizeNum,
+        take: pageSizeNum,
       }),
       prisma.customer.count({ where }),
     ]);
@@ -56,10 +58,10 @@ export const customersService = {
         longitude: c.longitude ? Number(c.longitude) : null,
       })),
       meta: {
-        page,
-        pageSize,
+        page: pageNum,
+        pageSize: pageSizeNum,
         total,
-        totalPages: Math.ceil(total / pageSize),
+        totalPages: Math.ceil(total / pageSizeNum),
       },
     };
   },

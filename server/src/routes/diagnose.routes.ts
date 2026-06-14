@@ -13,10 +13,12 @@ router.get('/schema', authorize('admin'), async (_req, res) => {
     const pcols = await prisma.$queryRawUnsafe(`SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = 'purchase_orders' ORDER BY ordinal_position`);
     const picols = await prisma.$queryRawUnsafe(`SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = 'purchase_order_items' ORDER BY ordinal_position`);
     const socols = await prisma.$queryRawUnsafe(`SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = 'sales_orders' ORDER BY ordinal_position`);
+    const sicols = await prisma.$queryRawUnsafe(`SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = 'sales_order_items' ORDER BY ordinal_position`);
     const enums = await prisma.$queryRawUnsafe(`SELECT t.typname, e.enumlabel FROM pg_type t JOIN pg_enum e ON t.oid = e.enumtypid ORDER BY t.typname, e.enumsortorder`);
     const triggers = await prisma.$queryRawUnsafe(`SELECT trigger_name, event_manipulation, action_statement FROM information_schema.triggers WHERE event_object_table = 'purchase_orders'`);
-    const constraints = await prisma.$queryRawUnsafe(`SELECT conname, contype, pg_get_constraintdef(oid) as def FROM pg_constraint WHERE conrelid = 'purchase_order_items'::regclass`);
-    res.json({ success: true, purchase_orders: pcols, purchase_order_items: picols, sales_orders: socols, enums, triggers, constraints });
+    const constraints = await prisma.$queryRawUnsafe(`SELECT conname, contype, pg_get_constraintdef(oid) as def FROM pg_constraint WHERE conrelid = 'purchase_orders'::regclass`);
+    const defaultColumns = await prisma.$queryRawUnsafe(`SELECT attname, atttypid::regtype::text, atthasdef, adsrc FROM pg_attribute LEFT JOIN pg_attrdef ON attrelid = adrelid AND attnum = adnum WHERE attrelid = 'purchase_orders'::regclass AND attnum > 0 AND NOT attisdropped ORDER BY attnum`);
+    res.json({ success: true, purchase_orders: pcols, purchase_order_items: picols, sales_orders: socols, sales_order_items: sicols, enums, triggers, constraints, defaultColumns });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message, detail: err.meta || null });
   }

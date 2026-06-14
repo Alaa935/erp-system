@@ -8,6 +8,29 @@ const router = Router();
 
 router.use(authenticate);
 
+router.get('/schema', authorize('admin'), async (_req, res) => {
+  try {
+    const columns = await prisma.$queryRawUnsafe(`
+      SELECT column_name, data_type, is_nullable, column_default
+      FROM information_schema.columns
+      WHERE table_name = 'purchase_orders'
+      ORDER BY ordinal_position
+    `);
+    const columns2 = await prisma.$queryRawUnsafe(`
+      SELECT column_name, data_type, is_nullable, column_default
+      FROM information_schema.columns
+      WHERE table_name = 'purchase_order_items'
+      ORDER BY ordinal_position
+    `);
+    const prismaModel = await prisma.$queryRawUnsafe(`
+      SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '_prisma_migrations'
+    `);
+    res.json({ success: true, purchase_orders: columns, purchase_order_items: columns2, hasMigrationsTable: Array.isArray(prismaModel) && prismaModel.length > 0 });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message, detail: err.meta || null });
+  }
+});
+
 router.post('/purchase-order-create', authorize('admin', 'manager'), async (req, res) => {
   const data = req.body;
   try {

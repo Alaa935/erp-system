@@ -1,3 +1,5 @@
+import { sessionManager } from './session';
+
 const API_BASE = import.meta.env.VITE_API_URL || 'https://server-e6y4.onrender.com';
 
 const ACCESS_TOKEN_KEY = 'wms_access_token';
@@ -36,6 +38,7 @@ export function clearTokens(): void {
   debugLog('clearTokens called', { hadAccess, hadRefresh, stack: new Error().stack?.split('\n').slice(2, 6).join(' | ') });
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  sessionManager.destroy();
   debugLog('clearTokens completed');
 }
 

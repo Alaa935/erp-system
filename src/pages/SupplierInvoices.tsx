@@ -110,7 +110,7 @@ export default function SupplierInvoices({ onNavigate }: Props) {
             className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
-            إضافة فاتورة مورد [NEW PAGE TEST]
+            إضافة فاتورة مورد
           </button>
         }
       />

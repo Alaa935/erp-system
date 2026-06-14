@@ -19,8 +19,6 @@ import {
   Hash,
   ArrowRight,
   Printer,
-  File,
-  Building2,
   Wallet,
   BarChart3,
   Tag,
@@ -155,7 +153,7 @@ export default function SupplierInvoiceCreate({ onNavigate }: Props) {
     });
   };
 
-  const handleCreateInvoice = async (action: 'save' | 'print' | 'draft') => {
+  const handleCreateInvoice = async (action: 'save' | 'print') => {
     if (newInvoice.supplierId === 0 || newInvoice.items.length === 0) {
       toast.error('يرجى اختيار المورد وإضافة أصناف للفاتورة');
       return;
@@ -179,7 +177,7 @@ export default function SupplierInvoiceCreate({ onNavigate }: Props) {
         taxId: newInvoice.taxId,
         taxAmount,
         totalAmount,
-        status: action === 'draft' ? 'received' : 'received',
+        status: 'received',
         paymentStatus: newInvoice.paymentStatus,
         paymentMethod: newInvoice.paymentMethod,
         paidAmount: newInvoice.paymentStatus === 'paid' ? totalAmount : newInvoice.paidAmount,
@@ -252,14 +250,6 @@ export default function SupplierInvoiceCreate({ onNavigate }: Props) {
             >
               <Printer className="w-4 h-4" />
               حفظ وطباعة
-            </button>
-            <button
-              onClick={() => handleCreateInvoice('draft')}
-              disabled={isSubmitting}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border-2 border-[#E0E3E5] text-gray-700 rounded-xl text-xs font-bold hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              <File className="w-4 h-4" />
-              حفظ كمسودة
             </button>
             <button
               onClick={() => onNavigate?.('supplier-invoices')}
@@ -511,7 +501,10 @@ export default function SupplierInvoiceCreate({ onNavigate }: Props) {
                         <th className="px-4 py-3 text-[11px] font-bold text-gray-500">المخزون الحالي</th>
                         <th className="px-4 py-3 text-[11px] font-bold text-gray-500">الكمية</th>
                         <th className="px-4 py-3 text-[11px] font-bold text-gray-500">سعر الشراء</th>
-                        <th className="px-4 py-3 text-[11px] font-bold text-gray-500">الخصم</th>
+                        <th className="px-4 py-3 text-[11px] font-bold text-gray-500">
+                          الخصم
+                          <span className="mr-1 text-[9px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full font-bold">قريباً</span>
+                        </th>
                         <th className="px-4 py-3 text-[11px] font-bold text-gray-500">الضريبة</th>
                         <th className="px-4 py-3 text-[11px] font-bold text-gray-500">الإجمالي</th>
                         <th className="px-4 py-3 text-[11px] font-bold text-gray-500">الإجراءات</th>
@@ -570,8 +563,8 @@ export default function SupplierInvoiceCreate({ onNavigate }: Props) {
                                   min="0"
                                   step="0.01"
                                   value={item.discount || ''}
-                                  onChange={(e) => updateItem(idx, 'discount', parseFloat(e.target.value) || 0)}
-                                  className="w-16 bg-[#F2F4F6] rounded-lg py-1.5 px-2 text-center text-xs font-bold outline-none focus:ring-2 focus:ring-black"
+                                  disabled
+                                  className="w-16 bg-gray-100 rounded-lg py-1.5 px-2 text-center text-xs font-bold text-gray-400 cursor-not-allowed"
                                 />
                               </div>
                             </td>
@@ -643,14 +636,6 @@ export default function SupplierInvoiceCreate({ onNavigate }: Props) {
                   حفظ وطباعة
                 </button>
                 <button
-                  onClick={() => handleCreateInvoice('draft')}
-                  disabled={isSubmitting}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white border-2 border-[#E0E3E5] text-gray-700 rounded-xl text-xs font-bold hover:bg-gray-50 transition-colors disabled:opacity-50"
-                >
-                  <File className="w-4 h-4" />
-                  حفظ كمسودة
-                </button>
-                <button
                   onClick={() => onNavigate?.('supplier-invoices')}
                   className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white border-2 border-[#E0E3E5] text-gray-500 rounded-xl text-xs font-bold hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
                 >
@@ -677,8 +662,11 @@ export default function SupplierInvoiceCreate({ onNavigate }: Props) {
                   </div>
 
                   <div className="flex justify-between items-center pb-3 border-b border-gray-100">
-                    <span className="text-xs font-bold text-gray-500">الخصم</span>
-                    <span className="text-sm font-bold text-red-500">{formatCurrency(totalDiscount)}</span>
+                    <span className="text-xs font-bold text-gray-500">
+                      الخصم
+                      <span className="mr-1 text-[9px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full font-bold">قريباً</span>
+                    </span>
+                    <span className="text-sm font-bold text-gray-400">{formatCurrency(0)}</span>
                   </div>
 
                   <div className="flex justify-between items-center pb-3 border-b border-gray-100">

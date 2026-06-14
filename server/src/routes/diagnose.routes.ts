@@ -64,50 +64,23 @@ router.post('/purchase-order-create', authorize('admin', 'manager'), async (req,
       },
     });
 
-    // TEST 2: Try creating SalesOrderItem to compare behavior
+    // TEST 2: Try raw SQL insert to compare
     if (data.items && data.items.length > 0) {
       const item = data.items[0];
-      // First test: PurchaseOrderItem
+
+      // Try RAW SQL INSERT first — if this works, issue is Prisma schema generation
       try {
-        const pi = await prisma.purchaseOrderItem.create({
-          data: {
-            orderId: order.id,
-            itemId: item.itemId,
-            quantity: new Decimal(item.quantity),
-            price: new Decimal(item.price),
-          },
-        });
-        res.json({ success: true, message: 'PurchaseOrderItem created ok', pi: { id: pi.id, orderId: pi.orderId, itemId: pi.itemId } });
-      } catch (err2: any) {
-        // Second test: SalesOrderItem (create a minimal sales order first)
-        try {
-          const so = await prisma.salesOrder.create({
-            data: {
-              orderNumber: 'SO-DIAG-' + Date.now(),
-              customerId: 1,
-              totalAmount: new Decimal(data.totalAmount),
-              status: 'pending',
-              paymentStatus: 'unpaid',
-              paidAmount: new Decimal(0),
-            },
-          });
-          const si = await prisma.salesOrderItem.create({
-            data: {
-              orderId: so.id,
-              itemId: item.itemId,
-              quantity: new Decimal(item.quantity),
-              price: new Decimal(item.price),
-            },
-          });
-          res.json({ success: true, message: 'PurchaseOrderItem failed but SalesOrderItem worked', poError: { code: err2.code, column: err2.meta?.column, model: err2.meta?.modelName }, si: { id: si.id } });
-          // Cleanup
-          await prisma.salesOrder.delete({ where: { id: so.id } }).catch(() => {});
-        } catch (err3: any) {
-          // Both failed - this is a broader Prisma issue
-          res.json({ success: true, message: 'Both item types failed', poError: { code: err2.code, column: err2.meta?.column, model: err2.meta?.modelName }, soError: { code: err3.code, column: err3.meta?.column, model: err3.meta?.modelName } });
-        }
+        const rawResult: any = await prisma.$queryRawUnsafe(
+          `INSERT INTO purchase_order_items ("orderId", "itemId", quantity, price) VALUES ($1, $2, $3, $4) RETURNING id`,
+          order.id, item.itemId, item.quantity, item.price
+        );
+        const newId = Array.isArray(rawResult) && rawResult.length > 0 ? rawResult[0].id : null;
+        if (newId) await prisma.$executeRawUnsafe(`DELETE FROM purchase_order_items WHERE id = $1`, newId);
+        res.json({ success: true, message: 'RAW SQL INSERT into purchase_order_items SUCCEEDED', insertedId: newId });
+      } catch (rawErr: any) {
+        res.json({ success: true, message: 'RAW SQL INSERT failed too', error: { message: rawErr.message, code: rawErr?.code } });
       }
-      // Cleanup the order created above
+
       await prisma.purchaseOrder.delete({ where: { id: order.id } }).catch(() => {});
       return;
     }

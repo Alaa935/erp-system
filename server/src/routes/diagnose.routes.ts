@@ -29,57 +29,62 @@ router.post('/purchase-order-create', authorize('admin', 'manager'), async (req,
       res.status(404).json({ success: false, error: 'Supplier not found' });
       return;
     }
-    const itemIds = data.items.map((i: any) => i.itemId);
-    const dbItems = await prisma.item.findMany({
-      where: { id: { in: itemIds }, deletedAt: null },
-      select: { id: true, name: true, quantity: true },
-    });
-    if (dbItems.length !== itemIds.length) {
-      res.status(400).json({ success: false, error: 'One or more items not found' });
-      return;
+    if (data.items && data.items.length > 0) {
+      const itemIds = data.items.map((i: any) => i.itemId);
+      const dbItems = await prisma.item.findMany({
+        where: { id: { in: itemIds }, deletedAt: null },
+        select: { id: true, name: true, quantity: true },
+      });
+      if (dbItems.length !== itemIds.length) {
+        res.status(400).json({ success: false, error: 'One or more items not found' });
+        return;
+      }
     }
     const orderNumber = data.orderNumber || 'PO-DIAG-' + Date.now();
-    const order = await prisma.$transaction(async (tx: any) => {
-      // Create order WITHOUT items first
-      const created = await tx.purchaseOrder.create({
-        data: {
-          orderNumber,
-          supplierId: data.supplierId,
-          invoiceNumber: data.invoiceNumber ?? undefined,
-          subtotal: data.subtotal !== undefined ? new Decimal(data.subtotal) : undefined,
-          taxId: data.taxId ?? undefined,
-          taxAmount: data.taxAmount !== undefined ? new Decimal(data.taxAmount) : undefined,
-          totalAmount: new Decimal(data.totalAmount),
-          status: data.status ?? 'received',
-          paymentStatus: data.paymentStatus ?? 'unpaid',
-          paidAmount: new Decimal(data.paidAmount ?? 0),
-          dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
-          date: data.date ? new Date(data.date) : undefined,
-          notes: data.notes ?? undefined,
-          paymentMethod: data.paymentMethod ?? undefined,
-        },
-      });
-      // Then create items separately
+
+    // TEST 1: Create order without transaction
+    const order = await prisma.purchaseOrder.create({
+      data: {
+        orderNumber,
+        supplierId: data.supplierId,
+        invoiceNumber: data.invoiceNumber ?? undefined,
+        subtotal: data.subtotal !== undefined ? new Decimal(data.subtotal) : undefined,
+        taxId: data.taxId ?? undefined,
+        taxAmount: data.taxAmount !== undefined ? new Decimal(data.taxAmount) : undefined,
+        totalAmount: new Decimal(data.totalAmount),
+        status: data.status ?? 'received',
+        paymentStatus: data.paymentStatus ?? 'unpaid',
+        paidAmount: new Decimal(data.paidAmount ?? 0),
+        dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
+        date: data.date ? new Date(data.date) : undefined,
+        notes: data.notes ?? undefined,
+        paymentMethod: data.paymentMethod ?? undefined,
+      },
+    });
+
+    // TEST 2: Now add items
+    if (data.items) {
       for (const item of data.items) {
-        await tx.purchaseOrderItem.create({
+        await prisma.purchaseOrderItem.create({
           data: {
-            orderId: created.id,
+            orderId: order.id,
             itemId: item.itemId,
             quantity: new Decimal(item.quantity),
             price: new Decimal(item.price),
           },
         });
       }
-      // Return with includes
-      return tx.purchaseOrder.findUnique({
-        where: { id: created.id },
-        include: {
-          supplier: { select: { id: true, name: true } },
-          items: { include: { item: { select: { id: true, name: true, sku: true } } } },
-        },
-      });
+    }
+
+    // Return with includes
+    const result = await prisma.purchaseOrder.findUnique({
+      where: { id: order.id },
+      include: {
+        supplier: { select: { id: true, name: true } },
+        items: { include: { item: { select: { id: true, name: true, sku: true } } } },
+      },
     });
-    res.status(201).json({ success: true, data: order });
+    res.status(201).json({ success: true, data: result });
   } catch (err: any) {
     console.error('[DIAGNOSTIC ERROR]', err);
     const diagnostic: Record<string, any> = {

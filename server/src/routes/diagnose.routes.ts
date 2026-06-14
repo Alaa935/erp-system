@@ -10,22 +10,12 @@ router.use(authenticate);
 
 router.get('/schema', authorize('admin'), async (_req, res) => {
   try {
-    const columns = await prisma.$queryRawUnsafe(`
-      SELECT column_name, data_type, is_nullable, column_default
-      FROM information_schema.columns
-      WHERE table_name = 'purchase_orders'
-      ORDER BY ordinal_position
-    `);
-    const columns2 = await prisma.$queryRawUnsafe(`
-      SELECT column_name, data_type, is_nullable, column_default
-      FROM information_schema.columns
-      WHERE table_name = 'purchase_order_items'
-      ORDER BY ordinal_position
-    `);
-    const prismaModel = await prisma.$queryRawUnsafe(`
-      SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '_prisma_migrations'
-    `);
-    res.json({ success: true, purchase_orders: columns, purchase_order_items: columns2, hasMigrationsTable: Array.isArray(prismaModel) && prismaModel.length > 0 });
+    const columns = await prisma.$queryRawUnsafe(`SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = 'purchase_orders' ORDER BY ordinal_position`);
+    const columns2 = await prisma.$queryRawUnsafe(`SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = 'purchase_order_items' ORDER BY ordinal_position`);
+    const columns3 = await prisma.$queryRawUnsafe(`SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = 'sales_orders' ORDER BY ordinal_position`);
+    const enums = await prisma.$queryRawUnsafe(`SELECT t.typname, e.enumlabel FROM pg_type t JOIN pg_enum e ON t.oid = e.enumtypid ORDER BY t.typname, e.enumsortorder`);
+    const triggers = await prisma.$queryRawUnsafe(`SELECT trigger_name, event_manipulation, action_statement FROM information_schema.triggers WHERE event_object_table = 'purchase_orders'`);
+    res.json({ success: true, purchase_orders: columns, purchase_order_items: columns2, sales_orders: columns3, enums, triggers });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message, detail: err.meta || null });
   }

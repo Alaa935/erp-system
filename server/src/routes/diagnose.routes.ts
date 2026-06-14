@@ -40,6 +40,7 @@ router.post('/purchase-order-create', authorize('admin', 'manager'), async (req,
     }
     const orderNumber = data.orderNumber || 'PO-DIAG-' + Date.now();
     const order = await prisma.$transaction(async (tx: any) => {
+      // Create order WITHOUT items first
       const created = await tx.purchaseOrder.create({
         data: {
           orderNumber,
@@ -56,20 +57,27 @@ router.post('/purchase-order-create', authorize('admin', 'manager'), async (req,
           date: data.date ? new Date(data.date) : undefined,
           notes: data.notes ?? undefined,
           paymentMethod: data.paymentMethod ?? undefined,
-          items: {
-            create: data.items.map((item: any) => ({
-              itemId: item.itemId,
-              quantity: new Decimal(item.quantity),
-              price: new Decimal(item.price),
-            })),
-          },
         },
+      });
+      // Then create items separately
+      for (const item of data.items) {
+        await tx.purchaseOrderItem.create({
+          data: {
+            orderId: created.id,
+            itemId: item.itemId,
+            quantity: new Decimal(item.quantity),
+            price: new Decimal(item.price),
+          },
+        });
+      }
+      // Return with includes
+      return tx.purchaseOrder.findUnique({
+        where: { id: created.id },
         include: {
           supplier: { select: { id: true, name: true } },
           items: { include: { item: { select: { id: true, name: true, sku: true } } } },
         },
       });
-      return created;
     });
     res.status(201).json({ success: true, data: order });
   } catch (err: any) {

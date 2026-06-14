@@ -139,6 +139,13 @@ export class WMSDatabase extends Dexie {
     this.version(15).stores({
       salesOrders: '++id, orderNumber, customerId, repId, date, paymentStatus, status, [customerId+paymentStatus], [repId+paymentStatus], [repId+isSettledWithWarehouse], deletedAt',
     });
+
+    // Version 16 — add transactionNumber/collectionNumber/requestNumber indexes
+    this.version(16).stores({
+      transactions: '++id, transactionNumber, type, category, date, referenceId, [type+category], [category+referenceId]',
+      paymentCollections: '++id, collectionNumber, repId, customerId, status, date, [repId+status+type], [customerId+status], [repId+status]',
+      stockRequests: '++id, requestNumber, repId, status, date, [repId+status], deletedAt',
+    });
   }
 }
 

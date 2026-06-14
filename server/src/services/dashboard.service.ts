@@ -60,9 +60,9 @@ export const dashboardService = {
         },
       }),
       prisma.item.count({ where: { deletedAt: null } }),
-      prisma.item.aggregate({
-        _sum: { quantity: true, purchasePrice: true },
+      prisma.item.findMany({
         where: { deletedAt: null },
+        select: { quantity: true, purchasePrice: true },
       }),
       prisma.item.findMany({
         where: { deletedAt: null, quantity: { lte: prisma.item.fields.minQuantity } },
@@ -131,9 +131,9 @@ export const dashboardService = {
     const totalPurchases = toNumber(totalPurchaseAgg._sum.totalAmount);
     const totalTaxAmount = toNumber(totalTaxAgg._sum.taxAmount);
 
-    const invQty = toNumber(totalValue._sum.quantity);
-    const invPrice = toNumber(totalValue._sum.purchasePrice);
-    const inventoryValue = invQty * (totalItems > 0 ? invPrice / totalItems : 0);
+    const inventoryValue = (totalValue as Array<{ quantity: Decimal; purchasePrice: Decimal }>).reduce(
+      (sum, i) => sum + Number(i.quantity) * Number(i.purchasePrice), 0
+    );
 
     const todaySales = todayCompletedOrders.reduce((s, o) => s + Number(o.totalAmount), 0);
     const todayInvoices = todayCompletedOrders.length;

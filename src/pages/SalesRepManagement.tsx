@@ -21,7 +21,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import api from '../lib/api-client';
+import api, { getAccessToken, getRefreshToken } from '../lib/api-client';
 import { LoadingButton } from '../components/ui/LoadingButton';
 import { useSalesReps, useCreateSalesRep, useDeleteSalesRep } from '../hooks/useSalesReps';
 import { useInventory } from '../hooks/useInventory';
@@ -337,6 +337,9 @@ export default function SalesRepManagement() {
   };
 
   const handleDeleteRep = async () => {
+    console.log('[DELETE-REP] handleDeleteRep called', { repToDelete, deleteReason });
+    console.log('[DELETE-REP] accessToken:', !!getAccessToken(), 'refreshToken:', !!getRefreshToken());
+
     if (!repToDelete || !deleteReason) {
       toast.error('يرجى تحديد سبب الحذف');
       return;
@@ -371,6 +374,7 @@ export default function SalesRepManagement() {
       setDeleteReason('');
     } catch (error) {
       console.error(error);
+      toast.error(error instanceof Error ? error.message : 'فشل حذف المندوب');
     }
   };
 

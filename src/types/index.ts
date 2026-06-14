@@ -186,6 +186,7 @@ export interface UserAccount {
 
 export interface FinancialTransaction {
   id?: number;
+  transactionNumber: string;
   type: 'income' | 'expense' | 'equity';
   category: 'sale' | 'purchase' | 'salary' | 'rent' | 'utilities' | 'vehicle' | 'capital_injection' | 'cogs' | 'advance' | 'bonus' | 'deduction' | 'other';
   amount: number;
@@ -227,6 +228,7 @@ export interface CompanySetting {
 
 export interface PaymentCollection {
   id?: number;
+  collectionNumber: string;
   repId: number;
   customerId?: number;
   orderId?: number;
@@ -240,6 +242,7 @@ export interface PaymentCollection {
 
 export interface StockRequest {
   id?: number;
+  requestNumber: string;
   repId: number;
   items: { itemId: number; quantity: number; sellingPrice?: number }[];
   status: 'pending' | 'approved' | 'rejected';

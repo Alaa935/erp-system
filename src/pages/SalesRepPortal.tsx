@@ -102,42 +102,55 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  const reps = repsData?.items;
  const selectedRep = reps?.find(r => r.id === selectedRepId);
  
- React.useEffect(() => {
- if (reps && reps.length > 0) {
- if (!selectedRepId) {
- if (currentUser?.username === '1') {
- const mohamed = reps.find(r => r.name === 'محمد محمود');
- if (mohamed) {
- setSelectedRepId(mohamed.id!);
- return;
- }
- }
- 
- const matchingRep = reps.find(r => 
- r.name.toLowerCase().includes(currentUser?.username.toLowerCase() || '') ||
- r.email?.toLowerCase().includes(currentUser?.username.toLowerCase() || '')
- );
- if (matchingRep) {
- setSelectedRepId(matchingRep.id!);
- return;
- }
- }
+  // Auto-resolve selectedRepId for rep users
+  React.useEffect(() => {
+    if (!reps || reps.length === 0) return;
 
- if (selectedRepId !== null && !selectedRep) {
- const matchingRep = reps.find(r => 
- r.name.toLowerCase().includes(currentUser?.username.toLowerCase() || '') ||
- (currentUser?.username === '1' && r.name === 'محمد محمود')
- );
- if (matchingRep) {
- setSelectedRepId(matchingRep.id!);
- } else {
- setSelectedRepId(null);
- }
- }
- } else if (reps && reps.length === 0 && selectedRepId !== null) {
- setSelectedRepId(null);
- }
- }, [reps, selectedRep, selectedRepId, currentUser]);
+    // Rep role: use repId from user account or match by username
+    if (currentUser?.role === 'rep') {
+      if (currentUser.repId && reps.some(r => r.id === currentUser.repId)) {
+        setSelectedRepId(currentUser.repId);
+        return;
+      }
+      // Fallback: match by username in rep name
+      const byName = reps.find(r =>
+        r.name.replace(/\s/g, '').includes(currentUser.username.replace(/\s/g, '')) ||
+        currentUser.username.replace(/\s/g, '').includes(r.name.replace(/\s/g, ''))
+      );
+      if (byName) {
+        setSelectedRepId(byName.id!);
+        return;
+      }
+      // Last resort: match by index (single-rep scenario)
+      if (reps.length === 1) {
+        setSelectedRepId(reps[0].id!);
+        return;
+      }
+      return;
+    }
+
+    // Admin/manager: auto-match only if repId is already set and valid
+    if (!selectedRepId && currentUser?.username === '1') {
+      const mohamed = reps.find(r => r.name === 'محمد محمود');
+      if (mohamed) { setSelectedRepId(mohamed.id!); return; }
+    }
+
+    if (!selectedRepId) {
+      const matchingRep = reps.find(r =>
+        r.name.toLowerCase().includes(currentUser?.username.toLowerCase() || '') ||
+        r.email?.toLowerCase().includes(currentUser?.username.toLowerCase() || '')
+      );
+      if (matchingRep) { setSelectedRepId(matchingRep.id!); return; }
+    }
+
+    if (selectedRepId !== null && !selectedRep) {
+      const matchingRep = reps.find(r =>
+        r.name.toLowerCase().includes(currentUser?.username.toLowerCase() || '') ||
+        (currentUser?.username === '1' && r.name === 'محمد محمود')
+      );
+      if (matchingRep) { setSelectedRepId(matchingRep.id!); }
+    }
+  }, [reps, selectedRep, selectedRepId, currentUser]);
 
  const { data: repInvData } = useQuery({
  queryKey: ['repInventory', selectedRepId],
@@ -415,69 +428,96 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   }
   };
 
- if (!reps) {
- return (
- <div className="flex items-center justify-center p-12">
- <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
- </div>
- );
- }
+  // Rep role: auto-resolve selectedRepId — never show selection screen
+  if (currentUser?.role === 'rep') {
+    if (!selectedRepId) {
+      if (!reps) {
+        return (
+          <div className="flex items-center justify-center p-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
+          </div>
+        );
+      }
+      return (
+        <div className="p-12 text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto"></div>
+          <h2 className="text-xl font-bold">جاري تحميل ملفك الشخصي...</h2>
+          <p className="text-[#44474D]">يرجى الانتظار</p>
+        </div>
+      );
+    }
+    if (!selectedRep) {
+      return (
+        <div className="p-12 text-center space-y-4">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
+          <h2 className="text-xl font-bold">عفواً، لم يتم العثور على ملف المندوب</h2>
+          <p className="text-[#44474D]">يبدو أن سجل المندوب الخاص بك قد تم حذفه أو لم يتم إنشاؤه بعد.</p>
+          <p className="text-sm font-bold text-black font-tajawal">يرجى التواصل مع الإدارة لتفعيل حسابك كمندوب.</p>
+        </div>
+      );
+    }
+  } else {
+    // Admin/manager: show rep selection grid
+    if (!reps) {
+      return (
+        <div className="flex items-center justify-center p-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
+        </div>
+      );
+    }
 
- if (!selectedRepId) {
- return (
- <div className="p-6 max-w-4xl mx-auto space-y-8">
- <div className="text-center space-y-4">
- <h1 className="text-3xl font-bold text-black">بوابة المندوبين</h1>
- <p className="text-[#44474D]">يرجى اختيار ملفك الشخصي للدخول إلى لوحة التحكم الخاصة بك</p>
- </div>
+    if (!selectedRepId) {
+      return (
+        <div className="p-6 max-w-4xl mx-auto space-y-8">
+          <div className="text-center space-y-4">
+            <h1 className="text-3xl font-bold text-black">بوابة المندوبين</h1>
+            <p className="text-[#44474D]">يرجى اختيار ملفك الشخصي للدخول إلى لوحة التحكم الخاصة بك</p>
+          </div>
 
- <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
- {reps?.map(rep => (
- <button
- key={rep.id}
- onClick={() => setSelectedRepId(rep.id!)}
- className="bg-white p-6 rounded-2xl border border-[#E0E3E5] hover:border-black transition-all text-right flex items-center gap-4 group"
- >
- <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors">
- <UserCircle className="w-8 h-8" />
- </div>
- <div className="flex-1">
- <h3 className="font-bold text-lg text-black">{rep.name}</h3>
- <div className="flex items-center gap-2 text-sm text-[#44474D] mt-1">
- <MapPin className="w-3 h-3" />
- <span>{rep.zone}</span>
- </div>
- </div>
- </button>
- ))}
- 
- <div className="bg-gray-50 border-2 border-dashed border-[#E0E3E5] p-6 rounded-2xl flex flex-col items-center justify-center text-center space-y-2 opacity-60">
- <Plus className="w-8 h-8 text-[#44474D]" />
- <span className="text-sm font-bold text-[#44474D]">يتم إضافة مناديب جدد من لوحة تحكم المدير</span>
- </div>
- </div>
- </div>
- );
- }
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {reps?.map(rep => (
+              <button
+                key={rep.id}
+                onClick={() => setSelectedRepId(rep.id!)}
+                className="bg-white p-6 rounded-2xl border border-[#E0E3E5] hover:border-black transition-all text-right flex items-center gap-4 group"
+              >
+                <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors">
+                  <UserCircle className="w-8 h-8" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg text-black">{rep.name}</h3>
+                  <div className="flex items-center gap-2 text-sm text-[#44474D] mt-1">
+                    <MapPin className="w-3 h-3" />
+                    <span>{rep.zone}</span>
+                  </div>
+                </div>
+              </button>
+            ))}
 
- if (selectedRepId && !selectedRep) {
- return (
- <div className="p-12 text-center space-y-4">
- <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
- <h2 className="text-xl font-bold">عفواً، لم يتم العثور على ملف المندوب</h2>
- <p className="text-[#44474D]">يبدو أن سجل المندوب الخاص بك قد تم حذفه أو لم يتم إنشاؤه بعد.</p>
- {currentUser?.role === 'admin' ? (
- <button 
- onClick={() => setSelectedRepId(null)}
- className="bg-black text-white px-6 py-2 rounded-xl font-bold"
- >
- العودة لاختيار مندوب
- </button>
- ) : (
- <p className="text-sm font-bold text-black font-tajawal">يرجى التواصل مع الإدارة لتفعيل حسابك كمندوب.</p>
- )}
- </div>
- );
+            <div className="bg-gray-50 border-2 border-dashed border-[#E0E3E5] p-6 rounded-2xl flex flex-col items-center justify-center text-center space-y-2 opacity-60">
+              <Plus className="w-8 h-8 text-[#44474D]" />
+              <span className="text-sm font-bold text-[#44474D]">يتم إضافة مناديب جدد من لوحة تحكم المدير</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (selectedRepId && !selectedRep) {
+      return (
+        <div className="p-12 text-center space-y-4">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
+          <h2 className="text-xl font-bold">عفواً، لم يتم العثور على ملف المندوب</h2>
+          <p className="text-[#44474D]">يبدو أن سجل المندوب الخاص بك قد تم حذفه أو لم يتم إنشاؤه بعد.</p>
+          <button
+            onClick={() => setSelectedRepId(null)}
+            className="bg-black text-white px-6 py-2 rounded-xl font-bold"
+          >
+            العودة لاختيار مندوب
+          </button>
+        </div>
+      );
+    }
   }
 
   const handleAddCustomer = async (e: React.FormEvent) => {

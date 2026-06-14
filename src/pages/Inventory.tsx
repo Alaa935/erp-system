@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { Item } from '../types';
 import { 
   Plus, 
@@ -29,6 +29,11 @@ export default function Inventory({
 }: { 
   setActivePage: (page: string) => void 
 }) {
+  console.log('[RENDER] Inventory page');
+  useEffect(() => {
+    console.log('[MOUNT] Inventory page');
+    return () => console.log('[UNMOUNT] Inventory page');
+  }, []);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('جميع الفئات');
   const [isModalOpen, setModalOpen] = useState(false);

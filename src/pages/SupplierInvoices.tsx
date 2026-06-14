@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { usePurchaseOrders, useCreatePurchaseOrder } from '../hooks/usePurchaseOrders';
 import { useSuppliers } from '../hooks/useSuppliers';
 import { useInventory, useCreateInventoryItem } from '../hooks/useInventory';
@@ -30,6 +30,11 @@ import { TableActionMenu, type ActionItem } from '../components/ui/TableActionMe
 import { LoadingButton } from '../components/ui/LoadingButton';
 
 export default function SupplierInvoices() {
+  console.log('[RENDER] SupplierInvoices page');
+  useEffect(() => {
+    console.log('[MOUNT] SupplierInvoices page');
+    return () => console.log('[UNMOUNT] SupplierInvoices page');
+  }, []);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPaymentStatus, setFilterPaymentStatus] = useState<'all' | 'paid' | 'partial' | 'unpaid'>('all');
   const [isModalOpen, setModalOpen] = useState(false);

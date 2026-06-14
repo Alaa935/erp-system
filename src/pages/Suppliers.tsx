@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Supplier } from '../types';
 import { Search, Plus, Phone, Mail, MapPin, MoreVertical, Edit2, Trash2, X, Save, Users, Truck, ShoppingCart, Eye, ArrowRightLeft, FileText, Send, Printer } from 'lucide-react';
 import { cn, formatDate } from '../lib/utils';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { EmptyState } from '../components/design-system';
@@ -360,14 +360,12 @@ export default function Suppliers() {
       )}
 
       {/* Add Supplier Modal */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 modal-overlay">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden"
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 modal-overlay">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden"
             >
               <div className="p-6 border-b border-[#E0E3E5] flex justify-between items-center bg-gray-50/50">
                 <div className="flex items-center gap-3">
@@ -475,16 +473,12 @@ export default function Suppliers() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
-
       {/* Delete Confirmation Modal */}
-      <AnimatePresence>
-        {deleteReasonModalOpen && (
-          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 modal-overlay text-right" dir="rtl">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+      {deleteReasonModalOpen && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 modal-overlay text-right" dir="rtl">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
               className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden"
             >
               <div className="p-6 bg-red-50 border-b border-red-100 flex items-center gap-3">
@@ -543,16 +537,13 @@ export default function Suppliers() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
       {/* Supplier Detail Modal */}
-      <AnimatePresence>
-        {selectedSupplierForDetail && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 modal-overlay">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+      {selectedSupplierForDetail && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 modal-overlay">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
             >
               <div className="p-6 border-b border-[#E0E3E5] flex justify-between items-center bg-gray-50">
                 <div className="flex items-center gap-4">
@@ -672,16 +663,12 @@ export default function Suppliers() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
-
       {/* Order Details Modal */}
-      <AnimatePresence>
-        {isOrderDetailsModalOpen && selectedOrderDetails && (
-          <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 modal-overlay">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+      {isOrderDetailsModalOpen && selectedOrderDetails && (
+        <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 modal-overlay">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
               className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden"
               dir="rtl"
             >
@@ -780,15 +767,12 @@ export default function Suppliers() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
       {/* Create Order Modal */}
-      <AnimatePresence>
-        {isOrderModalOpen && (
-          <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 modal-overlay">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+      {isOrderModalOpen && (
+        <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 modal-overlay">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
               className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden"
               dir="rtl"
             >
@@ -1009,15 +993,12 @@ export default function Suppliers() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
 
-      <AnimatePresence>
-        {deleteConfirmOrder && (
-          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 modal-overlay text-right" dir="rtl">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+      {deleteConfirmOrder && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 modal-overlay text-right" dir="rtl">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
               className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden"
             >
               <div className="p-6 bg-red-50 border-b border-red-100 flex items-center gap-3">
@@ -1051,7 +1032,6 @@ export default function Suppliers() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
     </div>
   );
 }

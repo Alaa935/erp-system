@@ -87,7 +87,7 @@ export default function TaxManagement() {
       <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingTax ? 'تعديل الضريبة' : 'إضافة ضريبة جديدة'} size="xl" footer={<FormActions primaryLabel="حفظ التعديلات" secondaryLabel="إلغاء" onSecondary={() => setIsModalOpen(false)} loading={createTaxConfig.isPending || updateTaxConfig.isPending} />}>
         <Form onSubmit={handleSave} autoFocusFirst>
           <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2 sm:col-span-1"><FormInput label="اسم الضريبة" type="text" value={formData.name ?? ''} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required autoFocus /></div>
+            <div className="col-span-2 sm:col-span-1"><FormInput label="اسم الضريبة" type="text" value={formData.name ?? ''} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required /></div>
             <div className="col-span-2 sm:col-span-1"><FormInput label="النسبة (%)" type="number" step="0.01" value={formData.rate ?? 0} onChange={(e) => setFormData({ ...formData, rate: parseFloat(e.target.value) })} required /></div>
             <div className="col-span-2 sm:col-span-1"><FormSelect label="نوع الضريبة" options={[{ value: 'VAT', label: 'ضريبة القيمة المضافة (VAT)' }, { value: 'Sales', label: 'ضريبة مبيعات' }, { value: 'Service', label: 'ضريبة خدمات' }, { value: 'Custom', label: 'أخرى' }]} value={formData.type ?? ''} onChange={(e) => setFormData({ ...formData, type: e.target.value as any })} /></div>
             <div className="col-span-2 sm:col-span-1"><FormInput label="كود الضريبة (اختياري)" type="text" value={formData.code ?? ''} onChange={(e) => setFormData({ ...formData, code: e.target.value })} /></div>

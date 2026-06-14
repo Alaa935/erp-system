@@ -92,7 +92,7 @@ export default function Warehouses({ setActivePage }: { setActivePage?: (page: s
       <Modal open={isModalOpen} onClose={() => { setModalOpen(false); setEditingWarehouse(null); }} title={editingWarehouse ? 'تعديل بيانات المخزن' : 'إضافة مخزن جديد'} subtitle="يرجى تعبئة كافة التفاصيل بدقة" titleIcon={<Warehouse className="text-white w-6 h-6" />} size="xl" footer={<FormActions primaryLabel="حفظ البيانات" secondaryLabel="إلغاء" onSecondary={() => { setModalOpen(false); setEditingWarehouse(null); }} loading={createWarehouse.isPending || updateWarehouse.isPending} />}>
         <Form onSubmit={handleSaveWarehouse} autoFocusFirst>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormInput label="اسم المخزن/الفرع" type="text" value={newWarehouse.name} onChange={(e) => setNewWarehouse({...newWarehouse, name: e.target.value})} required autoFocus />
+            <FormInput label="اسم المخزن/الفرع" type="text" value={newWarehouse.name} onChange={(e) => setNewWarehouse({...newWarehouse, name: e.target.value})} required />
             <FormInput label="الموقع الجغرافي" type="text" value={newWarehouse.location} onChange={(e) => setNewWarehouse({...newWarehouse, location: e.target.value})} required />
             <FormInput label="مدير المستودع" type="text" value={newWarehouse.manager} onChange={(e) => setNewWarehouse({...newWarehouse, manager: e.target.value})} required />
             <FormInput label="السعة القصوى (وحدات)" type="number" value={isNaN(newWarehouse.capacity || 0) ? '' : newWarehouse.capacity} onChange={(e) => setNewWarehouse({...newWarehouse, capacity: parseInt(e.target.value) || 0})} required />

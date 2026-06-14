@@ -33,13 +33,15 @@ export function useProtectedMutation<
   const mutation = useMutation({
     ...options,
     mutationFn: wrappedFn,
-    onSuccess: (data, variables, onMutateResult, context) => {
+    onSuccess: async (data: any, variables: any, context?: any, extra?: any) => {
       if (options?.invalidates) {
-        for (const key of options.invalidates) {
-          qc.invalidateQueries({ queryKey: key });
-        }
+        await Promise.all(
+          options.invalidates.map(key =>
+            qc.invalidateQueries({ queryKey: key, refetchType: 'all' }),
+          ),
+        );
       }
-      options?.onSuccess?.(data, variables, onMutateResult, context);
+      options?.onSuccess?.(data, variables, context, extra);
     },
   });
 

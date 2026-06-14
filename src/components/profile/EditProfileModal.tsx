@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, User, MapPin, Phone, Percent, Building2, AlertCircle, Save } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api-client';
 import { sessionManager } from '../../lib/session';
 import { toast } from 'sonner';
@@ -21,6 +22,7 @@ const roleLabels: Record<string, string> = {
 };
 
 export function EditProfileModal({ open, onClose, currentUser, salesRep, onSaved }: EditProfileModalProps) {
+  const queryClient = useQueryClient();
   const [username, setUsername] = useState(currentUser.username);
   const [displayName, setDisplayName] = useState(salesRep?.name || currentUser.username);
   const [phone, setPhone] = useState(salesRep?.phone || '');
@@ -93,6 +95,8 @@ export function EditProfileModal({ open, onClose, currentUser, salesRep, onSaved
           zone: zone.trim(),
         };
         await api(`/sales-reps/${currentUser.repId}`, { method: 'PUT', body: JSON.stringify(updateData) });
+        await queryClient.invalidateQueries({ queryKey: ['salesReps'], refetchType: 'all' });
+        await queryClient.invalidateQueries({ queryKey: ['salesReps', currentUser.repId] });
       }
 
       sessionManager.destroy();

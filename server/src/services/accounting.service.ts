@@ -20,6 +20,7 @@ export const accountingService = {
       payrolls,
       collections,
       reps,
+      capitalTxns,
     ] = await Promise.all([
       prisma.financialTransaction.findMany({ orderBy: { date: 'desc' } }),
       prisma.item.findMany({ where: { deletedAt: null }, select: { id: true, name: true, purchasePrice: true, quantity: true } }),
@@ -32,7 +33,9 @@ export const accountingService = {
       prisma.employeePayroll.findMany(),
       prisma.paymentCollection.findMany({ orderBy: { date: 'desc' } }),
       prisma.salesRep.findMany({ where: { deletedAt: null } }),
+      prisma.financialTransaction.findMany({ where: { type: 'equity' } }),
     ]);
+    const capital = capitalTxns.reduce((s, t) => s + toNumber(t.amount), 0);
 
     const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + toNumber(t.amount), 0);
     const totalExpense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + toNumber(t.amount), 0);
@@ -42,25 +45,35 @@ export const accountingService = {
     const repCustody = salesOrders.filter(o => Number(o.paidAmount) > 0 && !o.isSettledWithWarehouse && o.status !== 'cancelled' && o.status !== 'pending').reduce((s, o) => s + (toNumber(new Decimal(Number(o.paidAmount))) - toNumber(new Decimal(Number(o.settledAmount)))), 0);
     const currentInventoryValue = items.reduce((s, i) => s + toNumber(i.purchasePrice) * toNumber(i.quantity), 0);
 
-    const categoryLabels: Record<string, string> = { salary: 'رواتب', vehicle: 'سيارات', other: 'أخرى', purchase: 'مشتريات' };
+    const categoryLabels: Record<string, string> = {
+      salary: 'رواتب', vehicle: 'سيارات', other: 'أخرى', purchase: 'مشتريات',
+      rent: 'إيجار', utilities: 'مرافق', advance: 'سلف', bonus: 'مكافآت',
+      cogs: 'تكلفة مبيعات', sale: 'مبيعات', capital_injection: 'رأس مال',
+      deduction: 'خصومات',
+    };
+    const expenseColor: Record<string, string> = {
+      salary: 'bg-green-600', vehicle: 'bg-orange-600', other: 'bg-purple-600',
+      rent: 'bg-blue-600', utilities: 'bg-yellow-600', advance: 'bg-red-600',
+      bonus: 'bg-teal-600', purchase: 'bg-gray-600',
+    };
     const getCategoryTotal = (cat: string) => transactions.filter(t => t.type === 'expense' && t.category === cat).reduce((s, t) => s + toNumber(t.amount), 0);
     const purchaseTotal = getCategoryTotal('purchase');
     const totalOpExpense = totalExpense - purchaseTotal;
 
-    const expenseCategories = ['salary', 'vehicle', 'other'];
+    const expenseCategories = ['salary', 'rent', 'utilities', 'vehicle', 'advance', 'bonus', 'other'];
     const expenseBreakdown = expenseCategories.map(cat => {
       const val = getCategoryTotal(cat);
       return {
         label: categoryLabels[cat] || cat,
         val: val.toLocaleString(),
         per: totalOpExpense > 0 ? Math.round((val / totalOpExpense) * 100) : 0,
-        color: cat === 'salary' ? 'bg-green-600' : cat === 'vehicle' ? 'bg-orange-600' : 'bg-purple-600',
+        color: expenseColor[cat] || 'bg-gray-600',
       };
     });
 
     return {
       transactions: transactions.map(t => ({ ...t, amount: toNumber(t.amount) })),
-      capital: { value: 0 },
+      capital: { value: capital },
       vehicles: vehicles.map(v => ({ id: v.id, name: v.name, plateNumber: v.plateNumber, status: v.status, deletedAt: v.deletedAt, deleteReason: v.deleteReason })),
       suppliers: suppliers.map(s => ({ id: s.id, name: s.name })),
       customers: customers.map(c => ({ id: c.id, name: c.name, phone: c.phone })),
@@ -75,7 +88,19 @@ export const accountingService = {
   },
 
   async updateCapital(amount: number) {
-    return { value: amount };
+    await prisma.financialTransaction.create({
+      data: {
+        type: 'equity',
+        amount: new Decimal(amount),
+        category: 'capital_injection',
+        description: 'تعديل رأس المال',
+        transactionNumber: 'CAP-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase(),
+        date: new Date(),
+      },
+    });
+    const capitalTxns = await prisma.financialTransaction.findMany({ where: { type: 'equity' } });
+    const capital = capitalTxns.reduce((s, t) => s + toNumber(t.amount), 0);
+    return { value: capital };
   },
 
   async createTransaction(data: { type: 'income' | 'expense'; amount: number; category: string; description?: string; referenceId?: number; date?: string }) {

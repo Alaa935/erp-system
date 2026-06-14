@@ -12,6 +12,11 @@ import { usePaymentCollections, useConfirmPaymentCollection } from '../hooks/use
 import { LoadingButton } from '../components/ui/LoadingButton';
 
 export default function Customers() {
+  console.log('[RENDER] Customers page');
+  useEffect(() => {
+    console.log('[MOUNT] Customers page');
+    return () => console.log('[UNMOUNT] Customers page');
+  }, []);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [isModalOpen, setModalOpen] = useState(false);
@@ -436,7 +441,6 @@ export default function Customers() {
                   required
                   value={newCustomer.name ?? ''}
                   onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})}
-                  autoFocus
                 />
                 <FormInput
                   label="رقم الهاتف"

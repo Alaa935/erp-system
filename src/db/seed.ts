@@ -126,10 +126,11 @@ export async function seedData() {
       const transactionCount = await db.transactions.count();
       if (transactionCount === 0) {
         const purchaseOrders = await db.purchaseOrders.toArray();
+        const txn = (p: string) => `TXN-${Date.now()}-${p}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
         await db.transactions.bulkAdd([
-          { type: 'income', category: 'sale', amount: 25000, description: 'مبيعات نقدية - دفعة أولى', date: Date.now() - 172800000 },
-          { type: 'expense', category: 'purchase', amount: 15000, description: 'شراء بضاعة PO-2024-001', referenceId: purchaseOrders[0]?.id, date: Date.now() - 86400000 },
-          { type: 'expense', category: 'rent', amount: 5000, description: 'إيجار المخزن الرئيسي للشهر الحالي', date: Date.now() - 432000000 }
+          { transactionNumber: txn('SEED'), type: 'income', category: 'sale', amount: 25000, description: 'مبيعات نقدية - دفعة أولى', date: Date.now() - 172800000 },
+          { transactionNumber: txn('SEED'), type: 'expense', category: 'purchase', amount: 15000, description: 'شراء بضاعة PO-2024-001', referenceId: purchaseOrders[0]?.id, date: Date.now() - 86400000 },
+          { transactionNumber: txn('SEED'), type: 'expense', category: 'rent', amount: 5000, description: 'إيجار المخزن الرئيسي للشهر الحالي', date: Date.now() - 432000000 }
         ]);
       }
 

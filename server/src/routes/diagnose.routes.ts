@@ -20,7 +20,25 @@ router.get('/schema', authorize('admin'), async (_req, res) => {
     const lineTotalDef = await prisma.$queryRawUnsafe(`SELECT column_name, data_type, is_nullable, column_default, character_maximum_length, numeric_precision, numeric_scale, generation_expression FROM information_schema.columns WHERE table_name = 'purchase_order_items' AND column_name = 'line_total'`);
     const constraints = await prisma.$queryRawUnsafe(`SELECT conname, contype, pg_get_constraintdef(oid) as def FROM pg_constraint WHERE conrelid = 'purchase_orders'::regclass`);
     const triggerFuncDef = await prisma.$queryRawUnsafe(`SELECT pg_get_functiondef(oid) AS func_def FROM pg_proc WHERE proname = 'check_purchase_order_status'`);
-    res.json({ success: true, purchase_orders: pcols, purchase_order_items: picols, sales_orders: socols, sales_order_items: sicols, enums, triggersPO, triggersPOI, lineTotalDef, constraints, triggerFuncDef });
+
+    // Search all functions/triggers/views for references to purchase_order_id or order_status
+    const refsPurchaseOrderIdFuncs = await prisma.$queryRawUnsafe(`SELECT proname AS object_name, 'function' AS object_type, pg_get_functiondef(oid) AS definition FROM pg_proc WHERE prosrc ILIKE '%purchase_order_id%' AND proname NOT LIKE '%pg_%'`);
+    const refsOrderStatusFuncs = await prisma.$queryRawUnsafe(`SELECT proname AS object_name, 'function' AS object_type, pg_get_functiondef(oid) AS definition FROM pg_proc WHERE prosrc ILIKE '%order_status%' AND proname NOT LIKE '%pg_%'`);
+    const refsPurchaseOrderIdTriggers = await prisma.$queryRawUnsafe(`SELECT trigger_name, event_object_table, 'trigger' AS object_type, action_statement FROM information_schema.triggers WHERE action_statement ILIKE '%purchase_order_id%'`);
+    const refsOrderStatusTriggers = await prisma.$queryRawUnsafe(`SELECT trigger_name, event_object_table, 'trigger' AS object_type, action_statement FROM information_schema.triggers WHERE action_statement ILIKE '%order_status%'`);
+    const refsOrderStatusCols = await prisma.$queryRawUnsafe(`SELECT column_name, table_name, data_type FROM information_schema.columns WHERE column_name IN ('purchase_order_id', 'order_status') ORDER BY table_name, column_name`);
+    const refsOrderStatusConstraints = await prisma.$queryRawUnsafe(`SELECT conname, contype, pg_get_constraintdef(oid) AS def FROM pg_constraint WHERE pg_get_constraintdef(oid) ILIKE '%order_status%' OR pg_get_constraintdef(oid) ILIKE '%purchase_order_id%'`);
+
+    res.json({
+      success: true,
+      purchase_orders: pcols, purchase_order_items: picols,
+      sales_orders: socols, sales_order_items: sicols,
+      enums, triggersPO, triggersPOI, lineTotalDef, constraints, triggerFuncDef,
+      refs: {
+        purchase_order_id: { functions: refsPurchaseOrderIdFuncs, triggers: refsPurchaseOrderIdTriggers, constraints: refsOrderStatusConstraints },
+        order_status: { functions: refsOrderStatusFuncs, triggers: refsOrderStatusTriggers, columns: refsOrderStatusCols, constraints: refsOrderStatusConstraints },
+      }
+    });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message, detail: err.meta || null });
   }

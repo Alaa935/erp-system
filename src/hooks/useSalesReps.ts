@@ -16,7 +16,7 @@ interface SingleResponse {
 
 export function useSalesReps(params?: Record<string, string>) {
   return useQuery({
-    queryKey: ['salesReps', params],
+    queryKey: params ? ['salesReps', params] : ['salesReps'],
     queryFn: () => api<ListResponse>('/sales-reps', { params }),
   });
 }

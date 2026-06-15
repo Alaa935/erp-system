@@ -15,9 +15,11 @@ router.get('/schema', authorize('admin'), async (_req, res) => {
     const socols = await prisma.$queryRawUnsafe(`SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = 'sales_orders' ORDER BY ordinal_position`);
     const sicols = await prisma.$queryRawUnsafe(`SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = 'sales_order_items' ORDER BY ordinal_position`);
     const enums = await prisma.$queryRawUnsafe(`SELECT t.typname, e.enumlabel FROM pg_type t JOIN pg_enum e ON t.oid = e.enumtypid ORDER BY t.typname, e.enumsortorder`);
-    const triggers = await prisma.$queryRawUnsafe(`SELECT trigger_name, event_manipulation, action_statement FROM information_schema.triggers WHERE event_object_table = 'purchase_orders'`);
+    const triggersPO = await prisma.$queryRawUnsafe(`SELECT trigger_name, event_manipulation, action_statement FROM information_schema.triggers WHERE event_object_table = 'purchase_orders'`);
+    const triggersPOI = await prisma.$queryRawUnsafe(`SELECT trigger_name, event_manipulation, action_statement FROM information_schema.triggers WHERE event_object_table = 'purchase_order_items'`);
+    const lineTotalDef = await prisma.$queryRawUnsafe(`SELECT column_name, data_type, is_nullable, column_default, character_maximum_length, numeric_precision, numeric_scale, generation_expression FROM information_schema.columns WHERE table_name = 'purchase_order_items' AND column_name = 'line_total'`);
     const constraints = await prisma.$queryRawUnsafe(`SELECT conname, contype, pg_get_constraintdef(oid) as def FROM pg_constraint WHERE conrelid = 'purchase_orders'::regclass`);
-    res.json({ success: true, purchase_orders: pcols, purchase_order_items: picols, sales_orders: socols, sales_order_items: sicols, enums, triggers, constraints });
+    res.json({ success: true, purchase_orders: pcols, purchase_order_items: picols, sales_orders: socols, sales_order_items: sicols, enums, triggersPO, triggersPOI, lineTotalDef, constraints });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message, detail: err.meta || null });
   }
@@ -68,17 +70,19 @@ router.post('/purchase-order-create', authorize('admin', 'manager'), async (req,
     if (data.items && data.items.length > 0) {
       const item = data.items[0];
 
-      // Try RAW SQL INSERT first — if this works, issue is Prisma schema generation
+      // Test 1: $executeRawUnsafe without RETURNING
       try {
-        const rawResult: any = await prisma.$queryRawUnsafe(
-          `INSERT INTO purchase_order_items ("orderId", "itemId", quantity, price) VALUES ($1, $2, $3, $4) RETURNING id`,
+        const affected = await prisma.$executeRawUnsafe(
+          `INSERT INTO purchase_order_items ("orderId", "itemId", quantity, price) VALUES ($1, $2, $3, $4)`,
           order.id, item.itemId, item.quantity, item.price
         );
-        const newId = Array.isArray(rawResult) && rawResult.length > 0 ? rawResult[0].id : null;
-        if (newId) await prisma.$executeRawUnsafe(`DELETE FROM purchase_order_items WHERE id = $1`, newId);
-        res.json({ success: true, message: 'RAW SQL INSERT into purchase_order_items SUCCEEDED', insertedId: newId });
-      } catch (rawErr: any) {
-        res.json({ success: true, message: 'RAW SQL INSERT failed too', error: { message: rawErr.message, code: rawErr?.code } });
+        // Check if it was inserted
+        const check: any = await prisma.$queryRawUnsafe(`SELECT id FROM purchase_order_items ORDER BY id DESC LIMIT 1`);
+        const insertedId = Array.isArray(check) && check.length > 0 ? check[0].id : null;
+        if (insertedId) await prisma.$executeRawUnsafe(`DELETE FROM purchase_order_items WHERE id = $1`, insertedId);
+        res.json({ success: true, message: '$executeRawUnsafe SUCCEEDED!', affected, insertedId });
+      } catch (rawErr2: any) {
+        res.json({ success: true, message: '$executeRawUnsafe failed', error: { message: rawErr2.message, code: rawErr2?.code } });
       }
 
       await prisma.purchaseOrder.delete({ where: { id: order.id } }).catch(() => {});
@@ -106,6 +110,106 @@ router.post('/purchase-order-create', authorize('admin', 'manager'), async (req,
     if (err.clientVersion) diagnostic.clientVersion = err.clientVersion;
     res.status(500).json({ success: false, diagnostic });
   }
+});
+
+router.post('/purchase-order-nested-create', authorize('admin', 'manager'), async (req, res) => {
+  const data = req.body;
+
+  // Capture every SQL statement Prisma sends
+  const capturedQueries: Array<{ query: string; params: string; duration: number; timestamp: Date }> = [];
+
+  const handler = (e: any) => {
+    capturedQueries.push({
+      query: e.query,
+      params: e.params,
+      duration: e.duration,
+      timestamp: e.timestamp,
+    });
+  };
+
+  prisma.$on('query', handler);
+
+  try {
+    // Validate supplier existence
+    const supplier = await prisma.supplier.findUnique({ where: { id: data.supplierId } });
+    if (!supplier || supplier.deletedAt) {
+      res.status(404).json({ success: false, error: 'Supplier not found', capturedQueries });
+      return;
+    }
+
+    // Validate items exist
+    if (data.items && data.items.length > 0) {
+      const itemIds = data.items.map((i: any) => i.itemId);
+      const dbItems = await prisma.item.findMany({
+        where: { id: { in: itemIds }, deletedAt: null },
+        select: { id: true, name: true, quantity: true },
+      });
+      if (dbItems.length !== itemIds.length) {
+        res.status(400).json({ success: false, error: 'One or more items not found', capturedQueries });
+        return;
+      }
+    }
+
+    const orderNumber = data.orderNumber || 'PO-DIAG-NESTED-' + Date.now();
+
+    // --- THIS IS THE EXACT FAILING PATH ---
+    // Nested create: PurchaseOrder + PurchaseOrderItems together via Prisma create
+    const order = await prisma.purchaseOrder.create({
+      data: {
+        orderNumber,
+        supplierId: data.supplierId,
+        invoiceNumber: data.invoiceNumber ?? undefined,
+        subtotal: data.subtotal !== undefined ? new Decimal(data.subtotal) : undefined,
+        taxId: data.taxId ?? undefined,
+        taxAmount: data.taxAmount !== undefined ? new Decimal(data.taxAmount) : undefined,
+        totalAmount: new Decimal(data.totalAmount),
+        status: data.status ?? 'received',
+        paymentStatus: data.paymentStatus ?? 'unpaid',
+        paidAmount: new Decimal(data.paidAmount ?? 0),
+        dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
+        date: data.date ? new Date(data.date) : undefined,
+        notes: data.notes ?? undefined,
+        paymentMethod: data.paymentMethod ?? undefined,
+        items: {
+          create: (data.items || []).map((item: any) => ({
+            itemId: item.itemId,
+            quantity: new Decimal(item.quantity),
+            price: new Decimal(item.price),
+          })),
+        },
+      },
+      include: {
+        supplier: { select: { id: true, name: true } },
+        items: { include: { item: { select: { id: true, name: true, sku: true } } } },
+      },
+    });
+
+    // Success — clean up test data
+    const deleted = await prisma.purchaseOrder.delete({ where: { id: order.id } }).catch(() => null);
+
+    res.json({
+      success: true,
+      message: 'Nested create SUCCEEDED — no error occurred',
+      capturedQueries,
+      orderId: order.id,
+      cleanup: deleted ? 'deleted' : 'cleanup_failed',
+    });
+  } catch (err: any) {
+    // Full error payload — every property Prisma exposes
+    const diagnostic: Record<string, any> = {
+      message: err.message,
+      name: err.name,
+      stack: err.stack,
+    };
+    if (err.code !== undefined) diagnostic.code = err.code;
+    if (err.meta !== undefined) diagnostic.meta = err.meta;
+    if (err.clientVersion !== undefined) diagnostic.clientVersion = err.clientVersion;
+    if (err.cause !== undefined) diagnostic.cause = err.cause instanceof Error ? { message: err.cause.message, stack: err.cause.stack } : String(err.cause);
+
+    res.status(500).json({ success: false, diagnostic, capturedQueries });
+  }
+  // NOTE: Prisma 6.x $on('query') has no $off — listener remains for process lifetime.
+  // This is acceptable for a temporary diagnostic endpoint.
 });
 
 export default router;

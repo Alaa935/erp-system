@@ -118,16 +118,35 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
+  const initEffectRan = React.useRef(false);
   useEffect(() => {
+    if (initEffectRan.current) {
+      console.log('[APP INIT] StrictMode double-invoke DETECTED — skipping second init');
+      return;
+    }
+    initEffectRan.current = true;
+
+    const SAFETY_TIMEOUT_MS = 30_000;
+    let safetyHandle: ReturnType<typeof setTimeout> | undefined;
+
     const init = async () => {
-      console.log('[APP INIT] Starting init effect', { ts: Date.now() });
+      console.log('[APP INIT] === EFFECT STARTED ===', { ts: Date.now() });
+      safetyHandle = setTimeout(() => {
+        console.log('[APP INIT] ⚠ SAFETY TIMEOUT — forcing setIsInitializing(false) after 30s');
+        setIsInitializing(false);
+      }, SAFETY_TIMEOUT_MS);
+
       let sessionRestored = false;
 
+      console.log('[APP INIT] Step 1: getAccessToken');
       const token = getAccessToken();
+      console.log('[APP INIT]   hasToken:', !!token);
+
       if (token) {
-        console.log('[APP INIT] Found access token, trying /auth/me');
+        console.log('[APP INIT] Step 2: await api(/auth/me) — START');
         try {
           const userData = await api<{ id: number; username: string; role: 'admin' | 'manager' | 'rep'; repId?: number | null }>('/auth/me');
+          console.log('[APP INIT] Step 2: await api(/auth/me) — DONE');
           const user: UserAccount = {
             id: userData.id,
             username: userData.username,
@@ -138,15 +157,19 @@ export default function App() {
           sessionManager.create(user);
           sessionRestored = true;
         } catch (e) {
-          console.log('[APP INIT] /auth/me failed, clearing tokens', e);
+          console.log('[APP INIT] Step 2: await api(/auth/me) — FAILED', e);
           clearTokens();
         }
+      } else {
+        console.log('[APP INIT] Step 2: skipped (no token)');
       }
 
       if (!sessionRestored) {
+        console.log('[APP INIT] Step 3: checking refresh token');
         const refreshToken = localStorage.getItem('wms_refresh_token');
-        console.log('[APP INIT] No session, checking refresh token', { hasRefresh: !!refreshToken });
+        console.log('[APP INIT]   hasRefreshToken:', !!refreshToken);
         if (refreshToken) {
+          console.log('[APP INIT] Step 3a: await fetch(/auth/refresh) — START');
           try {
             const refreshRes = await fetch(`${API_BASE}/api/auth/refresh`, {
               method: 'POST',
@@ -154,10 +177,14 @@ export default function App() {
               body: JSON.stringify({ refreshToken }),
               signal: AbortSignal.timeout(15_000),
             });
+            console.log('[APP INIT] Step 3a: await fetch(/auth/refresh) — DONE, status:', refreshRes.status);
             const refreshJson = await refreshRes.json();
+            console.log('[APP INIT]   refreshJson.success:', refreshJson?.success, 'hasData:', !!refreshJson?.data);
             if (refreshJson.success && refreshJson.data) {
               setTokens(refreshJson.data.accessToken, refreshJson.data.refreshToken);
+              console.log('[APP INIT] Step 3b: await api(/auth/me) after refresh — START');
               const userData = await api<{ id: number; username: string; role: 'admin' | 'manager' | 'rep'; repId?: number | null }>('/auth/me');
+              console.log('[APP INIT] Step 3b: await api(/auth/me) after refresh — DONE');
               const user: UserAccount = {
                 id: userData.id,
                 username: userData.username,
@@ -169,19 +196,24 @@ export default function App() {
               sessionRestored = true;
             }
           } catch (e) {
-            console.log('[APP INIT] Refresh failed, clearing tokens', e);
+            console.log('[APP INIT] Step 3a/3b: refresh flow FAILED', e);
             clearTokens();
           }
+        } else {
+          console.log('[APP INIT] Step 3: skipped (no refresh token)');
         }
       }
 
       if (!sessionRestored) {
-        console.log('[APP INIT] Session not restored — tokens missing and refresh failed');
-        console.log('[APP INIT] NOT falling back to legacy session (tokens required for API calls)');
+        console.log('[APP INIT] Step 4: session not restored — will show login page');
       }
 
-      console.log('[APP INIT] Completed, sessionRestored:', sessionRestored, { ts: Date.now() });
-      setTimeout(() => setIsInitializing(false), 800);
+      if (safetyHandle) clearTimeout(safetyHandle);
+      console.log('[APP INIT] === EFFECT COMPLETE === sessionRestored:', sessionRestored, { ts: Date.now() });
+      setTimeout(() => {
+        console.log('[APP INIT] calling setIsInitializing(false)');
+        setIsInitializing(false);
+      }, 800);
     };
     console.log('[APP INIT] Calling init()');
     init();

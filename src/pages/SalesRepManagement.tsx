@@ -33,7 +33,7 @@ import { useCreateNotification } from '../hooks/useNotifications';
 import type { SalesRep } from '../types';
 import { cn, formatDate } from '../lib/utils';
 import { toast } from 'sonner';
-import { sessionManager } from '../lib/session';
+
 
 export default function SalesRepManagement() {
   const [isAddModalOpen, setAddModalOpen] = useState(false);
@@ -50,8 +50,6 @@ export default function SalesRepManagement() {
   const [activeSubTab, setActiveSubTab] = useState<'stock' | 'payments'>('stock');
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const currentUser = sessionManager.getUser();
-  const isAdmin = currentUser?.role === 'admin';
 
 
   const { data: repsData } = useSalesReps();
@@ -729,18 +727,16 @@ export default function SalesRepManagement() {
                       </p>
                     </div>
                   </div>
-                  {isAdmin && (
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        rep.id && confirmDeleteRep(rep.id);
-                      }}
-                      className="p-2 hover:bg-red-50 text-red-400 hover:text-red-600 rounded-xl transition-colors shrink-0 opacity-0 group-hover:opacity-100"
-                      title="حذف مندوب"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      rep.id && confirmDeleteRep(rep.id);
+                    }}
+                    className="p-2 hover:bg-red-50 text-red-400 hover:text-red-600 rounded-xl transition-colors shrink-0 opacity-0 group-hover:opacity-100"
+                    title="حذف مندوب"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-3 gap-3 mb-4">

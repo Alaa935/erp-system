@@ -4,6 +4,7 @@ const API_BASE = import.meta.env.VITE_API_URL || 'https://server-e6y4.onrender.c
 
 const ACCESS_TOKEN_KEY = 'wms_access_token';
 const REFRESH_TOKEN_KEY = 'wms_refresh_token';
+const REQUEST_TIMEOUT_MS = 15_000;
 
 export function getAccessToken(): string | null {
   const val = localStorage.getItem(ACCESS_TOKEN_KEY);
@@ -66,6 +67,7 @@ async function attemptRefresh(): Promise<boolean> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
     if (!res.ok) return false;
     const json = await res.json();
@@ -146,7 +148,8 @@ export async function api<T = unknown>(
     }
   }
 
-  let response = await fetch(url.toString(), { ...fetchOptions, headers });
+  const fetchSignal = fetchOptions.signal ?? AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  let response = await fetch(url.toString(), { ...fetchOptions, headers, signal: fetchSignal });
   debugLog('api() response', { status: response.status, path, wasTokenSent });
 
   if (response.status === 401) {
@@ -159,7 +162,7 @@ export async function api<T = unknown>(
           const retryHeaders = new Headers(headers);
           retryHeaders.set('Authorization', `Bearer ${newToken}`);
           debugLog('api() retrying request with refreshed token');
-          response = await fetch(url.toString(), { ...fetchOptions, headers: retryHeaders });
+          response = await fetch(url.toString(), { ...fetchOptions, headers: retryHeaders, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
           debugLog('api() retry response', { status: response.status, path });
         } else {
           clearTokens();
@@ -180,7 +183,7 @@ export async function api<T = unknown>(
           const retryHeaders = new Headers(headers);
           retryHeaders.set('Authorization', `Bearer ${newToken}`);
           debugLog('api() retrying request after no-token 401 refresh');
-          response = await fetch(url.toString(), { ...fetchOptions, headers: retryHeaders });
+          response = await fetch(url.toString(), { ...fetchOptions, headers: retryHeaders, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
           debugLog('api() retry response', { status: response.status, path });
         } else {
           clearTokens();

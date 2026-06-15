@@ -98,6 +98,7 @@ export default function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken }),
+        signal: AbortSignal.timeout(5_000),
       }).catch(() => {});
     }
     clearTokens();
@@ -151,6 +152,7 @@ export default function App() {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ refreshToken }),
+              signal: AbortSignal.timeout(15_000),
             });
             const refreshJson = await refreshRes.json();
             if (refreshJson.success && refreshJson.data) {

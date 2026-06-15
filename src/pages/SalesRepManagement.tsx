@@ -265,8 +265,8 @@ export default function SalesRepManagement() {
 
       if (!newRep.password) {
         errors.password = 'كلمة المرور مطلوبة';
-      } else if (newRep.password.length < 6) {
-        errors.password = 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
+      } else if (newRep.password.length < 8) {
+        errors.password = 'كلمة المرور يجب أن تكون 8 أحرف على الأقل';
       }
 
       if (newRep.password !== newRep.confirmPassword) {

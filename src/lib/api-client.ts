@@ -188,14 +188,9 @@ export async function api<T = unknown>(
           throw new ApiError(401, 'Session expired. Please login again.');
         }
       } else {
-        const hadAnyToken = getAccessToken() || getRefreshToken();
         clearTokens();
-        if (hadAnyToken) {
-          window.location.href = '/login';
-          throw new ApiError(401, 'Session expired. Please login again.');
-        } else {
-          throw new ApiError(401, 'Authentication required. Please login.');
-        }
+        window.location.href = '/login';
+        throw new ApiError(401, 'Session expired. Please login again.');
       }
     }
   }

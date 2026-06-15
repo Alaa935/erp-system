@@ -174,11 +174,8 @@ export default function App() {
       }
 
       if (!sessionRestored) {
-        console.log('[APP INIT] Session not restored, trying legacy session');
-        const legacy = sessionManager.getUser();
-        if (legacy) {
-          setCurrentUser(legacy);
-        }
+        console.log('[APP INIT] Session not restored — tokens missing and refresh failed');
+        console.log('[APP INIT] NOT falling back to legacy session (tokens required for API calls)');
       }
 
       console.log('[APP INIT] Completed, sessionRestored:', sessionRestored, { ts: Date.now() });

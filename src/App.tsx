@@ -386,7 +386,7 @@ export default function App() {
           </footer>
         </main>
         {currentUser?.role === 'manager' && (
-          <QuickActions isOpen={isQuickActionsOpen} onToggle={() => setQuickActionsOpen(!isQuickActionsOpen)} onNavigate={handleNavigate} />
+          <QuickActions isOpen={isQuickActionsOpen} onToggle={() => setQuickActionsOpen(!isQuickActionsOpen)} onNavigate={handleNavigate} currentPage={activePage} />
         )}
       </div>
     </ErrorBoundary>

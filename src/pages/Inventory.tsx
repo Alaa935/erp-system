@@ -6,12 +6,14 @@ import {
   Filter, 
   Edit2, 
   Trash2, 
-  QrCode,
+  Printer,
   Package,
   AlertCircle,
   TrendingUp,
   TrendingDown,
-  ArrowRightLeft
+  ArrowRightLeft,
+  DollarSign,
+  QrCode
 } from 'lucide-react';
 import { cn, formatCurrency } from '../lib/utils';
 import { toast } from 'sonner';
@@ -150,6 +152,7 @@ const inventoryStats = useMemo(() => [
   { label: 'أصناف منخفضة', value: items?.filter(i => i.quantity <= i.minQuantity).length || 0, icon: AlertCircle, color: 'text-orange-500' },
   { label: 'إجمالي الكمية', value: items?.reduce((acc, i) => acc + i.quantity, 0) || 0, icon: Package, color: 'text-green-500' },
   { label: 'القيمة (بيع)', value: formatCurrency(items?.reduce((acc, i) => acc + (i.sellingPrice * i.quantity), 0) || 0), icon: Package, color: 'text-purple-500' },
+  { label: 'قيمة المخزون الفعلية', value: formatCurrency(items?.reduce((acc, i) => acc + ((i.purchasePrice || 0) * i.quantity), 0) || 0), icon: DollarSign, color: 'text-emerald-500' },
   ], [items]);
 
   const handleAddItem = async (e: React.FormEvent) => {
@@ -320,6 +323,113 @@ const inventoryStats = useMemo(() => [
   };
 
 
+  const handlePrint = (data: Item[] | undefined) => {
+    if (!data || data.length === 0) {
+      toast.error('لا توجد أصناف للطباعة');
+      return;
+    }
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+    const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+    const totalQty = data.reduce((acc, i) => acc + i.quantity, 0);
+    const actualValue = data.reduce((acc, i) => acc + ((i.purchasePrice || 0) * i.quantity), 0);
+    const sellingValue = data.reduce((acc, i) => acc + (i.sellingPrice * i.quantity), 0);
+    const lowStockCount = data.filter(i => i.quantity <= i.minQuantity).length;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) { toast.error('الرجاء السماح للنوافذ المنبثقة'); return; }
+
+    const rows = data.map((item, index) => {
+      const itemActualValue = (item.purchasePrice || 0) * item.quantity;
+      return `<tr${index % 2 === 1 ? ' style="background:#f8f9fa;"' : ''}>
+        <td style="text-align:center;padding:6px 8px;border:1px solid #dee2e6;font-size:11px;">${index + 1}</td>
+        <td style="padding:6px 8px;border:1px solid #dee2e6;font-size:11px;font-weight:600;">${item.name}</td>
+        <td style="text-align:center;padding:6px 8px;border:1px solid #dee2e6;font-size:11px;color:#666;">${item.sku}</td>
+        <td style="padding:6px 8px;border:1px solid #dee2e6;font-size:11px;">${item.category}</td>
+        <td style="padding:6px 8px;border:1px solid #dee2e6;font-size:11px;color:#666;">${item.location || '-'}</td>
+        <td style="text-align:center;padding:6px 8px;border:1px solid #dee2e6;font-size:11px;font-weight:600;${item.quantity <= item.minQuantity ? 'color:#dc2626;' : ''}">${item.quantity}</td>
+        <td style="text-align:center;padding:6px 8px;border:1px solid #dee2e6;font-size:11px;">${item.purchasePrice?.toLocaleString('ar-EG') || '0'} ج.م</td>
+        <td style="text-align:center;padding:6px 8px;border:1px solid #dee2e6;font-size:11px;">${item.sellingPrice?.toLocaleString('ar-EG') || '0'} ج.م</td>
+        <td style="text-align:center;padding:6px 8px;border:1px solid #dee2e6;font-size:11px;font-weight:600;">${itemActualValue.toLocaleString('ar-EG')} ج.م</td>
+      </tr>`;
+    }).join('');
+
+    printWindow.document.write(`<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>تقرير الأصناف والمخزون</title>
+  <style>
+    @page { size: A4; margin: 15mm 10mm; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; direction: rtl; color: #1a1a2e; background: #fff; padding: 20px; }
+    .report-header { text-align: center; border-bottom: 3px double #1a1a2e; padding-bottom: 15px; margin-bottom: 20px; }
+    .report-header h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .report-header .company { font-size: 14px; color: #555; margin-bottom: 6px; }
+    .report-header .meta { font-size: 11px; color: #888; }
+    .summary { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; justify-content: center; }
+    .summary-item { flex: 1; min-width: 140px; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 12px; text-align: center; }
+    .summary-item .label { font-size: 10px; color: #888; font-weight: 600; margin-bottom: 4px; }
+    .summary-item .value { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+    th { background: #1a1a2e; color: #fff; padding: 8px 6px; font-size: 11px; font-weight: 600; text-align: center; border: 1px solid #1a1a2e; }
+    td { padding: 6px 8px; border: 1px solid #dee2e6; font-size: 11px; }
+    .totals-row { display: flex; justify-content: space-between; padding: 12px 16px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; margin-top: 8px; font-size: 13px; font-weight: 700; }
+    .totals-row span { color: #1a1a2e; }
+    .page-footer { text-align: center; font-size: 10px; color: #aaa; margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px; }
+    .no-print { display: none; }
+    @media print { body { padding: 0; } .summary-item { break-inside: avoid; } tr { break-inside: avoid; } }
+  </style>
+</head>
+<body>
+  <div class="report-header">
+    <h1>تقرير الأصناف والمخزون</h1>
+    <div class="company">المخازن المصرية المتحدة</div>
+    <div class="meta">تاريخ الطباعة: ${dateStr} — ${timeStr}</div>
+  </div>
+
+  <div class="summary">
+    <div class="summary-item"><div class="label">إجمالي الأصناف</div><div class="value">${data.length}</div></div>
+    <div class="summary-item"><div class="label">إجمالي الكمية</div><div class="value">${totalQty.toLocaleString('ar-EG')}</div></div>
+    <div class="summary-item"><div class="label">الأصناف منخفضة المخزون</div><div class="value" style="color:#dc2626;">${lowStockCount}</div></div>
+    <div class="summary-item"><div class="label">قيمة المخزون الفعلية</div><div class="value" style="color:#059669;">${actualValue.toLocaleString('ar-EG')} ج.م</div></div>
+    <div class="summary-item"><div class="label">قيمة المخزون (بيع)</div><div class="value" style="color:#7c3aed;">${sellingValue.toLocaleString('ar-EG')} ج.م</div></div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:32px;">#</th>
+        <th>اسم الصنف</th>
+        <th style="width:80px;">SKU</th>
+        <th style="width:80px;">الفئة</th>
+        <th style="width:70px;">الموقع</th>
+        <th style="width:50px;">الكمية</th>
+        <th style="width:70px;">سعر الشراء</th>
+        <th style="width:70px;">سعر البيع</th>
+        <th style="width:80px;">قيمة المخزون الفعلية</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows}
+    </tbody>
+  </table>
+
+  <div class="totals-row">
+    <span>إجمالي الكمية: ${totalQty.toLocaleString('ar-EG')}</span>
+    <span>إجمالي قيمة المخزون الفعلية: ${actualValue.toLocaleString('ar-EG')} ج.م</span>
+  </div>
+
+  <div class="page-footer">تقرير الأصناف والمخزون — المخازن المصرية المتحدة — الصفحة 1 / 1</div>
+
+  <script>
+    window.onload = function() { window.print(); };
+  <\\/script>
+</body>
+</html>`);
+    printWindow.document.close();
+  };
+
   return (
     <WorkspaceLayout maxWidth="xl">
       <WorkspaceLayout.Header
@@ -327,17 +437,8 @@ const inventoryStats = useMemo(() => [
         subtitle={`إدارة وتتبع ${items?.length || 0} صنفاً مسجلاً`}
         actions={
           <>
-            <button onClick={() => {
-              const data ="ملصقات باركود الأصناف - المخازن المصرية\n\n" + items?.map(i => `${i.name} [${i.sku}] - ${i.sellingPrice} ج.م`).join('\n');
-              const blob = new Blob([data], { type: 'text/plain;charset=utf-8' });
-              const url = URL.createObjectURL(blob);
-              const link = document.createElement('a');
-              link.href = url;
-              link.download = `barcodes_${Date.now()}.txt`;
-              link.click();
-              URL.revokeObjectURL(url);
-            }} className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
-              <QrCode className="w-3.5 h-3.5" /> طباعة
+            <button onClick={() => handlePrint(items)} className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+              <Printer className="w-3.5 h-3.5" /> طباعة
             </button>
             <button onClick={openAddModal} className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors">
               <Plus className="w-3.5 h-3.5" /> إضافة صنف
@@ -346,7 +447,7 @@ const inventoryStats = useMemo(() => [
         }
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
         {inventoryStats.map((stat, i) => (
           <div key={i} className="glass-card p-4 flex items-center gap-4">
             <div className={cn("p-2 rounded-lg bg-white/60", stat.color)}>

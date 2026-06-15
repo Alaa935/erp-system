@@ -34,7 +34,7 @@ export function useCreateSalesOrder() {
   return useProtectedMutation(
     (data: { customerId: number; items: { itemId: number; quantity: number; price: number }[]; taxId?: number | null }) =>
       api<SingleResponse>('/sales-orders', { method: 'POST', body: JSON.stringify(data) }),
-    { invalidates: [['sales-orders']] },
+    { invalidates: [['sales-orders'], ['inventory']] },
   );
 }
 
@@ -42,7 +42,7 @@ export function useDispatchSalesOrder() {
   return useProtectedMutation(
     (id: number) =>
       api<SingleResponse>(`/sales-orders/${id}/dispatch`, { method: 'POST' }),
-    { invalidates: [['sales-orders']] },
+    { invalidates: [['sales-orders'], ['inventory'], ['dashboard']] },
   );
 }
 
@@ -50,7 +50,7 @@ export function useCancelSalesOrder() {
   return useProtectedMutation(
     (id: number) =>
       api<SingleResponse>(`/sales-orders/${id}/cancel`, { method: 'POST' }),
-    { invalidates: [['sales-orders']] },
+    { invalidates: [['sales-orders'], ['inventory'], ['dashboard']] },
   );
 }
 

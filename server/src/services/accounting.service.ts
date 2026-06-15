@@ -27,7 +27,7 @@ export const accountingService = {
       prisma.vehicle.findMany({ where: { deletedAt: null } }),
       prisma.supplier.findMany({ where: { deletedAt: null } }),
       prisma.customer.findMany({ where: { deletedAt: null } }),
-      prisma.purchaseOrder.findMany({ where: { deletedAt: null }, select: { id: true, totalAmount: true, paidAmount: true, paymentStatus: true, supplierId: true } }),
+      prisma.purchaseOrder.findMany({ where: { deletedAt: null }, select: { id: true, date: true, orderNumber: true, totalAmount: true, paidAmount: true, paymentStatus: true, supplierId: true, dueDate: true, status: true, invoiceNumber: true } }),
       prisma.salesOrder.findMany({ where: { deletedAt: null }, select: { id: true, totalAmount: true, paidAmount: true, paymentStatus: true, customerId: true, status: true, settledAmount: true, isSettledWithWarehouse: true } }),
       prisma.employee.findMany({ where: { deletedAt: null } }),
       prisma.employeePayroll.findMany(),

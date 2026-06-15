@@ -1,4 +1,6 @@
-﻿import { prisma } from '../config/database.js';
+﻿import bcrypt from 'bcryptjs';
+import { prisma } from '../config/database.js';
+import { env } from '../config/env.js';
 import { AppError } from '../middleware/errorHandler.js';
 import Decimal from 'decimal.js';
 import type { Prisma } from '@prisma/client';
@@ -66,24 +68,49 @@ export const salesRepsService = {
     currentSales?: number;
     commissionRate?: number;
     balance?: number;
+    username?: string;
+    password?: string;
+    nationalId?: string;
   }) {
     try {
-      const rep = await prisma.salesRep.create({
-        data: {
-          name: data.name,
-          phone: data.phone ?? '',
-          email: data.email ?? '',
-          zone: data.zone ?? '',
-          target: new Decimal(data.target ?? 0),
-          currentSales: new Decimal(data.currentSales ?? 0),
-          commissionRate: new Decimal(data.commissionRate ?? 0),
-          balance: new Decimal(data.balance ?? 0),
-        },
+      const result = await prisma.$transaction(async (tx) => {
+        const rep = await tx.salesRep.create({
+          data: {
+            name: data.name,
+            phone: data.phone ?? '',
+            email: data.email ?? '',
+            zone: data.zone ?? '',
+            target: new Decimal(data.target ?? 0),
+            currentSales: new Decimal(data.currentSales ?? 0),
+            commissionRate: new Decimal(data.commissionRate ?? 0),
+            balance: new Decimal(data.balance ?? 0),
+          },
+        });
+
+        if (data.username && data.password) {
+          const hashed = await bcrypt.hash(data.password, env.BCRYPT_SALT_ROUNDS);
+          await tx.user.create({
+            data: {
+              username: data.username,
+              password: hashed,
+              role: 'rep',
+              repId: rep.id,
+              nationalId: data.nationalId ?? undefined,
+            },
+          });
+        }
+
+        return rep;
       });
-      return rep;
+
+      return result;
     } catch (err: any) {
       if (err?.code === 'P2002') {
-        throw new AppError(409, 'رقم الهاتف موجود مسبقاً');
+        const target = err?.meta?.target as string[] | undefined;
+        if (target?.includes('phone')) {
+          throw new AppError(409, 'رقم الهاتف موجود مسبقاً');
+        }
+        throw new AppError(409, 'Username already exists');
       }
       throw err;
     }

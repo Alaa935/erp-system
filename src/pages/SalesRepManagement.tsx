@@ -23,7 +23,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import api, { getAccessToken, getRefreshToken } from '../lib/api-client';
 import { LoadingButton } from '../components/ui/LoadingButton';
-import { useSalesReps, useCreateSalesRep, useDeleteSalesRep } from '../hooks/useSalesReps';
+import { useSalesReps, useDeleteSalesRep } from '../hooks/useSalesReps';
 import { useInventory } from '../hooks/useInventory';
 import { useCustomers } from '../hooks/useCustomers';
 import { useStockTransfers, useCreateStockTransfer } from '../hooks/useStockTransfers';
@@ -131,7 +131,6 @@ export default function SalesRepManagement() {
     enabled: !!selectedRepForDetail?.id,
   });
 
-  const createRep = useCreateSalesRep();
   const deleteRep = useDeleteSalesRep();
   const createTransfer = useCreateStockTransfer();
   const updateStockRequest = useUpdateStockRequest();
@@ -279,29 +278,23 @@ export default function SalesRepManagement() {
         return;
       }
 
-      const repResult = await createRep.mutateAsync({
-        name: newRep.name,
-        phone: cleanedPhone,
-        email: newRep.email,
-        zone: newRep.zone,
-        target: newRep.target,
-        commissionRate: newRep.commissionRate,
-        currentSales: 0,
-        createdAt: Date.now()
-      });
-
-      const repId = (repResult as any).id;
-
-      await api('/auth/register', {
+      const repResult: any = await api('/sales-reps', {
         method: 'POST',
         body: JSON.stringify({
+          name: newRep.name,
+          phone: cleanedPhone,
+          email: newRep.email,
+          zone: newRep.zone,
+          target: newRep.target,
+          commissionRate: newRep.commissionRate,
+          currentSales: 0,
           username: cleanUsername,
           password: newRep.password,
-          role: 'rep',
-          repId,
-          nationalId: cleanedNationalId
+          nationalId: cleanedNationalId,
         }),
       });
+
+      const repId = repResult.id;
 
       await api('/activity-logs', {
         method: 'POST',
@@ -891,7 +884,7 @@ export default function SalesRepManagement() {
                 <div className="flex gap-4 pt-4">
                   <LoadingButton
                     type="submit"
-                    isPending={createRep.isPending}
+                    isPending={isSubmitting}
                     loadingText="جاري الحفظ..."
                     variant="primary"
                     size="lg"

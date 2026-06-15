@@ -9,6 +9,9 @@ export const createSalesRepSchema = z.object({
   currentSales: z.coerce.number().optional().default(0),
   commissionRate: z.coerce.number().optional().default(0),
   balance: z.coerce.number().optional().default(0),
+  username: z.string().min(3).max(50).optional(),
+  password: z.string().min(8).max(128).optional(),
+  nationalId: z.string().length(14).optional(),
 });
 
 export const updateSalesRepSchema = createSalesRepSchema.partial();

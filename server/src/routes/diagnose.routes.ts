@@ -20,6 +20,7 @@ router.get('/schema', authorize('admin'), async (_req, res) => {
     const lineTotalDef = await prisma.$queryRawUnsafe(`SELECT column_name, data_type, is_nullable, column_default, character_maximum_length, numeric_precision, numeric_scale, generation_expression FROM information_schema.columns WHERE table_name = 'purchase_order_items' AND column_name = 'line_total'`);
     const constraints = await prisma.$queryRawUnsafe(`SELECT conname, contype, pg_get_constraintdef(oid) as def FROM pg_constraint WHERE conrelid = 'purchase_orders'::regclass`);
     const triggerFuncDef = await prisma.$queryRawUnsafe(`SELECT pg_get_functiondef(oid) AS func_def FROM pg_proc WHERE proname = 'check_purchase_order_status'`);
+    const triggerFuncDefSO = await prisma.$queryRawUnsafe(`SELECT pg_get_functiondef(oid) AS func_def FROM pg_proc WHERE proname = 'check_sales_order_status'`);
 
     // Search all functions/triggers/views for references to purchase_order_id or order_status
     const refsPurchaseOrderIdFuncs = await prisma.$queryRawUnsafe(`SELECT proname AS object_name, 'function' AS object_type, pg_get_functiondef(oid) AS definition FROM pg_proc WHERE prosrc ILIKE '%purchase_order_id%' AND proname NOT LIKE '%pg_%'`);
@@ -33,7 +34,7 @@ router.get('/schema', authorize('admin'), async (_req, res) => {
       success: true,
       purchase_orders: pcols, purchase_order_items: picols,
       sales_orders: socols, sales_order_items: sicols,
-      enums, triggersPO, triggersPOI, lineTotalDef, constraints, triggerFuncDef,
+      enums, triggersPO, triggersPOI, lineTotalDef, constraints, triggerFuncDef, triggerFuncDefSO,
       refs: {
         purchase_order_id: { functions: refsPurchaseOrderIdFuncs, triggers: refsPurchaseOrderIdTriggers, constraints: refsOrderStatusConstraints },
         order_status: { functions: refsOrderStatusFuncs, triggers: refsOrderStatusTriggers, columns: refsOrderStatusCols, constraints: refsOrderStatusConstraints },

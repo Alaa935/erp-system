@@ -19,7 +19,8 @@ router.get('/schema', authorize('admin'), async (_req, res) => {
     const triggersPOI = await prisma.$queryRawUnsafe(`SELECT trigger_name, event_manipulation, action_statement FROM information_schema.triggers WHERE event_object_table = 'purchase_order_items'`);
     const lineTotalDef = await prisma.$queryRawUnsafe(`SELECT column_name, data_type, is_nullable, column_default, character_maximum_length, numeric_precision, numeric_scale, generation_expression FROM information_schema.columns WHERE table_name = 'purchase_order_items' AND column_name = 'line_total'`);
     const constraints = await prisma.$queryRawUnsafe(`SELECT conname, contype, pg_get_constraintdef(oid) as def FROM pg_constraint WHERE conrelid = 'purchase_orders'::regclass`);
-    res.json({ success: true, purchase_orders: pcols, purchase_order_items: picols, sales_orders: socols, sales_order_items: sicols, enums, triggersPO, triggersPOI, lineTotalDef, constraints });
+    const triggerFuncDef = await prisma.$queryRawUnsafe(`SELECT pg_get_functiondef(oid) AS func_def FROM pg_proc WHERE proname = 'check_purchase_order_status'`);
+    res.json({ success: true, purchase_orders: pcols, purchase_order_items: picols, sales_orders: socols, sales_order_items: sicols, enums, triggersPO, triggersPOI, lineTotalDef, constraints, triggerFuncDef });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message, detail: err.meta || null });
   }

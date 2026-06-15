@@ -31,7 +31,7 @@ export function useCreatePurchaseOrder() {
   return useProtectedMutation(
     (data: Partial<PurchaseOrder>) =>
       api<SingleResponse>('/purchase-orders', { method: 'POST', body: JSON.stringify(data) }),
-    { invalidates: [['purchaseOrders']] },
+    { invalidates: [['purchaseOrders'], ['inventory'], ['dashboard']] },
   );
 }
 

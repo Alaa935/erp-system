@@ -10,7 +10,11 @@ import {
   AlertCircle,
   Coins,
   ShoppingCart,
-  CheckCircle2
+  CheckCircle2,
+  LayoutDashboard,
+  ClipboardList,
+  Package,
+  Users
 } from 'lucide-react';
 import { cn, formatDate } from '../lib/utils';
 import { toast } from 'sonner';
@@ -245,11 +249,12 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
 
   const salesCount = mySales?.length || 0;
 
-  const monthSales = mySales?.filter((o: { date: number; totalAmount: number }) => {
+  const monthSales = mySales?.filter((o: { date: string | number; totalAmount: number }) => {
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
-    return o.date >= startOfMonth.getTime();
+    const orderTime = typeof o.date === 'string' ? new Date(o.date).getTime() : o.date;
+    return orderTime >= startOfMonth.getTime();
   }).reduce((sum: number, s: { totalAmount: number }) => sum + s.totalAmount, 0) || 0;
 
   const { data: newCustomersToday } = useQuery<number>({
@@ -277,7 +282,11 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
       return [
         ...salesList.map((s: any) => ({ ...s, type: 'sale' as const })), 
         ...transfersList.filter((t: any) => t.toType === 'rep').map((t: any) => ({ ...t, type: 'transfer' as const }))
-      ].sort((a: any, b: any) => b.date - a.date).slice(0, 20);
+      ].sort((a: any, b: any) => {
+        const timeA = new Date(a.date).getTime();
+        const timeB = new Date(b.date).getTime();
+        return timeB - timeA;
+      }).slice(0, 20);
     },
     enabled: !!selectedRepId,
     retry: false,
@@ -682,12 +691,12 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   // Map icons for Tabs component dynamically
   const tabsWithIcons = PORTAL_TABS.map(tab => {
     let icon = UserCircle;
-    if (tab.id === 'dashboard') icon = require('lucide-react').LayoutDashboard || UserCircle;
-    else if (tab.id === 'overview') icon = require('lucide-react').ClipboardList || UserCircle;
-    else if (tab.id === 'inventory') icon = require('lucide-react').Package || UserCircle;
-    else if (tab.id === 'customers') icon = require('lucide-react').Users || UserCircle;
-    else if (tab.id === 'sales') icon = require('lucide-react').ShoppingCart || UserCircle;
-    else if (tab.id === 'requests') icon = require('lucide-react').ArrowRightLeft || UserCircle;
+    if (tab.id === 'dashboard') icon = LayoutDashboard;
+    else if (tab.id === 'overview') icon = ClipboardList;
+    else if (tab.id === 'inventory') icon = Package;
+    else if (tab.id === 'customers') icon = Users;
+    else if (tab.id === 'sales') icon = ShoppingCart;
+    else if (tab.id === 'requests') icon = ArrowRightLeft;
     return { ...tab, icon };
   });
 

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, User, MapPin, Phone, Percent, Building2, AlertCircle, Save } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -55,7 +55,7 @@ export function EditProfileModal({ open, onClose, currentUser, salesRep, onSaved
     if (val.trim() === currentUser.username) { setUsernameError(''); return true; }
     try {
       const usersRes = await api<any>('/auth/users');
-      const users = usersRes?.users || [];
+      const users = usersRes?.data || usersRes?.users || [];
       const existing = users.find((u: any) => u.username === val.trim());
       if (existing && existing.id !== currentUser.id) {
         setUsernameError('اسم المستخدم موجود بالفعل');

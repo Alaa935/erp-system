@@ -49,14 +49,19 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         return;
       }
 
-      const result = await api<{
-        user: { id: number; username: string; role: 'admin' | 'manager' | 'rep'; repId?: number | null };
-        accessToken: string;
-        refreshToken: string;
+      const loginRes = await api<{
+        success: boolean;
+        data: {
+          user: { id: number; username: string; role: 'admin' | 'manager' | 'rep'; repId?: number | null };
+          accessToken: string;
+          refreshToken: string;
+        };
       }>('/auth/login', {
         method: 'POST',
         body: JSON.stringify({ username: cleanUsername, password }),
       });
+
+      const result = loginRes.data;
 
       setTokens(result.accessToken, result.refreshToken);
 

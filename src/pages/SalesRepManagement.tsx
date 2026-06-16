@@ -298,7 +298,7 @@ export default function SalesRepManagement() {
         }),
       });
 
-      const repId = repResult.id;
+      const repId = repResult.data?.id || repResult.id;
 
       await api('/activity-logs', {
         method: 'POST',

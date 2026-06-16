@@ -146,7 +146,11 @@ export default function App() {
       const token = getAccessToken();
       if (token) {
         try {
-          const userData = await api<{ id: number; username: string; role: 'admin' | 'manager' | 'rep'; repId?: number | null }>('/auth/me');
+          const meRes = await api<{
+            success: boolean;
+            data: { id: number; username: string; role: 'admin' | 'manager' | 'rep'; repId?: number | null };
+          }>('/auth/me');
+          const userData = meRes.data;
           const user: UserAccount = {
             id: userData.id,
             username: userData.username,
@@ -173,7 +177,11 @@ export default function App() {
             const refreshJson = await refreshRes.json();
             if (refreshJson.success && refreshJson.data) {
               setTokens(refreshJson.data.accessToken, refreshJson.data.refreshToken);
-              const userData = await api<{ id: number; username: string; role: 'admin' | 'manager' | 'rep'; repId?: number | null }>('/auth/me');
+              const meRes = await api<{
+                success: boolean;
+                data: { id: number; username: string; role: 'admin' | 'manager' | 'rep'; repId?: number | null };
+              }>('/auth/me');
+              const userData = meRes.data;
               const user: UserAccount = {
                 id: userData.id,
                 username: userData.username,

@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import api, { getAccessToken, getRefreshToken } from '../lib/api-client';
+import { sessionManager } from '../lib/session';
 import { LoadingButton } from '../components/ui/LoadingButton';
 import { useSalesReps, useDeleteSalesRep } from '../hooks/useSalesReps';
 import { useInventory } from '../hooks/useInventory';
@@ -295,12 +296,13 @@ export default function SalesRepManagement() {
       });
 
       const repId = repResult.id;
+      const sessionUser = sessionManager.getUser();
 
       await api('/activity-logs', {
         method: 'POST',
         body: JSON.stringify({
-          userId: 'admin',
-          username: 'المدير العام',
+          userId: sessionUser?.id ?? 1,
+          username: sessionUser?.username ?? 'مدير',
           action: `إضافة مندوب جديد: ${newRep.name}`,
           entity: 'SalesRep',
           entityId: repId,

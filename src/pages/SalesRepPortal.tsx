@@ -184,7 +184,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
     enabled: !!selectedRepId,
     retry: false,
   });
-  const unsettledAmount = unsettledOrders as number | undefined;
+  const unsettledAmount = (unsettledOrders as any)?.data as number | undefined;
 
   const { data: pendingSettlement } = useQuery({
     queryKey: ['pendingSettlement', selectedRepId],
@@ -203,7 +203,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   const handleDaySettlement = async () => {
     if (!selectedRepId || (unsettledAmount ?? 0) <= 0) return;
 
-    if (pendingSettlement) {
+    if ((pendingSettlement as any)?.data) {
       toast.error('يوجد طلب تسوية معلق بالفعل، يرجى انتظار المراجعة');
       return;
     }
@@ -769,7 +769,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
             <RepDashboardView
               myInventory={myInventory}
               allItems={allItems}
-              newCustomersToday={newCustomersToday}
+              newCustomersToday={(newCustomersToday as any)?.data}
               salesCount={salesCount}
               myRequests={myRequests}
               activityLog={activityLog}
@@ -786,9 +786,9 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
               monthSales={monthSales}
               selectedRep={selectedRep}
               myInventory={myInventory}
-              settledCommission={settledCommission}
+              settledCommission={(settledCommission as any)?.data}
               unsettledAmount={unsettledAmount}
-              pendingSettlement={pendingSettlement}
+              pendingSettlement={(pendingSettlement as any)?.data}
               onDaySettlement={handleDaySettlement}
             />
           )}

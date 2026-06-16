@@ -100,7 +100,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   const { data: repsData } = useSalesReps();
   const reps = repsData?.items;
 
-  const { data: singleRepData } = useSalesRep(
+  const { data: singleRepData, isLoading: isSingleRepLoading } = useSalesRep(
     currentUser?.role === 'rep' ? currentUser.repId : undefined
   );
 
@@ -595,14 +595,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   };
 
   if (currentUser?.role === 'rep') {
-    if (!selectedRepId) {
-      if (!reps) {
-        return (
-          <div className="flex items-center justify-center p-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
-          </div>
-        );
-      }
+    if (isSingleRepLoading || !selectedRepId) {
       return (
         <div className="p-12 text-center space-y-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto"></div>

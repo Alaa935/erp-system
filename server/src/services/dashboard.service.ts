@@ -9,7 +9,7 @@ const ASC = 'asc' as const;
 const DESC = 'desc' as const;
 
 export const dashboardService = {
-  async getSummary() {
+  async getSummary(repId?: number) {
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
@@ -18,6 +18,7 @@ export const dashboardService = {
     const startOfPrevMonth = new Date(currentYear, currentMonth - 1, 1);
     const endOfPrevMonth = new Date(currentYear, currentMonth, 1);
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const repFilter = repId ? { repId } : {};
 
     const [
       salesAgg,
@@ -45,14 +46,14 @@ export const dashboardService = {
       prisma.salesOrder.aggregate({
         _sum: { totalAmount: true, paidAmount: true, taxAmount: true },
         _count: true,
-        where: { deletedAt: null, status: { not: 'cancelled' } },
+        where: { deletedAt: null, status: { not: 'cancelled' }, ...repFilter },
       }),
       prisma.financialTransaction.aggregate({
         _sum: { amount: true },
         where: { type: 'expense', category: { notIn: ['purchase', 'cogs'] } },
       }),
       prisma.salesOrder.findMany({
-        where: { deletedAt: null, status: { in: ['shipped', 'delivered'] } },
+        where: { deletedAt: null, status: { in: ['shipped', 'delivered'] }, ...repFilter },
         select: {
           id: true,
           totalAmount: true,
@@ -71,28 +72,28 @@ export const dashboardService = {
       }),
       prisma.customer.count({ where: { deletedAt: null } }),
       prisma.supplier.count({ where: { deletedAt: null } }),
-      prisma.salesOrder.count({ where: { deletedAt: null, status: 'pending' } }),
+      prisma.salesOrder.count({ where: { deletedAt: null, status: 'pending', ...repFilter } }),
       prisma.purchaseOrder.count({
         where: { deletedAt: null, status: 'received', paymentStatus: { not: 'paid' } },
       }),
       prisma.user.count(),
       prisma.salesOrder.aggregate({
         _sum: { totalAmount: true },
-        where: { deletedAt: null, status: { not: 'cancelled' }, date: { gte: startOfMonth } },
+        where: { deletedAt: null, status: { not: 'cancelled' }, date: { gte: startOfMonth }, ...repFilter },
       }),
       prisma.salesOrder.aggregate({
         _sum: { totalAmount: true },
-        where: { deletedAt: null, status: { not: 'cancelled' }, date: { gte: startOfPrevMonth, lt: endOfPrevMonth } },
+        where: { deletedAt: null, status: { not: 'cancelled' }, date: { gte: startOfPrevMonth, lt: endOfPrevMonth }, ...repFilter },
       }),
       prisma.salesOrderItem.findMany({
         where: {
-          order: { deletedAt: null, status: { in: ['shipped', 'delivered'] }, date: { gte: startOfMonth } },
+          order: { deletedAt: null, status: { in: ['shipped', 'delivered'] }, date: { gte: startOfMonth }, ...repFilter },
         },
         select: { quantity: true, purchasePrice: true },
       }),
       prisma.salesOrderItem.findMany({
         where: {
-          order: { deletedAt: null, status: { in: ['shipped', 'delivered'] }, date: { gte: startOfPrevMonth, lt: endOfPrevMonth } },
+          order: { deletedAt: null, status: { in: ['shipped', 'delivered'] }, date: { gte: startOfPrevMonth, lt: endOfPrevMonth }, ...repFilter },
         },
         select: { quantity: true, purchasePrice: true },
       }),
@@ -105,7 +106,7 @@ export const dashboardService = {
         where: { type: 'expense', category: { notIn: ['purchase', 'cogs'] }, date: { gte: startOfPrevMonth, lt: endOfPrevMonth } },
       }),
       prisma.salesOrder.findMany({
-        where: { deletedAt: null, status: { in: ['shipped', 'delivered'] }, date: { gte: todayStart } },
+        where: { deletedAt: null, status: { in: ['shipped', 'delivered'] }, date: { gte: todayStart }, ...repFilter },
         select: { id: true, totalAmount: true },
       }),
       prisma.purchaseOrder.aggregate({
@@ -114,10 +115,10 @@ export const dashboardService = {
       }),
       prisma.salesOrder.aggregate({
         _sum: { taxAmount: true },
-        where: { deletedAt: null, status: { not: 'cancelled' } },
+        where: { deletedAt: null, status: { not: 'cancelled' }, ...repFilter },
       }),
       prisma.salesOrder.findMany({
-        where: { deletedAt: null, status: { not: 'cancelled' } },
+        where: { deletedAt: null, status: { not: 'cancelled' }, ...repFilter },
         select: { id: true, status: true, date: true, totalAmount: true, customerId: true },
       }),
     ]);
@@ -206,13 +207,14 @@ export const dashboardService = {
     };
   },
 
-  async getCharts() {
+  async getCharts(repId?: number) {
     const now = new Date();
     const currentYear = now.getFullYear();
+    const repFilter = repId ? { repId } : {};
 
     const [orders, purchaseOrders, items] = await Promise.all([
       prisma.salesOrder.findMany({
-        where: { deletedAt: null, status: { not: 'cancelled' } },
+        where: { deletedAt: null, status: { not: 'cancelled' }, ...repFilter },
         select: { totalAmount: true, date: true, status: true },
       }),
       prisma.purchaseOrder.findMany({
@@ -254,14 +256,15 @@ export const dashboardService = {
     return { salesByMonth, categoryData, weeklyRevenue };
   },
 
-  async getTopProducts() {
+  async getTopProducts(repId?: number) {
+    const repFilter = repId ? { repId } : {};
     const topItems = await prisma.salesOrderItem.groupBy({
       by: ['itemId'],
       _sum: { quantity: true, price: true },
       orderBy: { _sum: { quantity: DESC } },
       take: 5,
       where: {
-        order: { deletedAt: null, status: { in: ['shipped', 'delivered'] } },
+        order: { deletedAt: null, status: { in: ['shipped', 'delivered'] }, ...repFilter },
       },
     });
 
@@ -283,14 +286,15 @@ export const dashboardService = {
     };
   },
 
-  async getTopCustomers() {
+  async getTopCustomers(repId?: number) {
+    const repFilter = repId ? { repId } : {};
     const customerSales = await prisma.salesOrder.groupBy({
       by: ['customerId'],
       _sum: { totalAmount: true },
       _count: true,
       orderBy: { _sum: { totalAmount: DESC } },
       take: 5,
-      where: { deletedAt: null, status: { in: ['shipped', 'delivered'] } },
+      where: { deletedAt: null, status: { in: ['shipped', 'delivered'] }, ...repFilter },
     });
 
     if (customerSales.length === 0) return { items: [] };
@@ -340,10 +344,13 @@ export const dashboardService = {
     };
   },
 
-  async getRecentActivity(limit = 10) {
+  async getRecentActivity(limit = 10, userId?: number) {
+    const where: Record<string, unknown> = {};
+    if (userId) where.userId = userId;
     const logs = await prisma.activityLog.findMany({
       orderBy: { timestamp: DESC },
       take: limit,
+      where,
       select: {
         id: true,
         action: true,

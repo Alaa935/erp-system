@@ -4,14 +4,12 @@ import type { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 
 export const customersService = {
-  async countToday() {
+  async countToday(repId?: number) {
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
-    return prisma.customer.count({
-      where: { createdAt: { gte: startOfDay, lte: endOfDay } },
-    });
+    const where: Prisma.CustomerWhereInput = { createdAt: { gte: startOfDay }, deletedAt: null };
+    if (repId) where.salesOrders = { some: { repId } };
+    return prisma.customer.count({ where });
   },
 
   async listCustomers(params: {
@@ -86,14 +84,6 @@ export const customersService = {
     latitude?: number | null;
     longitude?: number | null;
   }) {
-    if (data.phone) {
-      const existing = await prisma.customer.findFirst({
-        where: { phone: data.phone, deletedAt: null },
-      });
-      if (existing) {
-        throw new AppError(409, 'يوجد عميل مسجل بنفس رقم الهاتف');
-      }
-    }
     const customer = await prisma.customer.create({
       data: {
         name: data.name,

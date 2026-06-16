@@ -4,7 +4,8 @@ import { customersService } from '../services/customers.service.js';
 export const customersController = {
   async countToday(req: Request, res: Response, next: NextFunction) {
     try {
-      const count = await customersService.countToday();
+      const repId = req.query.repId ? Number(req.query.repId) : undefined;
+      const count = await customersService.countToday(repId);
       res.json({ success: true, data: count });
     } catch (err) { next(err); }
   },

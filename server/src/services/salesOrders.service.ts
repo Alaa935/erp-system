@@ -18,17 +18,15 @@ export const salesOrdersService = {
     status?: string;
     customerId?: number;
     paymentStatus?: string;
-    repId?: number;
   }) {
-    const { page = 1, pageSize = 10, search, status, customerId, paymentStatus, repId } = params;
+    const { page = 1, pageSize = 10, search, status, customerId, paymentStatus } = params;
     const pageNum = Number(page) || 1;
     const pageSizeNum = Number(pageSize) || 10;
     const where: any = { deletedAt: null };
 
     if (status) where.status = status;
-    if (customerId) where.customerId = Number(customerId);
+    if (customerId) where.customerId = customerId;
     if (paymentStatus) where.paymentStatus = paymentStatus;
-    if (repId) where.repId = Number(repId);
     if (search) {
       where.OR = [
         { orderNumber: { contains: search, mode: 'insensitive' } },
@@ -52,6 +50,12 @@ export const salesOrdersService = {
       prisma.salesOrder.count({ where }),
     ]);
 
+    const repIds = [...new Set(orders.filter(o => o.repId).map(o => o.repId!))];
+    const reps = repIds.length > 0
+      ? await prisma.salesRep.findMany({ where: { id: { in: repIds } }, select: { id: true, name: true } })
+      : [];
+    const repMap = new Map(reps.map(r => [r.id, r.name]));
+
     return {
       orders: orders.map(o => ({
         id: o.id,
@@ -59,6 +63,7 @@ export const salesOrdersService = {
         customerId: o.customerId,
         customerName: o.customer.name,
         repId: o.repId,
+        repName: o.repId ? (repMap.get(o.repId) ?? null) : null,
         subtotal: toNumber(o.subtotal),
         taxId: o.taxId,
         taxAmount: toNumber(o.taxAmount),
@@ -93,8 +98,15 @@ export const salesOrdersService = {
     });
     if (!order || order.deletedAt) throw new AppError(404, 'Order not found');
 
+    let repName: string | null = null;
+    if (order.repId) {
+      const rep = await prisma.salesRep.findUnique({ where: { id: order.repId }, select: { name: true } });
+      repName = rep?.name ?? null;
+    }
+
     return {
       ...order,
+      repName,
       subtotal: toNumber(order.subtotal),
       taxAmount: toNumber(order.taxAmount),
       totalAmount: toNumber(order.totalAmount),
@@ -115,7 +127,6 @@ export const salesOrdersService = {
     taxId?: number | null;
     repId?: number | null;
     paidAmount?: number;
-    orderNumber?: string;
   }) {
     const customer = await prisma.customer.findUnique({ where: { id: data.customerId } });
     if (!customer) throw new AppError(404, 'Customer not found');
@@ -158,72 +169,57 @@ export const salesOrdersService = {
       }
     }
 
-    const orderNumber = data.orderNumber || generateOrderNumber();
+    const orderNumber = generateOrderNumber();
     const paidAmount = data.paidAmount ?? 0;
     const paid = Math.min(paidAmount, totalAmount);
     const paymentStatus = paid >= totalAmount ? 'paid' : (paid > 0 ? 'partial' : 'unpaid');
 
-    let order;
-    try {
-      order = await prisma.$transaction(async (tx) => {
-        const created = await tx.salesOrder.create({
-          data: {
-            orderNumber,
-            customerId: data.customerId,
-            repId: data.repId ?? undefined,
-            subtotal: new Decimal(subtotal),
-            taxId: data.taxId ?? undefined,
-            taxAmount: new Decimal(taxAmount),
-            totalAmount: new Decimal(totalAmount),
-            status: 'pending',
-            paymentStatus,
-            paidAmount: new Decimal(paid),
-            items: { create: orderItems },
-          },
-          include: {
-            customer: { select: { id: true, name: true } },
-            items: { include: { item: { select: { id: true, name: true, sku: true } } } },
-          },
-        });
-
-        if (paid > 0) {
-          await tx.financialTransaction.create({
-            data: {
-              type: 'income',
-              category: 'sale',
-              amount: new Decimal(paid),
-              description: `دفعة على فاتورة ${orderNumber}`,
-              referenceId: created.id,
-              transactionNumber: 'TXN-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase(),
-            },
-          });
-        }
-
-        if (data.repId) {
-          await tx.salesRep.update({
-            where: { id: data.repId },
-            data: {
-              currentSales: { increment: new Decimal(totalAmount) },
-              balance: { increment: new Decimal(paid) },
-            },
-          });
-        }
-
-        return created;
+    const order = await prisma.$transaction(async (tx) => {
+      const created = await tx.salesOrder.create({
+        data: {
+          orderNumber,
+          customerId: data.customerId,
+          repId: data.repId ?? undefined,
+          subtotal: new Decimal(subtotal),
+          taxId: data.taxId ?? undefined,
+          taxAmount: new Decimal(taxAmount),
+          totalAmount: new Decimal(totalAmount),
+          status: 'pending',
+          paymentStatus,
+          paidAmount: new Decimal(paid),
+          items: { create: orderItems },
+        },
+        include: {
+          customer: { select: { id: true, name: true } },
+          items: { include: { item: { select: { id: true, name: true, sku: true } } } },
+        },
       });
-    } catch (err: any) {
-      if (err?.code === 'P2002') {
-        const existing = await prisma.salesOrder.findUnique({
-          where: { orderNumber },
-          include: {
-            customer: { select: { id: true, name: true } },
-            items: { include: { item: { select: { id: true, name: true, sku: true } } } },
+
+      if (paid > 0) {
+        await tx.financialTransaction.create({
+          data: {
+            type: 'income',
+            category: 'sale',
+            amount: new Decimal(paid),
+            description: `دفعة على فاتورة ${orderNumber}`,
+            referenceId: created.id,
+            transactionNumber: `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           },
         });
-        if (existing) return existing;
       }
-      throw err;
-    }
+
+      if (data.repId) {
+        await tx.salesRep.update({
+          where: { id: data.repId },
+          data: {
+            currentSales: { increment: new Decimal(totalAmount) },
+            balance: { increment: new Decimal(paid) },
+          },
+        });
+      }
+
+      return created;
+    });
 
     return order;
   },
@@ -280,7 +276,7 @@ export const salesOrdersService = {
           amount: order.totalAmount,
           description: `مبيعات - فاتورة صرف رقم ${order.orderNumber}`,
           referenceId: order.id,
-          transactionNumber: 'TXN-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase(),
+          transactionNumber: `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         },
       });
 
@@ -364,7 +360,7 @@ export const salesOrdersService = {
           amount: new Decimal(amount),
           description: `دفعة على فاتورة ${order.orderNumber}`,
           referenceId: order.id,
-          transactionNumber: 'TXN-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase(),
+          transactionNumber: `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         },
       }),
       prisma.notification.create({

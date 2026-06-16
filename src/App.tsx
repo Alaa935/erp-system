@@ -65,8 +65,8 @@ export default function App() {
     return null;
   });
 
-  const { data: notificationsData } = useNotifications(50);
-  const { data: unreadData } = useUnreadNotifications();
+  const { data: notificationsData } = useNotifications(50, !!currentUser);
+  const { data: unreadData } = useUnreadNotifications(!!currentUser);
   const markAllReadMutation = useMarkAllNotificationsRead();
 
   const rawNotifications = notificationsData as any[] | undefined;

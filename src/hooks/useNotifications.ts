@@ -1,20 +1,22 @@
 import { useQuery } from '@tanstack/react-query'; import api from '../lib/api-client'; import { useProtectedMutation } from './useProtectedMutation';
 
-export function useNotifications(limit?: number) {
+export function useNotifications(limit?: number, enabled = true) {
   return useQuery({
     queryKey: ['notifications', 'list', limit],
     queryFn: () => api<any>('/notifications', { params: { limit: String(limit ?? 50) } as any }),
     staleTime: 15_000,
-    refetchInterval: 30_000,
+    refetchInterval: enabled ? 30_000 : undefined,
+    enabled,
   });
 }
 
-export function useUnreadNotifications() {
+export function useUnreadNotifications(enabled = true) {
   return useQuery({
     queryKey: ['notifications', 'unread'],
     queryFn: () => api<any>('/notifications/unread'),
     staleTime: 10_000,
-    refetchInterval: 20_000,
+    refetchInterval: enabled ? 20_000 : undefined,
+    enabled,
   });
 }
 

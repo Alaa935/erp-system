@@ -37,7 +37,7 @@ const InvoiceVerificationPage = lazy(() => import('./pages/InvoiceVerificationPa
 const CustomerDetailsPage = lazy(() => import('./pages/CustomerDetailsPage'));
 const Profile = lazy(() => import('./pages/Profile'));
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://server-e6y4.onrender.com';
 
 const PAGE_STORAGE_KEY = 'wms_active_page';
 

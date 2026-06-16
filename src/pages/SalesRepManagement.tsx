@@ -169,11 +169,10 @@ export default function SalesRepManagement() {
         method: 'POST',
         body: JSON.stringify({
           action: `موافقة على طلب توريد: ${rep?.name}`,
-          userId: 'admin',
-          username: 'المدير العام',
+          userId: sessionManager.getUser()?.id ?? 1,
+          username: sessionManager.getUser()?.username ?? 'مدير',
           entity: 'StockRequest',
-          entityId: requestId,
-          timestamp: Date.now(),
+          entityId: String(requestId),
           details: modificationReason ? `تم تعديل الكميات. السبب: ${modificationReason}` : 'تمت الموافقة على الطلب كما هو'
         }),
       });
@@ -349,11 +348,10 @@ export default function SalesRepManagement() {
         method: 'POST',
         body: JSON.stringify({
           action: `حذف مندوب: ${rep?.name}`,
-          userId: 'admin',
-          username: 'المدير العام',
+          userId: sessionManager.getUser()?.id ?? 1,
+          username: sessionManager.getUser()?.username ?? 'مدير',
           entity: 'SalesRep',
-          entityId: repToDelete,
-          timestamp: Date.now(),
+          entityId: String(repToDelete),
           details: `سبب الحذف: ${deleteReason}`
         }),
       });

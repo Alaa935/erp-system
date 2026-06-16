@@ -239,8 +239,7 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   body: JSON.stringify({
   userId: selectedRepId, username: selectedRep?.name || '',
   action: 'طلب تسوية عهدة', entity: 'PaymentCollection',
-  details: `طلب تسوية ${unsettledAmount} ج.م للخزينة`,
-  timestamp: Date.now()
+  details: `طلب تسوية ${unsettledAmount} ج.م للخزينة`
   }),
   });
 
@@ -355,9 +354,8 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
       body: JSON.stringify({
         userId: selectedRepId, username: selectedRep?.name || '',
         action: 'تسجيل عملية بيع', entity: 'SalesOrder',
-        entityId: orderId,
-        details: `فاتورة ${repOrderNumber} بقيمة ${total} ج.م (محصل: ${Math.min(data.paidAmount, total)}) للعميل ${customers?.find(c => c.id === data.customerId)?.name}`,
-        timestamp: Date.now()
+        entityId: String(orderId),
+        details: `فاتورة ${repOrderNumber} بقيمة ${total} ج.م (محصل: ${Math.min(data.paidAmount, total)}) للعميل ${customers?.find(c => c.id === data.customerId)?.name}`
       }),
     });
 
@@ -409,9 +407,8 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   body: JSON.stringify({
   userId: selectedRepId!, username: selectedRep?.name || '',
   action: 'طلب توريد بضاعة', entity: 'StockRequest',
-  entityId: (requestRes as any)?.data?.id || (requestRes as any)?.id,
-  details: `طلب توريد ${newRequest.items.length} أصناف`,
-  timestamp: Date.now()
+  entityId: String((requestRes as any)?.data?.id || (requestRes as any)?.id),
+  details: `طلب توريد ${newRequest.items.length} أصناف`
   }),
   });
 

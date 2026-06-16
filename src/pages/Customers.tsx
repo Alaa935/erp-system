@@ -268,6 +268,13 @@ export default function Customers() {
                     </div>
                     <div className="flex gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <button 
+                        onClick={(e) => { e.stopPropagation(); window.location.hash = `#/customer/${customer.id}`; }}
+                        className="p-2 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors cursor-pointer"
+                        title="عرض التفاصيل"
+                      >
+                        <Eye className="w-4 h-4 pointer-events-none" />
+                      </button>
+                      <button 
                         onClick={(e) => { e.stopPropagation(); handleEdit(customer); }}
                         className="p-2 hover:bg-[#ECEEF0] rounded-lg text-[#44474D]"
                       >

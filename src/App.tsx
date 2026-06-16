@@ -36,6 +36,7 @@ const TaxManagement = lazy(() => import('./pages/TaxManagement'));
 const InvoiceVerificationPage = lazy(() => import('./pages/InvoiceVerificationPage'));
 const Profile = lazy(() => import('./pages/Profile'));
 const SupplierInvoiceCreate = lazy(() => import('./pages/SupplierInvoiceCreate'));
+const CustomerDetailsPage = lazy(() => import('./pages/CustomerDetailsPage'));
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
@@ -112,6 +113,10 @@ export default function App() {
       const hash = window.location.hash;
       if (hash.startsWith('#/invoice/')) {
         setInvoiceVerificationNumber(decodeURIComponent(hash.replace('#/invoice/', '')));
+      } else if (hash.startsWith('#/customer/')) {
+        const id = hash.replace('#/customer/', '');
+        sessionStorage.setItem('wms_selected_customer_id', id);
+        setActivePage('customer-details');
       }
     };
     window.addEventListener('hashchange', onHashChange);
@@ -326,6 +331,7 @@ export default function App() {
             case 'notifications-settings': return <SettingsPage activeTab='notifications' />;
             case 'settings': return <SettingsPage />;
             case 'profile': return <Profile currentUser={currentUser} onNavigate={handleNavigate} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />;
+            case 'customer-details': return <CustomerDetailsPage onNavigate={handleNavigate} />;
             case 'sales-rep-management': return <SalesRepManagement />;
             case 'sales-rep-portal': return <SalesRepPortal currentUser={currentUser} />;
             default:

@@ -1075,6 +1075,13 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   )}
   </div>
   <button 
+  onClick={() => { window.location.hash = `#/customer/${customer.id}`; }}
+  className="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-colors"
+  title="عرض التفاصيل"
+  >
+  <Eye className="w-4 h-4" />
+  </button>
+  <button 
   onClick={() => {
   setNewCollection({...newCollection, customerId: customer.id!});
   setCollectionModalOpen(true);

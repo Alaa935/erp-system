@@ -18,8 +18,9 @@ export const salesOrdersService = {
     status?: string;
     customerId?: number;
     paymentStatus?: string;
+    repId?: number;
   }) {
-    const { page = 1, pageSize = 10, search, status, customerId, paymentStatus } = params;
+    const { page = 1, pageSize = 10, search, status, customerId, paymentStatus, repId } = params;
     const pageNum = Number(page) || 1;
     const pageSizeNum = Number(pageSize) || 10;
     const where: any = { deletedAt: null };
@@ -27,6 +28,7 @@ export const salesOrdersService = {
     if (status) where.status = status;
     if (customerId) where.customerId = customerId;
     if (paymentStatus) where.paymentStatus = paymentStatus;
+    if (repId) where.repId = Number(repId);
     if (search) {
       where.OR = [
         { orderNumber: { contains: search, mode: 'insensitive' } },
@@ -56,6 +58,7 @@ export const salesOrdersService = {
         orderNumber: o.orderNumber,
         customerId: o.customerId,
         customerName: o.customer.name,
+        repId: o.repId,
         subtotal: toNumber(o.subtotal),
         taxId: o.taxId,
         taxAmount: toNumber(o.taxAmount),

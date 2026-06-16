@@ -79,8 +79,8 @@ export default function App() {
     return null;
   });
 
-  const { data: notificationsData } = useNotifications(50);
-  const { data: unreadData } = useUnreadNotifications();
+  const { data: notificationsData } = useNotifications(50, !!currentUser);
+  const { data: unreadData } = useUnreadNotifications(!!currentUser);
   const markAllReadMutation = useMarkAllNotificationsRead();
 
   const rawNotifications = notificationsData as any[] | undefined;
@@ -141,11 +141,14 @@ export default function App() {
 
   useEffect(() => {
     const init = async () => {
+      console.log('[APP INIT] init start');
       let sessionRestored = false;
 
       const token = getAccessToken();
+      console.log('[APP INIT] access token state:', !!token);
       if (token) {
         try {
+          console.log('[APP INIT] access token present, verifying with /auth/me');
           const userData = await api<{ id: number; username: string; role: 'admin' | 'manager' | 'rep'; repId?: number | null }>('/auth/me');
           const user: UserAccount = {
             id: userData.id,
@@ -156,15 +159,19 @@ export default function App() {
           setCurrentUser(user);
           sessionManager.create(user);
           sessionRestored = true;
+          console.log('[APP INIT] auth success via access token', { user: user.username, role: user.role });
         } catch {
+          console.log('[APP INIT] auth failure via access token, clearing tokens');
           clearTokens();
         }
       }
 
       if (!sessionRestored) {
         const refreshToken = localStorage.getItem('wms_refresh_token');
+        console.log('[APP INIT] refresh token state:', !!refreshToken);
         if (refreshToken) {
           try {
+            console.log('[APP INIT] refresh token present, attempting refresh');
             const refreshRes = await fetch(`${API_BASE}/api/auth/refresh`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -172,6 +179,7 @@ export default function App() {
             });
             const refreshJson = await refreshRes.json();
             if (refreshJson.success && refreshJson.data) {
+              console.log('[APP INIT] refresh succeeded, setting tokens');
               setTokens(refreshJson.data.accessToken, refreshJson.data.refreshToken);
               const userData = await api<{ id: number; username: string; role: 'admin' | 'manager' | 'rep'; repId?: number | null }>('/auth/me');
               const user: UserAccount = {
@@ -183,8 +191,12 @@ export default function App() {
               setCurrentUser(user);
               sessionManager.create(user);
               sessionRestored = true;
+              console.log('[APP INIT] auth success via refresh', { user: user.username, role: user.role });
+            } else {
+              console.log('[APP INIT] refresh returned failure');
             }
           } catch {
+            console.log('[APP INIT] auth failure via refresh, clearing tokens');
             clearTokens();
           }
         }
@@ -192,12 +204,18 @@ export default function App() {
 
       if (!sessionRestored) {
         const legacy = sessionManager.getUser();
+        console.log('[APP INIT] legacy session state:', !!legacy);
         if (legacy) {
+          console.log('[APP INIT] restored legacy session', { user: legacy.username, role: legacy.role });
           setCurrentUser(legacy);
         }
       }
 
-      setTimeout(() => setIsInitializing(false), 800);
+      console.log('[APP INIT] init complete, sessionRestored:', sessionRestored);
+      setTimeout(() => {
+        console.log('[APP INIT] setIsInitializing(false)');
+        setIsInitializing(false);
+      }, 800);
     };
     init();
   }, []);

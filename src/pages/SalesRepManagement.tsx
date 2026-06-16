@@ -305,8 +305,7 @@ export default function SalesRepManagement() {
           username: sessionUser?.username ?? 'مدير',
           action: `إضافة مندوب جديد: ${newRep.name}`,
           entity: 'SalesRep',
-          entityId: repId,
-          timestamp: Date.now(),
+          entityId: String(repId),
           details: `تم إنشاء حساب للمندوب ${newRep.name} مع صلاحيات مندوب مبيعات`
         }),
       });

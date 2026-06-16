@@ -24,7 +24,7 @@ export const activityLogsController = {
         username: req.body.username,
         action: req.body.action,
         entity: req.body.entity,
-        entityId: req.body.entityId,
+        entityId: String(req.body.entityId ?? ''),
         details: req.body.details,
       });
       res.status(201).json({ success: true, data: log });

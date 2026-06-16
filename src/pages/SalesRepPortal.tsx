@@ -16,7 +16,7 @@ import { cn, formatDate } from '../lib/utils';
 import { toast } from 'sonner';
 import SalesInvoiceModal from '../components/SalesInvoiceModal';
 import { WorkspaceLayout, Tabs } from '../components/design-system';
-import { useSalesReps } from '../hooks/useSalesReps';
+import { useSalesReps, useSalesRep } from '../hooks/useSalesReps';
 import { useInventory } from '../hooks/useInventory';
 import { useCustomers, useCreateCustomer } from '../hooks/useCustomers';
 import api from '../lib/api-client';
@@ -99,32 +99,25 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
 
   const { data: repsData } = useSalesReps();
   const reps = repsData?.items;
-  const selectedRep = reps?.find(r => r.id === selectedRepId);
+
+  const { data: singleRepData } = useSalesRep(
+    currentUser?.role === 'rep' ? currentUser.repId : undefined
+  );
+
+  const selectedRep = currentUser?.role === 'rep'
+    ? (singleRepData as any)?.data
+    : reps?.find(r => r.id === selectedRepId);
   
   // Auto-resolve selectedRepId for rep users
   React.useEffect(() => {
-    if (!reps || reps.length === 0) return;
-
     if (currentUser?.role === 'rep') {
-      if (currentUser.repId && reps.some(r => r.id === currentUser.repId)) {
+      if (currentUser.repId) {
         setSelectedRepId(currentUser.repId);
-        return;
-      }
-      const byName = reps.find(r =>
-        r.name.replace(/\s/g, '').includes(currentUser.username.replace(/\s/g, '')) ||
-        currentUser.username.replace(/\s/g, '').includes(r.name.replace(/\s/g, ''))
-      );
-      if (byName) {
-        setSelectedRepId(byName.id!);
-        return;
-      }
-      const firstRep = reps[0];
-      if (firstRep) {
-        setSelectedRepId(firstRep.id!);
-        return;
       }
       return;
     }
+
+    if (!reps || reps.length === 0) return;
 
     if (!selectedRepId && currentUser?.username === '1') {
       const mohamed = reps.find(r => r.name === 'محمد محمود');

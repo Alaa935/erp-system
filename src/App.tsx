@@ -83,7 +83,7 @@ export default function App() {
   const { data: unreadData } = useUnreadNotifications();
   const markAllReadMutation = useMarkAllNotificationsRead();
 
-  const rawNotifications = notificationsData as any[] | undefined;
+  const rawNotifications = (notificationsData as any)?.data as any[] | undefined;
   const notifications: AppNotification[] | undefined = rawNotifications?.map((n: any) => ({
     id: n.id,
     title: n.title,

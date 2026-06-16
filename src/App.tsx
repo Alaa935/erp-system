@@ -34,9 +34,8 @@ const Accounting = lazy(() => import('./pages/Accounting'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const TaxManagement = lazy(() => import('./pages/TaxManagement'));
 const InvoiceVerificationPage = lazy(() => import('./pages/InvoiceVerificationPage'));
-const Profile = lazy(() => import('./pages/Profile'));
-const SupplierInvoiceCreate = lazy(() => import('./pages/SupplierInvoiceCreate'));
 const CustomerDetailsPage = lazy(() => import('./pages/CustomerDetailsPage'));
+const Profile = lazy(() => import('./pages/Profile'));
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
@@ -52,7 +51,11 @@ function savePage(page: string): void {
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
-  const [activePage, setActivePage] = useState(() => getSavedPage() || 'dashboard');
+  const [activePage, setActivePage] = useState(() => {
+    const hash = window.location.hash;
+    if (/^#\/customer\/\d+$/.test(hash)) return 'customer-details';
+    return getSavedPage() || 'dashboard';
+  });
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setNotificationsOpen] = useState(false);
@@ -66,8 +69,18 @@ export default function App() {
     return null;
   });
 
-  const { data: notificationsData } = useNotifications(50, !!currentUser);
-  const { data: unreadData } = useUnreadNotifications(!!currentUser);
+  const [customerDetailsId, setCustomerDetailsId] = useState<number | null>(() => {
+    const hash = window.location.hash;
+    const match = hash.match(/^#\/customer\/(\d+)$/);
+    if (match) {
+      sessionStorage.setItem('wms_selected_customer_id', match[1]);
+      return Number(match[1]);
+    }
+    return null;
+  });
+
+  const { data: notificationsData } = useNotifications(50);
+  const { data: unreadData } = useUnreadNotifications();
   const markAllReadMutation = useMarkAllNotificationsRead();
 
   const rawNotifications = notificationsData as any[] | undefined;
@@ -92,14 +105,12 @@ export default function App() {
   }, []);
 
   const handleLogout = useCallback(() => {
-    console.log('[APP handleLogout] called', { ts: Date.now() });
     const refreshToken = localStorage.getItem('wms_refresh_token');
     if (refreshToken) {
       fetch(`${API_BASE}/api/auth/logout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken }),
-        signal: AbortSignal.timeout(5_000),
       }).catch(() => {});
     }
     clearTokens();
@@ -113,45 +124,29 @@ export default function App() {
       const hash = window.location.hash;
       if (hash.startsWith('#/invoice/')) {
         setInvoiceVerificationNumber(decodeURIComponent(hash.replace('#/invoice/', '')));
-      } else if (hash.startsWith('#/customer/')) {
-        const id = hash.replace('#/customer/', '');
-        sessionStorage.setItem('wms_selected_customer_id', id);
-        setActivePage('customer-details');
+      } else {
+        const match = hash.match(/^#\/customer\/(\d+)$/);
+        if (match) {
+          sessionStorage.setItem('wms_selected_customer_id', match[1]);
+          setCustomerDetailsId(Number(match[1]));
+          setActivePage('customer-details');
+        } else if (hash === '') {
+          setCustomerDetailsId(null);
+        }
       }
     };
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
-  const initEffectRan = React.useRef(false);
   useEffect(() => {
-    if (initEffectRan.current) {
-      console.log('[APP INIT] StrictMode double-invoke DETECTED — skipping second init');
-      return;
-    }
-    initEffectRan.current = true;
-
-    const SAFETY_TIMEOUT_MS = 30_000;
-    let safetyHandle: ReturnType<typeof setTimeout> | undefined;
-
     const init = async () => {
-      console.log('[APP INIT] === EFFECT STARTED ===', { ts: Date.now() });
-      safetyHandle = setTimeout(() => {
-        console.log('[APP INIT] ⚠ SAFETY TIMEOUT — forcing setIsInitializing(false) after 30s');
-        setIsInitializing(false);
-      }, SAFETY_TIMEOUT_MS);
-
       let sessionRestored = false;
 
-      console.log('[APP INIT] Step 1: getAccessToken');
       const token = getAccessToken();
-      console.log('[APP INIT]   hasToken:', !!token);
-
       if (token) {
-        console.log('[APP INIT] Step 2: await api(/auth/me) — START');
         try {
           const userData = await api<{ id: number; username: string; role: 'admin' | 'manager' | 'rep'; repId?: number | null }>('/auth/me');
-          console.log('[APP INIT] Step 2: await api(/auth/me) — DONE');
           const user: UserAccount = {
             id: userData.id,
             username: userData.username,
@@ -161,35 +156,24 @@ export default function App() {
           setCurrentUser(user);
           sessionManager.create(user);
           sessionRestored = true;
-        } catch (e) {
-          console.log('[APP INIT] Step 2: await api(/auth/me) — FAILED', e);
+        } catch {
           clearTokens();
         }
-      } else {
-        console.log('[APP INIT] Step 2: skipped (no token)');
       }
 
       if (!sessionRestored) {
-        console.log('[APP INIT] Step 3: checking refresh token');
         const refreshToken = localStorage.getItem('wms_refresh_token');
-        console.log('[APP INIT]   hasRefreshToken:', !!refreshToken);
         if (refreshToken) {
-          console.log('[APP INIT] Step 3a: await fetch(/auth/refresh) — START');
           try {
             const refreshRes = await fetch(`${API_BASE}/api/auth/refresh`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ refreshToken }),
-              signal: AbortSignal.timeout(15_000),
             });
-            console.log('[APP INIT] Step 3a: await fetch(/auth/refresh) — DONE, status:', refreshRes.status);
             const refreshJson = await refreshRes.json();
-            console.log('[APP INIT]   refreshJson.success:', refreshJson?.success, 'hasData:', !!refreshJson?.data);
             if (refreshJson.success && refreshJson.data) {
               setTokens(refreshJson.data.accessToken, refreshJson.data.refreshToken);
-              console.log('[APP INIT] Step 3b: await api(/auth/me) after refresh — START');
               const userData = await api<{ id: number; username: string; role: 'admin' | 'manager' | 'rep'; repId?: number | null }>('/auth/me');
-              console.log('[APP INIT] Step 3b: await api(/auth/me) after refresh — DONE');
               const user: UserAccount = {
                 id: userData.id,
                 username: userData.username,
@@ -200,32 +184,23 @@ export default function App() {
               sessionManager.create(user);
               sessionRestored = true;
             }
-          } catch (e) {
-            console.log('[APP INIT] Step 3a/3b: refresh flow FAILED', e);
+          } catch {
             clearTokens();
           }
-        } else {
-          console.log('[APP INIT] Step 3: skipped (no refresh token)');
         }
       }
 
       if (!sessionRestored) {
-        console.log('[APP INIT] Step 4: session not restored — will show login page');
+        const legacy = sessionManager.getUser();
+        if (legacy) {
+          setCurrentUser(legacy);
+        }
       }
 
-      if (safetyHandle) clearTimeout(safetyHandle);
-      console.log('[APP INIT] === EFFECT COMPLETE === sessionRestored:', sessionRestored, { ts: Date.now() });
-      setTimeout(() => {
-        console.log('[APP INIT] calling setIsInitializing(false)');
-        setIsInitializing(false);
-      }, 800);
+      setTimeout(() => setIsInitializing(false), 800);
     };
-    console.log('[APP INIT] Calling init()');
     init();
   }, []);
-
-  // Log when the component mounts
-  console.log('[APP] Component rendered, currentUser:', !!currentUser, 'isInitializing:', isInitializing);
 
   const closeVerification = useCallback(() => {
     setInvoiceVerificationNumber(null);
@@ -261,7 +236,6 @@ export default function App() {
   ].filter(item => item.roles.includes(currentUser?.role || ''));
 
   const handleLogin = (user: UserAccount) => {
-    console.log('[APP handleLogin] called', { user, ts: Date.now(), accessToken: !!localStorage.getItem('wms_access_token'), refreshToken: !!localStorage.getItem('wms_refresh_token') });
     sessionManager.create(user);
     setCurrentUser(user);
     const saved = getSavedPage();
@@ -317,8 +291,7 @@ export default function App() {
             case 'inventory': return <Inventory setActivePage={setActivePage} />;
             case 'suppliers': return <Suppliers />;
             case 'customers': return <Customers />;
-            case 'supplier-invoices': return <SupplierInvoices onNavigate={handleNavigate} />;
-            case 'supplier-invoice-create': return <SupplierInvoiceCreate onNavigate={handleNavigate} />;
+            case 'supplier-invoices': return <SupplierInvoices />;
             case 'sales-orders': return <SalesOrders />;
             case 'reports': return <Reports setActivePage={setActivePage} />;
             case 'warehouses': return <Warehouses setActivePage={setActivePage} />;
@@ -331,9 +304,9 @@ export default function App() {
             case 'notifications-settings': return <SettingsPage activeTab='notifications' />;
             case 'settings': return <SettingsPage />;
             case 'profile': return <Profile currentUser={currentUser} onNavigate={handleNavigate} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />;
-            case 'customer-details': return <CustomerDetailsPage onNavigate={handleNavigate} />;
             case 'sales-rep-management': return <SalesRepManagement />;
             case 'sales-rep-portal': return <SalesRepPortal currentUser={currentUser} />;
+            case 'customer-details': return <CustomerDetailsPage onNavigate={handleNavigate} />;
             default:
               if (currentUser?.role === 'rep') return <SalesRepPortal currentUser={currentUser} activeTab='overview' />;
               if (currentUser?.role === 'admin') return <SettingsPage activeTab='general' />;
@@ -423,7 +396,7 @@ export default function App() {
           </footer>
         </main>
         {currentUser?.role === 'manager' && (
-          <QuickActions isOpen={isQuickActionsOpen} onToggle={() => setQuickActionsOpen(!isQuickActionsOpen)} onNavigate={handleNavigate} currentPage={activePage} />
+          <QuickActions isOpen={isQuickActionsOpen} onToggle={() => setQuickActionsOpen(!isQuickActionsOpen)} onNavigate={handleNavigate} />
         )}
       </div>
     </ErrorBoundary>

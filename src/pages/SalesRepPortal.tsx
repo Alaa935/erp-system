@@ -239,7 +239,8 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   body: JSON.stringify({
   userId: selectedRepId, username: selectedRep?.name || '',
   action: 'طلب تسوية عهدة', entity: 'PaymentCollection',
-  details: `طلب تسوية ${unsettledAmount} ج.م للخزينة`
+  details: `طلب تسوية ${unsettledAmount} ج.م للخزينة`,
+  timestamp: Date.now()
   }),
   });
 
@@ -267,10 +268,11 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
  }).reduce((sum: number, s: { totalAmount: number }) => sum + s.totalAmount, 0) || 0;
 
  const { data: newCustomersToday } = useQuery<number>({
- queryKey: ['newCustomersToday'],
-  queryFn: () => api<number>('/customers/count-today'),
+ queryKey: ['newCustomersToday', selectedRepId],
+  queryFn: () => api<number>(`/customers/count-today?repId=${selectedRepId}`),
   staleTime: 30_000,
   retry: false,
+  enabled: !!selectedRepId,
   });
 
  const fetchUnpaidInvoices = async (customerId: number) => {
@@ -354,8 +356,9 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
       body: JSON.stringify({
         userId: selectedRepId, username: selectedRep?.name || '',
         action: 'تسجيل عملية بيع', entity: 'SalesOrder',
-        entityId: String(orderId),
-        details: `فاتورة ${repOrderNumber} بقيمة ${total} ج.م (محصل: ${Math.min(data.paidAmount, total)}) للعميل ${customers?.find(c => c.id === data.customerId)?.name}`
+        entityId: orderId,
+        details: `فاتورة ${repOrderNumber} بقيمة ${total} ج.م (محصل: ${Math.min(data.paidAmount, total)}) للعميل ${customers?.find(c => c.id === data.customerId)?.name}`,
+        timestamp: Date.now()
       }),
     });
 
@@ -407,8 +410,9 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   body: JSON.stringify({
   userId: selectedRepId!, username: selectedRep?.name || '',
   action: 'طلب توريد بضاعة', entity: 'StockRequest',
-  entityId: String((requestRes as any)?.data?.id || (requestRes as any)?.id),
-  details: `طلب توريد ${newRequest.items.length} أصناف`
+  entityId: (requestRes as any)?.data?.id || (requestRes as any)?.id,
+  details: `طلب توريد ${newRequest.items.length} أصناف`,
+  timestamp: Date.now()
   }),
   });
 
@@ -1074,13 +1078,6 @@ export default function SalesRepPortal({ currentUser, activeTab: propTab }: Sale
   </span>
   )}
   </div>
-  <button 
-  onClick={() => { window.location.hash = `#/customer/${customer.id}`; }}
-  className="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-colors"
-  title="عرض التفاصيل"
-  >
-  <Eye className="w-4 h-4" />
-  </button>
   <button 
   onClick={() => {
   setNewCollection({...newCollection, customerId: customer.id!});

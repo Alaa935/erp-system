@@ -42,18 +42,20 @@ export interface DashboardAlerts {
   totalAlerts: number;
 }
 
-export function useDashboardSummary() {
+export function useDashboardSummary(repId?: number) {
+  const params = repId ? `?repId=${repId}` : '';
   return useQuery({
-    queryKey: ['dashboard', 'summary'],
-    queryFn: () => api<DashboardSummary>('/dashboard/summary'),
+    queryKey: ['dashboard', 'summary', repId],
+    queryFn: () => api<{ success: boolean; data: DashboardSummary }>(`/dashboard/summary${params}`),
     staleTime: 60_000,
   });
 }
 
-export function useDashboardCharts() {
+export function useDashboardCharts(repId?: number) {
+  const params = repId ? `?repId=${repId}` : '';
   return useQuery({
-    queryKey: ['dashboard', 'charts'],
-    queryFn: () => api<DashboardCharts>('/dashboard/charts'),
+    queryKey: ['dashboard', 'charts', repId],
+    queryFn: () => api<{ success: boolean; data: DashboardCharts }>(`/dashboard/charts${params}`),
     staleTime: 60_000,
   });
 }
@@ -61,31 +63,34 @@ export function useDashboardCharts() {
 export function useDashboardAlerts() {
   return useQuery({
     queryKey: ['dashboard', 'alerts'],
-    queryFn: () => api<DashboardAlerts>('/dashboard/alerts'),
+    queryFn: () => api<{ success: boolean; data: DashboardAlerts }>('/dashboard/alerts'),
     staleTime: 30_000,
   });
 }
 
-export function useTopProducts() {
+export function useTopProducts(repId?: number) {
+  const params = repId ? `?repId=${repId}` : '';
   return useQuery({
-    queryKey: ['dashboard', 'top-products'],
-    queryFn: () => api<{ items: { name: string; qty: number; revenue: number }[] }>('/dashboard/top-products'),
+    queryKey: ['dashboard', 'top-products', repId],
+    queryFn: () => api<{ success: boolean; data: { items: { name: string; qty: number; revenue: number }[] } }>(`/dashboard/top-products${params}`),
     staleTime: 60_000,
   });
 }
 
-export function useTopCustomers() {
+export function useTopCustomers(repId?: number) {
+  const params = repId ? `?repId=${repId}` : '';
   return useQuery({
-    queryKey: ['dashboard', 'top-customers'],
-    queryFn: () => api<{ items: { name: string; total: number; orders: number }[] }>('/dashboard/top-customers'),
+    queryKey: ['dashboard', 'top-customers', repId],
+    queryFn: () => api<{ success: boolean; data: { items: { name: string; total: number; orders: number }[] } }>(`/dashboard/top-customers${params}`),
     staleTime: 60_000,
   });
 }
 
-export function useDashboardRecentActivity() {
+export function useDashboardRecentActivity(repId?: number) {
+  const params = repId ? `?repId=${repId}` : '';
   return useQuery({
-    queryKey: ['dashboard', 'recent-activity'],
-    queryFn: () => api<{ logs: { id: number; action: string; username: string; entity: string; entityId: string | null; details: string; timestamp: string }[] }>('/dashboard/recent-activity'),
+    queryKey: ['dashboard', 'recent-activity', repId],
+    queryFn: () => api<{ success: boolean; data: { logs: { id: number; action: string; username: string; entity: string; entityId: string | null; details: string; timestamp: string }[] } }>(`/dashboard/recent-activity${params}`),
     staleTime: 15_000,
   });
 }
@@ -93,7 +98,7 @@ export function useDashboardRecentActivity() {
 export function useDashboardNotifications() {
   return useQuery({
     queryKey: ['dashboard', 'notifications'],
-    queryFn: () => api<{ notifications: { id: number; title: string; message: string; type: string; read: boolean; date: string }[]; unreadCount: number }>('/dashboard/notifications'),
+    queryFn: () => api<{ success: boolean; data: { notifications: { id: number; title: string; message: string; type: string; read: boolean; date: string }[]; unreadCount: number } }>('/dashboard/notifications'),
     staleTime: 15_000,
   });
 }
@@ -101,7 +106,7 @@ export function useDashboardNotifications() {
 export function useLowStockDashboard() {
   return useQuery({
     queryKey: ['dashboard', 'low-stock'],
-    queryFn: () => api<{ items: any[] }>('/dashboard/low-stock'),
+    queryFn: () => api<{ success: boolean; data: { items: any[] } }>('/dashboard/low-stock'),
     staleTime: 30_000,
   });
 }

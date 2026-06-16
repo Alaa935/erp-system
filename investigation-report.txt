@@ -1,0 +1,95 @@
+﻿========================================
+التقرير النهائي - أين تختفي البيانات
+========================================
+
+1. مشكلة search=undefined (مؤكدة عملياً):
+----------------------------------------
+useCustomers({ search: debouncedSearch || undefined })
+debouncedSearch = "" initial state
+"" || undefined = undefined (عشان "" falsy في JS)
+params1 = { "search": undefined }
+
+Object.entries({ search: undefined }) → [["search", undefined]]
+url.searchParams.set("search", undefined) → "?search=undefined"
+
+تم التأكيد بإستخدام Node.js:
+  URL with undefined: https://server-e6y4.onrender.com/api/customers?search=undefined
+  URL with empty string '': https://server-e6y4.onrender.com/api/customers?search=
+
+الفرق: undefined يصبح string "undefined" ويبحث في Prisma عن:
+  WHERE (name ILIKE '%undefined%' OR phone ILIKE '%undefined%')
+  → 0 results
+
+2. Suppliers نفس المشكلة بالضبط:
+--------------------------------
+useSuppliers({ search: "" || undefined })
+→ نفس الـ undefined → ?search=undefined
+
+3. Sales Reps لا يوجد search parameter:
+---------------------------------------
+useSalesReps() → /api/sales-reps بدون أي params
+
+
+========================================
+جدول تتبع البيانات من DB إلى UI
+========================================
+
+┌──────────────────┬──────────┬──────────┬────────────┬──────────────────┐
+│ الصفحة           │ DB Count │ API Count│ في الـHook │ Rendered Rows    │
+├──────────────────┼──────────┼──────────┼────────────┼──────────────────┤
+│ Dashboard        │    X     │    X     │    X       │ يظهر العدد       │
+│   Customers      │   10     │   10     │    0       │ 0 (فارغ)         │
+│   Suppliers      │    3     │    3     │    0       │ 0 (فارغ)         │
+│   SalesReps      │   10     │   10     │   10       │ 0 (فارغ)         │
+├──────────────────┼──────────┼──────────┼────────────┼──────────────────┤
+│ قائمة العملاء    │   10     │    0*    │    0       │ 0 (فارغ)         │
+│ قائمة الموردين   │    3     │    0*    │    0       │ 0 (فارغ)         │
+│ قائمة المناديب   │   10     │   10     │   10       │ ???               │
+└──────────────────┴──────────┴──────────┴────────────┴──────────────────┘
+* يرجع 0 لأنه: ?search=undefined يفلتر الكل
+
+========================================
+نقطة الانقطاع الدقيقة لكل صفحة:
+========================================
+
+CUSTOMERS:
+  DB(10) → Service(10) → Controller(10) → Response(10) ✅
+  Response → api-client: URL = /api/customers?search=undefined ❌
+  → الفلتر يخفي الكل → items = [] → 0 rows
+  نقطة الانقطاع: api-client line 85 - url.searchParams.set()
+
+SUPPLIERS:
+  DB(3) → Service(3) → Controller(3) → Response(3) ✅
+  Response → api-client: URL = /api/suppliers?search=undefined ❌
+  نفس السبب → items = [] → 0 rows
+
+SALES REPS:
+  لا يوجد search param → URL سليم
+  → يجب التأكد من Console.log بعد تشغيل التطبيق
+
+
+========================================
+نوع المشكلة لكل صفحة:
+========================================
+
+CUSTOMERS:  Frontend Params Serialization (search=undefined)
+SUPPLIERS:  Frontend Params Serialization (search=undefined)
+SALES REPS: غير محدد - يرجى فتح F12 Console للتأكد
+
+========================================
+السر في التناقض مع Dashboard:
+========================================
+- Dashboard: /dashboard/summary → بدون search filter → يرجع العدد الصحيح
+- صفحة القائمة: /customers?search=undefined → 0 results
+- الـ DB سليمة، الـ API سليمة، المشكلة فقط في كيفية بناء URL
+
+========================================
+الحل (دون تطبيقه):
+========================================
+فلترة الـ undefined values من params قبل إرسالها:
+replace:
+  api<ListResponse>('/customers', { params: params as Record<string, string> })
+with:
+  api<ListResponse>('/customers', { params: sanitizeParams(params) })
+
+حيث sanitizeParams تزيل أي key/value بقيمة undefined

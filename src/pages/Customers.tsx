@@ -9,7 +9,6 @@ import { useSalesReps } from '../hooks/useSalesReps';
 import { useInventory } from '../hooks/useInventory';
 import { useSalesOrders } from '../hooks/useSalesOrders';
 import { usePaymentCollections, useConfirmPaymentCollection } from '../hooks/usePaymentCollections';
-import { LoadingButton } from '../components/ui/LoadingButton';
 
 export default function Customers() {
   console.log('[RENDER] Customers page');
@@ -62,7 +61,7 @@ export default function Customers() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const customersQuery = useCustomers(debouncedSearch ? { search: debouncedSearch } : undefined);
+  const customersQuery = useCustomers({ search: debouncedSearch || undefined });
   const allCustomersQuery = useCustomers({ pageSize: 1000 });
   const createCustomer = useCreateCustomer();
   const updateCustomer = useUpdateCustomer();
@@ -70,6 +69,14 @@ export default function Customers() {
 
   const customers = customersQuery.data?.items;
   const allCustomers = allCustomersQuery.data?.items || [];
+  
+  console.log('[Customers Page] customersQuery.data:', customersQuery.data);
+  console.log('[Customers Page] customers array:', customers);
+  console.log('[Customers Page] customers length:', customers?.length);
+  console.log('[Customers Page] isLoading:', customersQuery.isLoading);
+  console.log('[Customers Page] isError:', customersQuery.isError);
+  console.log('[Customers Page] error:', customersQuery.error);
+  console.log('[Customers Page] allCustomers length:', allCustomers.length);
 
   const customersLookup = useMemo(() => {
     const map = new Map<number, Customer>();
@@ -268,13 +275,6 @@ export default function Customers() {
                     </div>
                     <div className="flex gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <button 
-                        onClick={(e) => { e.stopPropagation(); window.location.hash = `#/customer/${customer.id}`; }}
-                        className="p-2 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors cursor-pointer"
-                        title="عرض التفاصيل"
-                      >
-                        <Eye className="w-4 h-4 pointer-events-none" />
-                      </button>
-                      <button 
                         onClick={(e) => { e.stopPropagation(); handleEdit(customer); }}
                         className="p-2 hover:bg-[#ECEEF0] rounded-lg text-[#44474D]"
                       >
@@ -386,26 +386,20 @@ export default function Customers() {
                       <div className="flex justify-center gap-2">
                         {col.status === 'pending' ? (
                           <>
-                            <LoadingButton
+                            <button 
                               onClick={() => handleConfirmCollection(col.id!)}
-                              isPending={confirmCollectionMut.isPending}
-                              loadingText="جاري التنفيذ..."
-                              variant="outline"
-                              size="sm"
-                              className="bg-emerald-50 text-emerald-700 border-0 hover:bg-emerald-100"
+                              className="p-2 bg-green-50 text-green-600 rounded-xl hover:bg-green-600 hover:text-white transition-all shadow-sm shadow-green-100"
+                              title="تأكيد"
                             >
-                              ✓
-                            </LoadingButton>
-                            <LoadingButton
+                              <CheckCircle2 className="w-4 h-4" />
+                            </button>
+                            <button 
                               onClick={() => handleRejectCollection(col.id!)}
-                              isPending={confirmCollectionMut.isPending}
-                              loadingText="جاري التنفيذ..."
-                              variant="outline"
-                              size="sm"
-                              className="bg-rose-50 text-rose-700 border-0 hover:bg-rose-100"
+                              className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm shadow-red-100"
+                              title="رفض"
                             >
-                              ✕
-                            </LoadingButton>
+                              <XCircle className="w-4 h-4" />
+                            </button>
                           </>
                         ) : (
                           <div className="text-[10px] text-gray-400 flex items-center gap-1 font-bold">
@@ -448,6 +442,7 @@ export default function Customers() {
                   required
                   value={newCustomer.name ?? ''}
                   onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})}
+                  autoFocus
                 />
                 <FormInput
                   label="رقم الهاتف"
@@ -483,7 +478,7 @@ export default function Customers() {
             primaryLabel="حفظ البيانات"
             secondaryLabel="إلغاء"
             onSecondary={() => { setModalOpen(false); setEditingCustomer(null); }}
-            loading={isSubmitting || createCustomer.isPending || updateCustomer.isPending}
+            loading={isSubmitting}
           />
         </Form>
       </Modal>
@@ -498,15 +493,13 @@ export default function Customers() {
         size="md"
         footer={
           <div className="flex gap-3">
-            <LoadingButton
+            <button
               onClick={handleDelete}
-              isPending={deleteCustomer.isPending}
-              loadingText="جاري الحذف..."
-              variant="danger"
-              size="md"
+              disabled={isSubmitting}
+              className="flex-1 bg-red-600 text-white py-4 rounded-2xl font-black shadow-lg hover:bg-red-700 transition-colors disabled:opacity-50"
             >
               تأكيد الحذف
-            </LoadingButton>
+            </button>
             <button
               onClick={() => { setDeleteReasonModalOpen(false); setCustomerToDelete(null); setDeleteReason(''); }}
               className="flex-1 bg-gray-100 text-gray-600 py-4 rounded-2xl font-black hover:bg-gray-200 transition-colors"

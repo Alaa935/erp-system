@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Package } from 'lucide-react';
-import { Item, RepInventory } from '../../db/db';
+import { Item, RepInventory } from '../../types';
 import { cn } from '../../lib/utils';
 
 interface RepInventoryProps {

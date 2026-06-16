@@ -65,7 +65,7 @@ export const VendorAccounts = ({
                     <div>
                       <p className="text-sm font-black text-black">{order.orderNumber}</p>
                       <p className="text-[10px] text-gray-500 font-bold">{supplier?.name}</p>
-                      <p className="text-[9px] text-red-500 mt-1">تاريخ الاستحقاق: {formatDate(order.dueDate ? new Date(order.dueDate).getTime() : new Date(order.date).getTime() + 1296000000)}</p>
+                      <p className="text-[9px] text-red-500 mt-1">تاريخ الاستحقاق: {formatDate(order.dueDate || order.date + 1296000000)}</p>
                     </div>
                     <div className="text-left flex flex-col items-end gap-2">
                       <p className="text-sm font-black text-red-600">{(order.totalAmount - (order.paidAmount || 0)).toLocaleString()} ج.م</p>

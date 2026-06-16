@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/db';
+import React, { useState, useEffect } from 'react';
+import { useSystemConfig, useUpdateSystemConfig } from '../hooks/useSystemConfig';
+import { useInventoryReports } from '../hooks/useReports';
 import {
   Boxes, Package, AlertTriangle, BarChart3, Barcode, Calendar,
   RefreshCw, Truck, Warehouse, TrendingUp, TrendingDown, Layers,
@@ -11,20 +11,33 @@ import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 
 export default function InventorySettings() {
-  const config = useLiveQuery(() => db.systemConfig.get('default'));
-  const items = useLiveQuery(() => db.items.toArray());
-  const transactions = useLiveQuery(() => db.inventoryTransactions.orderBy('timestamp').reverse().limit(10).toArray());
+  const { data: configData } = useSystemConfig();
+  const config = configData?.data;
+  const updateConfig = useUpdateSystemConfig();
 
-  const [lowStockAlerts, setLowStockAlerts] = useState(config?.lowStockAlerts ?? true);
-  const [minStockLevel, setMinStockLevel] = useState(config?.minStockLevel || 20);
-  const [trackingSystem, setTrackingSystem] = useState(config?.trackingSystem || 'none');
+  const { data: reportsData } = useInventoryReports();
+  const reports = reportsData;
 
-  const lowStockCount = items?.filter(i => i.quantity <= i.minQuantity).length || 0;
-  const outOfStockCount = items?.filter(i => i.quantity === 0).length || 0;
-  const totalValue = items?.reduce((s, i) => s + (i.purchasePrice || 0) * i.quantity, 0) || 0;
+  const [lowStockAlerts, setLowStockAlerts] = useState(true);
+  const [minStockLevel, setMinStockLevel] = useState(20);
+  const [trackingSystem, setTrackingSystem] = useState('none');
+
+  useEffect(() => {
+    if (config) {
+      setLowStockAlerts(config.lowStockAlerts ?? true);
+      setMinStockLevel(config.minStockLevel || 20);
+      setTrackingSystem(config.trackingSystem || 'none');
+    }
+  }, [config]);
+
+  const itemsCount = reports?.summary?.totalItems || 0;
+  const totalValue = reports?.summary?.totalValue || 0;
+  const lowStockCount = reports?.summary?.lowStockCount || 0;
+  const outOfStockCount = reports?.tables?.items?.filter((i: any) => i.quantity === 0).length || 0;
+  const transactions = reports?.tables?.transactions?.slice(0, 10) || [];
 
   const warehouseStats = [
-    { label: 'إجمالي الأصناف', value: items?.length || 0, icon: Package, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'إجمالي الأصناف', value: itemsCount, icon: Package, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'قيمة المخزون', value: formatCurrency(totalValue), icon: BarChart3, color: 'text-green-600', bg: 'bg-green-50' },
     { label: 'أصناف منخفضة', value: lowStockCount, icon: AlertTriangle, color: 'text-orange-600', bg: 'bg-orange-50' },
     { label: 'نفد المخزون', value: outOfStockCount, icon: X, color: 'text-red-600', bg: 'bg-red-50' },
@@ -32,7 +45,7 @@ export default function InventorySettings() {
 
   const handleSave = async () => {
     try {
-      await db.systemConfig.update('default', { lowStockAlerts, minStockLevel, trackingSystem: trackingSystem as any });
+      await updateConfig.mutateAsync({ lowStockAlerts, minStockLevel, trackingSystem: trackingSystem as any });
       toast.success('تم حفظ إعدادات المخزون');
     } catch { toast.error('فشل حفظ الإعدادات'); }
   };

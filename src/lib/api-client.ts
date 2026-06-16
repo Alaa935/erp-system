@@ -1,51 +1,32 @@
-import { sessionManager } from './session';
-
 const API_BASE = import.meta.env.VITE_API_URL || 'https://server-e6y4.onrender.com';
 
 const ACCESS_TOKEN_KEY = 'wms_access_token';
 const REFRESH_TOKEN_KEY = 'wms_refresh_token';
-const REQUEST_TIMEOUT_MS = 15_000;
 
 export function getAccessToken(): string | null {
-  const val = localStorage.getItem(ACCESS_TOKEN_KEY);
-  if (!val) debugLog('getAccessToken -> null');
-  return val;
+  try { return localStorage.getItem(ACCESS_TOKEN_KEY); } catch { return null; }
 }
 
 export function getRefreshToken(): string | null {
-  const val = localStorage.getItem(REFRESH_TOKEN_KEY);
-  if (!val) debugLog('getRefreshToken -> null');
-  return val;
-}
-
-let _debugId = 0;
-function debugLog(...args: unknown[]) {
-  console.log(`[API-CLIENT ${++_debugId}]`, ...args);
+  try { return localStorage.getItem(REFRESH_TOKEN_KEY); } catch { return null; }
 }
 
 export function setTokens(accessToken: string, refreshToken: string): void {
-  debugLog('setTokens called', { accessToken: accessToken.slice(0, 20) + '...', refreshToken: refreshToken.slice(0, 20) + '...' });
   localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
   localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-  debugLog('setTokens completed, verifying...', {
-    readBack: localStorage.getItem(ACCESS_TOKEN_KEY)?.slice(0, 20) + '...',
-    keys: Object.keys(localStorage),
-  });
 }
 
 export function clearTokens(): void {
-  const hadAccess = !!localStorage.getItem(ACCESS_TOKEN_KEY);
-  const hadRefresh = !!localStorage.getItem(REFRESH_TOKEN_KEY);
-  debugLog('clearTokens called', { hadAccess, hadRefresh, stack: new Error().stack?.split('\n').slice(2, 6).join(' | ') });
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
-  sessionManager.destroy();
-  debugLog('clearTokens completed');
 }
 
 function decodeToken(token: string): { exp?: number } | null {
   try {
-    return JSON.parse(atob(token.split('.')[1]));
+    const parts = token.split('.');
+    const payload = parts[1];
+    if (!payload) return null;
+    return JSON.parse(atob(payload));
   } catch {
     return null;
   }
@@ -67,7 +48,6 @@ async function attemptRefresh(): Promise<boolean> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
     if (!res.ok) return false;
     const json = await res.json();
@@ -101,11 +81,17 @@ let wasTokenSent = false;
 
 export async function api<T = unknown>(
   path: string,
-  options: RequestInit & { params?: Record<string, string> } = {},
+  options: RequestInit & { params?: Record<string, string | number | boolean | undefined | null> } = {},
 ): Promise<T> {
   const { params, ...fetchOptions } = options;
   const url = new URL(`${API_BASE}/api${path}`);
-  if (params) for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null && String(v) !== 'undefined') {
+        url.searchParams.set(k, String(v));
+      }
+    }
+  }
 
   const headers = new Headers(fetchOptions.headers);
   if (!headers.has('Content-Type') && !(fetchOptions.body instanceof FormData)) {
@@ -114,96 +100,60 @@ export async function api<T = unknown>(
 
   const accessToken = getAccessToken();
   wasTokenSent = false;
-  debugLog('api() preparing request', { path, method: fetchOptions.method, hasToken: !!accessToken });
 
   if (accessToken) {
     if (isTokenExpired(accessToken)) {
-      debugLog('api() access token expired, attempting refresh');
       await refreshAccessToken();
       const refreshedToken = getAccessToken();
       if (refreshedToken) {
         headers.set('Authorization', `Bearer ${refreshedToken}`);
         wasTokenSent = true;
-        debugLog('api() token refreshed successfully, Authorization header set');
-      } else {
-        debugLog('api() refresh returned no new token');
       }
     } else {
       headers.set('Authorization', `Bearer ${accessToken}`);
       wasTokenSent = true;
-      debugLog('api() access token valid, Authorization header set');
-    }
-  } else {
-    debugLog('api() no access token, check refresh token fallback');
-    const refreshToken = getRefreshToken();
-    if (refreshToken) {
-      debugLog('api() attempting token refresh from getAccessToken=null fallback');
-      await refreshAccessToken();
-      const fallbackToken = getAccessToken();
-      if (fallbackToken) {
-        headers.set('Authorization', `Bearer ${fallbackToken}`);
-        wasTokenSent = true;
-        debugLog('api() fallback refresh succeeded, Authorization header set');
-      }
     }
   }
 
-  const fetchSignal = fetchOptions.signal ?? AbortSignal.timeout(REQUEST_TIMEOUT_MS);
-  let response = await fetch(url.toString(), { ...fetchOptions, headers, signal: fetchSignal });
-  debugLog('api() response', { status: response.status, path, wasTokenSent });
+  console.log('[api-client] REQUEST URL:', url.toString());
+  console.log('[api-client] REQUEST METHOD:', fetchOptions.method || 'GET');
+  console.log('[api-client] REQUEST PARAMS:', params);
+
+  let response = await fetch(url.toString(), { ...fetchOptions, headers });
 
   if (response.status === 401) {
     if (wasTokenSent) {
-      debugLog('api() got 401 with token, attempting refresh retry');
       const refreshed = await refreshAccessToken();
       if (refreshed) {
         const newToken = getAccessToken();
         if (newToken) {
           const retryHeaders = new Headers(headers);
           retryHeaders.set('Authorization', `Bearer ${newToken}`);
-          debugLog('api() retrying request with refreshed token');
-          response = await fetch(url.toString(), { ...fetchOptions, headers: retryHeaders, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
-          debugLog('api() retry response', { status: response.status, path });
+          response = await fetch(url.toString(), { ...fetchOptions, headers: retryHeaders });
         } else {
           clearTokens();
-          window.location.href = '/login';
           throw new ApiError(401, 'Session expired. Please login again.');
         }
       } else {
         clearTokens();
-        window.location.href = '/login';
         throw new ApiError(401, 'Session expired. Please login again.');
       }
     } else {
-      debugLog('api() got 401 without token sent');
-      const refreshed = await refreshAccessToken();
-      if (refreshed) {
-        const newToken = getAccessToken();
-        if (newToken) {
-          const retryHeaders = new Headers(headers);
-          retryHeaders.set('Authorization', `Bearer ${newToken}`);
-          debugLog('api() retrying request after no-token 401 refresh');
-          response = await fetch(url.toString(), { ...fetchOptions, headers: retryHeaders, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
-          debugLog('api() retry response', { status: response.status, path });
-        } else {
-          clearTokens();
-          window.location.href = '/login';
-          throw new ApiError(401, 'Session expired. Please login again.');
-        }
-      } else {
-        clearTokens();
-        window.location.href = '/login';
-        throw new ApiError(401, 'Session expired. Please login again.');
-      }
+      throw new ApiError(401, 'Authentication required. Please login.');
     }
   }
 
   const data = await response.json();
+  console.log('[api-client] RESPONSE STATUS:', response.status);
+  console.log('[api-client] RAW RESPONSE BODY:', data);
+
   if (!response.ok) {
     throw new ApiError(response.status, data.error || `Request failed with status ${response.status}`);
   }
 
-  return (data.data !== undefined ? data.data : data) as T;
+  const result = data as T;
+  console.log('[api-client] RETURN VALUE:', result);
+  return result;
 }
 
 export default api;

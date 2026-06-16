@@ -7,7 +7,6 @@ interface QuickActionsProps {
   isOpen: boolean;
   onToggle: () => void;
   onNavigate: (page: string) => void;
-  currentPage?: string;
 }
 
 const ACTIONS = [
@@ -16,9 +15,7 @@ const ACTIONS = [
   { id: 'suppliers', label: 'إضافة مورد', color: 'hover:bg-orange-50 text-orange-600' },
 ];
 
-export function QuickActions({ isOpen, onToggle, onNavigate, currentPage }: QuickActionsProps) {
-  if (currentPage === 'inventory') return null;
-
+export function QuickActions({ isOpen, onToggle, onNavigate }: QuickActionsProps) {
   return (
     <div className="fixed bottom-24 left-8 z-[60]">
       <AnimatePresence>

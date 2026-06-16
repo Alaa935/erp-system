@@ -1,6 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api-client';
-import { useProtectedMutation } from './useProtectedMutation';
 
 interface ListResponse {
   success: boolean;
@@ -16,9 +15,10 @@ export function usePaymentCollections(params?: Record<string, string | number | 
 }
 
 export function useConfirmPaymentCollection() {
-  return useProtectedMutation(
-    ({ id, status }: { id: number; status: string }) =>
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) =>
       api(`/payment-collections/${id}`, { method: 'PUT', body: JSON.stringify({ status }) }),
-    { invalidates: [['paymentCollections']] },
-  );
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['paymentCollections'] }),
+  });
 }

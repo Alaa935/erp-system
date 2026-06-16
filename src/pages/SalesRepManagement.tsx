@@ -1,5 +1,5 @@
-﻿import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useState } from 'react';
+import { motion } from 'motion/react';
 import { 
   Users, 
   TrendingUp, 
@@ -20,21 +20,18 @@ import {
   ShoppingCart,
   DollarSign
 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import api, { getAccessToken, getRefreshToken } from '../lib/api-client';
-import { sessionManager } from '../lib/session';
-import { LoadingButton } from '../components/ui/LoadingButton';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import api from '../lib/api-client';
 import { useSalesReps, useDeleteSalesRep } from '../hooks/useSalesReps';
 import { useInventory } from '../hooks/useInventory';
 import { useCustomers } from '../hooks/useCustomers';
 import { useStockTransfers, useCreateStockTransfer } from '../hooks/useStockTransfers';
 import { useStockRequests, useUpdateStockRequest } from '../hooks/useStockRequests';
-import { useConfirmPaymentCollection } from '../hooks/usePaymentCollections';
+import { useConfirmCollection } from '../hooks/useAccounting';
 import { useCreateNotification } from '../hooks/useNotifications';
 import type { SalesRep } from '../types';
 import { cn, formatDate } from '../lib/utils';
 import { toast } from 'sonner';
-
 
 export default function SalesRepManagement() {
   const [isAddModalOpen, setAddModalOpen] = useState(false);
@@ -52,9 +49,14 @@ export default function SalesRepManagement() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const queryClient = useQueryClient();
 
   const { data: repsData } = useSalesReps();
   const reps = repsData?.items;
+  
+  console.log('[SalesReps Page] repsData:', repsData);
+  console.log('[SalesReps Page] reps array:', reps);
+  console.log('[SalesReps Page] reps length:', reps?.length);
 
   const { data: itemsData } = useInventory({ pageSize: '10000' } as any);
   const items = itemsData?.items;
@@ -135,7 +137,7 @@ export default function SalesRepManagement() {
   const deleteRep = useDeleteSalesRep();
   const createTransfer = useCreateStockTransfer();
   const updateStockRequest = useUpdateStockRequest();
-  const confirmCollection = useConfirmPaymentCollection();
+  const confirmCollection = useConfirmCollection();
   const createNotification = useCreateNotification();
 
   const handleApproveRequest = async (requestId: number, updatedItems?: { itemId: number; quantity: number; sellingPrice?: number }[], modificationReason?: string) => {
@@ -169,10 +171,11 @@ export default function SalesRepManagement() {
         method: 'POST',
         body: JSON.stringify({
           action: `موافقة على طلب توريد: ${rep?.name}`,
-          userId: sessionManager.getUser()?.id ?? 1,
-          username: sessionManager.getUser()?.username ?? 'مدير',
+          userId: 'admin',
+          username: 'المدير العام',
           entity: 'StockRequest',
-          entityId: String(requestId),
+          entityId: requestId,
+          timestamp: Date.now(),
           details: modificationReason ? `تم تعديل الكميات. السبب: ${modificationReason}` : 'تمت الموافقة على الطلب كما هو'
         }),
       });
@@ -202,7 +205,7 @@ export default function SalesRepManagement() {
 
   const handleConfirmCollection = async (id: number) => {
     try {
-      await confirmCollection.mutateAsync({ id, status: 'collected' });
+      await confirmCollection.mutateAsync(id);
       toast.success('تم التأكيد بنجاح');
     } catch (error) {
       console.error(error);
@@ -212,7 +215,8 @@ export default function SalesRepManagement() {
 
   const handleRejectCollection = async (id: number) => {
     try {
-      await confirmCollection.mutateAsync({ id, status: 'rejected' });
+      await api(`/payment-collections/${id}`, { method: 'PUT', body: JSON.stringify({ status: 'rejected' }) });
+      queryClient.invalidateQueries({ queryKey: ['paymentCollections'] });
       toast.success('تم الرفض');
     } catch (error) {
       console.error(error);
@@ -264,8 +268,8 @@ export default function SalesRepManagement() {
 
       if (!newRep.password) {
         errors.password = 'كلمة المرور مطلوبة';
-      } else if (newRep.password.length < 8) {
-        errors.password = 'كلمة المرور يجب أن تكون 8 أحرف على الأقل';
+      } else if (newRep.password.length < 6) {
+        errors.password = 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
       }
 
       if (newRep.password !== newRep.confirmPassword) {
@@ -278,7 +282,7 @@ export default function SalesRepManagement() {
         return;
       }
 
-      const repResult: any = await api('/sales-reps', {
+      const repResult = await api<any>('/sales-reps', {
         method: 'POST',
         body: JSON.stringify({
           name: newRep.name,
@@ -295,16 +299,16 @@ export default function SalesRepManagement() {
       });
 
       const repId = repResult.id;
-      const sessionUser = sessionManager.getUser();
 
       await api('/activity-logs', {
         method: 'POST',
         body: JSON.stringify({
-          userId: sessionUser?.id ?? 1,
-          username: sessionUser?.username ?? 'مدير',
+          userId: 'admin',
+          username: 'المدير العام',
           action: `إضافة مندوب جديد: ${newRep.name}`,
           entity: 'SalesRep',
-          entityId: String(repId),
+          entityId: repId,
+          timestamp: Date.now(),
           details: `تم إنشاء حساب للمندوب ${newRep.name} مع صلاحيات مندوب مبيعات`
         }),
       });
@@ -331,9 +335,6 @@ export default function SalesRepManagement() {
   };
 
   const handleDeleteRep = async () => {
-    console.log('[DELETE-REP] handleDeleteRep called', { repToDelete, deleteReason });
-    console.log('[DELETE-REP] accessToken:', !!getAccessToken(), 'refreshToken:', !!getRefreshToken());
-
     if (!repToDelete || !deleteReason) {
       toast.error('يرجى تحديد سبب الحذف');
       return;
@@ -348,10 +349,11 @@ export default function SalesRepManagement() {
         method: 'POST',
         body: JSON.stringify({
           action: `حذف مندوب: ${rep?.name}`,
-          userId: sessionManager.getUser()?.id ?? 1,
-          username: sessionManager.getUser()?.username ?? 'مدير',
+          userId: 'admin',
+          username: 'المدير العام',
           entity: 'SalesRep',
-          entityId: String(repToDelete),
+          entityId: repToDelete,
+          timestamp: Date.now(),
           details: `سبب الحذف: ${deleteReason}`
         }),
       });
@@ -367,7 +369,6 @@ export default function SalesRepManagement() {
       setDeleteReason('');
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : 'فشل حذف المندوب');
     }
   };
 
@@ -536,35 +537,34 @@ export default function SalesRepManagement() {
                             {isExpanded ? 'إخفاء' : 'عرض'}
                           </button>
                           <div className="flex gap-2 border-r pr-2 border-gray-200">
-                            <LoadingButton
-                              onClick={() => handleApproveRequest(req.id)}
-                              isPending={createTransfer.isPending || updateStockRequest.isPending}
-                              loadingText="جاري التنفيذ..."
-                              variant="primary"
-                              size="sm"
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleApproveRequest(req.id!);
+                              }}
+                              className="bg-green-500 text-white px-4 py-1.5 rounded-lg text-[10px] font-black hover:bg-green-600 shadow-md shadow-green-100 transition-all flex items-center gap-1"
                             >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
                               موافق
-                            </LoadingButton>
-                            <LoadingButton
-                              onClick={() => handleRejectRequest(req.id)}
-                              isPending={updateStockRequest.isPending}
-                              loadingText="جاري التنفيذ..."
-                              variant="danger"
-                              size="sm"
+                            </button>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRejectRequest(req.id!);
+                              }}
+                              className="bg-red-50 text-red-600 px-4 py-1.5 rounded-lg text-[10px] font-black hover:bg-red-100 transition-all"
                             >
                               رفض
-                            </LoadingButton>
+                            </button>
                           </div>
                         </div>
                       </div>
                     </div>
                     
-                    <AnimatePresence>
                       {isExpanded && (
                         <motion.div 
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
                           className="overflow-hidden bg-gray-50/80 border-t border-gray-100"
                         >
                           <div className="p-4 flex flex-col gap-4">
@@ -608,20 +608,17 @@ export default function SalesRepManagement() {
                             </div>
                             
                             <div className="flex justify-end gap-3 pt-2">
-                              <LoadingButton
-                                onClick={() => handleApproveRequest(req.id)}
-                                isPending={createTransfer.isPending || updateStockRequest.isPending}
-                                loadingText="جاري التنفيذ..."
-                                variant="primary"
-                                size="sm"
+                              <button 
+                                onClick={() => handleApproveRequest(req.id!)}
+                                className="bg-black text-white px-8 py-2.5 rounded-xl text-xs font-black shadow-lg hover:opacity-90 transition-all flex items-center gap-2"
                               >
+                                <CheckCircle2 className="w-4 h-4" />
                                 اعتماد وتوريد الكميات
-                              </LoadingButton>
+                              </button>
                             </div>
                           </div>
                         </motion.div>
                       )}
-                    </AnimatePresence>
                   </div>
                 )
               })
@@ -650,24 +647,19 @@ export default function SalesRepManagement() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                       <LoadingButton
-                         onClick={() => handleConfirmCollection(col.id)}
-                         isPending={confirmCollection.isPending}
-                         loadingText="جاري التنفيذ..."
-                         variant="primary"
-                         size="sm"
-                       >
-                         تأكيد الاستلام
-                       </LoadingButton>
-                      <LoadingButton
-                        onClick={() => handleRejectCollection(col.id)}
-                        isPending={confirmCollection.isPending}
-                        loadingText="جاري التنفيذ..."
-                        variant="danger"
-                        size="sm"
+                       <button 
+                        onClick={() => handleConfirmCollection(col.id!)}
+                        className="bg-green-500 text-white px-4 py-1.5 rounded-lg text-[10px] font-black hover:bg-green-600 flex items-center gap-1 shadow-md shadow-green-100"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        تأكيد الاستلام
+                      </button>
+                      <button 
+                        onClick={() => handleRejectCollection(col.id!)}
+                        className="bg-red-50 text-red-600 px-4 py-1.5 rounded-lg text-[10px] font-black hover:bg-red-100 transition-all"
                       >
                         رفض
-                      </LoadingButton>
+                      </button>
                     </div>
                   </div>
                 )
@@ -817,11 +809,10 @@ export default function SalesRepManagement() {
       </div>
 
       {/* Add Rep Modal */}
-      <AnimatePresence>
         {isAddModalOpen && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setAddModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-lg rounded-3xl p-8 relative z-10 shadow-2xl overflow-hidden">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => setAddModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white w-full max-w-lg rounded-3xl p-8 relative z-10 shadow-2xl overflow-hidden">
               <h2 className="text-2xl font-black mb-6">إضافة مندوب جديد للمؤسسة</h2>
               <form onSubmit={handleAddRep} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -881,16 +872,7 @@ export default function SalesRepManagement() {
                   </div>
                 </div>
                 <div className="flex gap-4 pt-4">
-                  <LoadingButton
-                    type="submit"
-                    isPending={isSubmitting}
-                    loadingText="جاري الحفظ..."
-                    variant="primary"
-                    size="lg"
-                    className="w-full"
-                  >
-                    حفظ المندوب
-                  </LoadingButton>
+                  <button type="submit" disabled={isSubmitting} className="flex-1 bg-black text-white py-3 rounded-xl font-bold disabled:opacity-50">{isSubmitting ? 'جاري الحفظ...' : 'حفظ المندوب'}</button>
                   <button type="button" onClick={() => setAddModalOpen(false)} className="flex-1 bg-gray-100 text-[#44474D] py-3 rounded-xl font-bold">إلغاء</button>
                 </div>
               </form>
@@ -900,8 +882,8 @@ export default function SalesRepManagement() {
 
         {isTransferModalOpen && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setTransferModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-2xl rounded-3xl p-8 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => setTransferModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white w-full max-w-2xl rounded-3xl p-8 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
               <h2 className="text-2xl font-black mb-6">حوّلة مخزنية لمندوب بيع</h2>
               <form onSubmit={handleTransfer} className="space-y-6">
                 <div className="space-y-2">
@@ -949,8 +931,11 @@ export default function SalesRepManagement() {
                                 onChange={(e) => {
                                   const val = parseInt(e.target.value) || 0;
                                   const items = [...newTransfer.items];
-                                  items[idx].quantity = Math.min(val, itemDetails?.quantity || val);
-                                  setNewTransfer({...newTransfer, items});
+                                  const currentItem = items[idx];
+                                  if (currentItem) {
+                                    currentItem.quantity = Math.min(val, itemDetails?.quantity || val);
+                                    setNewTransfer({...newTransfer, items});
+                                  }
                                 }}
                                 className="w-20 bg-white border border-gray-200 rounded-lg p-2 text-center text-sm font-bold"
                               />
@@ -963,8 +948,11 @@ export default function SalesRepManagement() {
                                 onChange={(e) => {
                                   const val = parseFloat(e.target.value) || 0;
                                   const items = [...newTransfer.items];
-                                  items[idx].sellingPrice = val;
-                                  setNewTransfer({...newTransfer, items});
+                                  const currentItem = items[idx];
+                                  if (currentItem) {
+                                    currentItem.sellingPrice = val;
+                                    setNewTransfer({...newTransfer, items});
+                                  }
                                 }}
                                 className="w-24 bg-white border border-gray-200 rounded-lg p-2 text-center text-sm font-bold text-green-600"
                               />
@@ -992,15 +980,7 @@ export default function SalesRepManagement() {
                 </div>
 
                 <div className="flex gap-4 pt-4 border-t">
-                  <LoadingButton
-                    onClick={handleTransfer}
-                    isPending={createTransfer.isPending}
-                    loadingText="جاري التنفيذ..."
-                    variant="primary"
-                    size="md"
-                  >
-                    تأكيد عملية التحويل
-                  </LoadingButton>
+                  <button type="submit" disabled={newTransfer.items.length === 0} className="flex-1 bg-black text-white py-3 rounded-xl font-bold disabled:opacity-50">تأكيد عملية التحويل</button>
                   <button type="button" onClick={() => setTransferModalOpen(false)} className="flex-1 bg-gray-100 text-[#44474D] py-3 rounded-xl font-bold">إلغاء</button>
                 </div>
               </form>
@@ -1010,8 +990,8 @@ export default function SalesRepManagement() {
 
         {selectedRepForDetail && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedRepForDetail(null)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-4xl rounded-3xl p-8 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => setSelectedRepForDetail(null)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white w-full max-w-4xl rounded-3xl p-8 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
               <div className="flex justify-between items-start mb-8">
                 <div className="flex items-center gap-6">
                   <div className="w-20 h-20 bg-black text-white rounded-2xl flex items-center justify-center text-3xl font-black">
@@ -1124,16 +1104,13 @@ export default function SalesRepManagement() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
 
       {/* Delete Rep Reason Modal */}
-      <AnimatePresence>
         {deleteReasonModalOpen && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm text-right" dir="rtl">
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
               className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden"
             >
               <div className="p-6 bg-red-50 border-b border-red-100 flex items-center gap-3">
@@ -1168,15 +1145,12 @@ export default function SalesRepManagement() {
                 </div>
 
                 <div className="flex gap-3 pt-4">
-                  <LoadingButton
+                  <button 
                     onClick={handleDeleteRep}
-                    isPending={deleteRep.isPending}
-                    loadingText="جاري الحذف..."
-                    variant="danger"
-                    size="md"
+                    className="flex-1 bg-red-600 text-white py-4 rounded-2xl font-black shadow-lg hover:bg-red-700 transition-colors"
                   >
                     تأكيد الحذف
-                  </LoadingButton>
+                  </button>
                   <button 
                     onClick={() => {
                       setDeleteReasonModalOpen(false);
@@ -1192,16 +1166,13 @@ export default function SalesRepManagement() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
 
       {/* Transfer Details Modal */}
-      <AnimatePresence>
         {transferDetailsModalOpen && selectedTransferForDetails && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm text-right" dir="rtl">
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
               className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden"
             >
               <div className="p-6 border-b bg-gray-50 flex items-center justify-between">
@@ -1271,7 +1242,6 @@ export default function SalesRepManagement() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
     </div>
   );
 }

@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query'; import api from '../lib/api-client'; import { useProtectedMutation } from './useProtectedMutation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import api from '../lib/api-client';
 import type { PurchaseOrder } from '../types';
 
 interface ListResponse {
@@ -28,25 +29,28 @@ export function usePurchaseOrder(id: number | undefined) {
 }
 
 export function useCreatePurchaseOrder() {
-  return useProtectedMutation(
-    (data: Partial<PurchaseOrder>) =>
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<PurchaseOrder>) =>
       api<SingleResponse>('/purchase-orders', { method: 'POST', body: JSON.stringify(data) }),
-    { invalidates: [['purchaseOrders'], ['inventory'], ['dashboard']] },
-  );
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['purchaseOrders'] }); },
+  });
 }
 
 export function useUpdatePurchaseOrder() {
-  return useProtectedMutation(
-    ({ id, data }: { id: number; data: Partial<PurchaseOrder> }) =>
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<PurchaseOrder> }) =>
       api<SingleResponse>(`/purchase-orders/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    { invalidates: [['purchaseOrders']] },
-  );
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['purchaseOrders'] }); },
+  });
 }
 
 export function useDeletePurchaseOrder() {
-  return useProtectedMutation(
-    ({ id, reason }: { id: number; reason: string }) =>
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
       api(`/purchase-orders/${id}`, { method: 'DELETE', body: JSON.stringify({ reason }) }),
-    { invalidates: [['purchaseOrders']] },
-  );
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['purchaseOrders'] }); },
+  });
 }

@@ -10,6 +10,9 @@
       "DOM.Iterable"
     ],
     "strict": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,
     "moduleResolution": "bundler",
     "isolatedModules": true,

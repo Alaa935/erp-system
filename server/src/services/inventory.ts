@@ -36,7 +36,7 @@ async listItems(params: {
       ];
     }
     if (category) where.category = category;
-    if (supplierId) where.supplierId = Number(supplierId);
+    if (supplierId) where.supplierId = supplierId;
 
     const orderBy: Prisma.ItemOrderByWithRelationInput = {};
     if (sortBy === 'name') orderBy.name = sortOrder;
@@ -47,16 +47,25 @@ async listItems(params: {
     else if (sortBy === 'category') orderBy.category = sortOrder;
     else orderBy.updatedAt = 'desc';
 
-    const [items, total] = await Promise.all([
+    const [items, total, allItemsForStats] = await Promise.all([
       prisma.item.findMany({
         where,
         orderBy,
-      skip: (pageNum - 1) * pageSizeNum,
-take: pageSizeNum,
+        skip: (pageNum - 1) * pageSizeNum,
+        take: pageSizeNum,
         include: { supplier: { select: { id: true, name: true } } },
       }),
       prisma.item.count({ where }),
+      prisma.item.findMany({
+        where: { deletedAt: null },
+        select: { purchasePrice: true, sellingPrice: true, quantity: true, minQuantity: true }
+      }),
     ]);
+
+    const costValue = allItemsForStats.reduce((acc, i) => acc + (Number(i.purchasePrice) * Number(i.quantity)), 0);
+    const sellingValue = allItemsForStats.reduce((acc, i) => acc + (Number(i.sellingPrice) * Number(i.quantity)), 0);
+    const totalQty = allItemsForStats.reduce((acc, i) => acc + Number(i.quantity), 0);
+    const lowStockCount = allItemsForStats.filter(i => Number(i.quantity) <= Number(i.minQuantity)).length;
 
     return {
       items: items.map(i => ({
@@ -66,12 +75,20 @@ take: pageSizeNum,
         quantity: Number(i.quantity),
         minQuantity: Number(i.minQuantity),
       })),
-     meta: {
-  page: pageNum,
-  pageSize: pageSizeNum,
-  total,
-  totalPages: Math.ceil(total / pageSizeNum),
-},
+      meta: {
+        page: pageNum,
+        pageSize: pageSizeNum,
+        total,
+        totalPages: Math.ceil(total / pageSizeNum),
+      },
+      stats: {
+        totalItems: allItemsForStats.length,
+        totalQuantity: totalQty,
+        costValue,
+        sellingValue,
+        expectedProfit: sellingValue - costValue,
+        lowStockCount
+      }
     };
   },
 

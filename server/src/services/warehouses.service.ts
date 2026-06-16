@@ -61,30 +61,23 @@ export const warehousesService = {
   },
 
   async createWarehouse(data: { name: string; location: string; capacity: number; manager: string }) {
-    try {
-      const warehouse = await prisma.warehouse.create({
-        data: {
-          name: data.name,
-          location: data.location ?? '',
-          capacity: new Decimal(data.capacity ?? 1000),
-          manager: data.manager ?? '',
-        },
-      });
-      return {
-        id: warehouse.id,
-        name: warehouse.name,
-        location: warehouse.location,
-        capacity: toNumber(warehouse.capacity),
-        manager: warehouse.manager,
-        deletedAt: warehouse.deletedAt?.getTime() ?? null,
-        deleteReason: warehouse.deleteReason,
-      };
-    } catch (err: any) {
-      if (err?.code === 'P2002') {
-        throw new AppError(409, 'اسم المستودع موجود مسبقاً');
-      }
-      throw err;
-    }
+    const warehouse = await prisma.warehouse.create({
+      data: {
+        name: data.name,
+        location: data.location ?? '',
+        capacity: new Decimal(data.capacity ?? 1000),
+        manager: data.manager ?? '',
+      },
+    });
+    return {
+      id: warehouse.id,
+      name: warehouse.name,
+      location: warehouse.location,
+      capacity: toNumber(warehouse.capacity),
+      manager: warehouse.manager,
+      deletedAt: warehouse.deletedAt?.getTime() ?? null,
+      deleteReason: warehouse.deleteReason,
+    };
   },
 
   async updateWarehouse(id: number, data: { name?: string; location?: string; capacity?: number; manager?: string }) {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Search, Plus, UserCircle, MapPin, Coins, ChevronLeft, ChevronRight, ClipboardList, Eye } from 'lucide-react';
-import { Customer, SalesOrder } from '../../db/db';
+import { Search, Plus, UserCircle, MapPin, Coins, ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react';
+import { Customer, SalesOrder } from '../../types';
 import { cn, formatDate } from '../../lib/utils';
 
 interface RepCustomersProps {
@@ -80,13 +80,6 @@ export const RepCustomersView = ({ customers, mySales, onAddCustomer, onCollecti
                         <MapPin className="w-3 h-3 text-red-500" />
                       </a>
                     )}
-                    <button 
-                      onClick={() => { window.location.hash = `#/customer/${customer.id}`; }}
-                      className="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-colors shrink-0"
-                      title="عرض التفاصيل"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
                   </div>
                   <button 
                     onClick={() => onCollection(customer)}

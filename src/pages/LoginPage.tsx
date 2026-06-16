@@ -58,9 +58,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         body: JSON.stringify({ username: cleanUsername, password }),
       });
 
-      console.log('[LOGINPAGE] Before setTokens', { at: result.accessToken?.slice(0, 20) + '...', rt: result.refreshToken?.slice(0, 20) + '...' });
       setTokens(result.accessToken, result.refreshToken);
-      console.log('[LOGINPAGE] After setTokens, localStorage has access_token:', !!localStorage.getItem('wms_access_token'), 'refresh_token:', !!localStorage.getItem('wms_refresh_token'));
 
       const userAccount: UserAccount = {
         id: result.user.id,

@@ -31,7 +31,7 @@ import {
 import { cn, formatCurrency, formatDate } from '../lib/utils';
 import { Tabs, WorkspaceLayout } from '../components/design-system';
 
-// ��� Types �����������������������������������������������
+// ─── Types ───────────────────────────────────────────────
 type MetricType = 'sales' | 'gross_profit' | 'net_profit' | 'inventory' | 'expenses' | 'customers' | 'delivered_orders' | 'top_selling' | 'tax' | null;
 
 interface KPICardData {
@@ -49,12 +49,12 @@ interface StatRow { id: number | string; [key: string]: unknown; raw_search?: st
 
 interface ModalContent { title: string; subtitle: string; headers: string[]; rows: StatRow[]; }
 
-// ��� Color palette ���������������������������������������
-
+// ─── Color palette ───────────────────────────────────────
+const CHART_COLORS = ['#0A0A0B', '#2563EB', '#F59E0B', '#EF4444', '#10B981', '#8B5CF6', '#EC4899', '#14B8A6'];
 const GRADIENT_CHART = { offset: '0%', color: '#0A0A0B', opacity: 0.2 };
 const GRADIENT_CHART_END = { offset: '100%', color: '#0A0A0B', opacity: 0.02 };
 
-// ��� Error Boundary ��������������������������������������
+// ─── Error Boundary ──────────────────────────────────────
 class ReportErrorBoundary extends React.Component<{ children: React.ReactNode; fallback?: React.ReactNode }, { hasError: boolean; error: Error | null }> {
   constructor(props: { children: React.ReactNode; fallback?: React.ReactNode }) {
     super(props);
@@ -79,12 +79,12 @@ class ReportErrorBoundary extends React.Component<{ children: React.ReactNode; f
   }
 }
 
-// ��� Skeleton loader �������������������������������������
+// ─── Skeleton loader ─────────────────────────────────────
 function SkeletonBlock({ className }: { className?: string }) {
   return <div className={cn('skeleton-pulse', className)} />;
 }
 
-// ��� Animated counter ������������������������������������
+// ─── Animated counter ────────────────────────────────────
 function AnimatedValue({ value, prefix = '', suffix = '' }: { value: string; prefix?: string; suffix?: string }) {
   return (
     
@@ -99,7 +99,7 @@ function AnimatedValue({ value, prefix = '', suffix = '' }: { value: string; pre
   );
 }
 
-// ��� Premium KPI Card ������������������������������������
+// ─── Premium KPI Card ────────────────────────────────────
 function KPICard({
   stat, index, onClick,
 }: {
@@ -146,7 +146,7 @@ function KPICard({
   );
 }
 
-// ��� KPI Mini Sparkline ����������������������������������
+// ─── KPI Mini Sparkline ──────────────────────────────────
 function MiniSparkline({ data, color }: { data: { value: number }[]; color: string }) {
   if (!data.length) return null;
   const max = Math.max(...data.map(d => d.value), 1);
@@ -160,7 +160,7 @@ function MiniSparkline({ data, color }: { data: { value: number }[]; color: stri
   );
 }
 
-// ��� Custom Chart Tooltip ��������������������������������
+// ─── Custom Chart Tooltip ────────────────────────────────
 function ChartTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
@@ -180,7 +180,7 @@ function ChartTooltip({ active, payload, label }: any) {
   );
 }
 
-// ��� Custom Pie Tooltip ����������������������������������
+// ─── Custom Pie Tooltip ──────────────────────────────────
 function PieTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const d = payload[0];
@@ -196,91 +196,7 @@ function PieTooltip({ active, payload }: any) {
   );
 }
 
-// ��� Metric-specific overview helpers �������������������
-function metricSectionTitle(metric: MetricType): string {
-  const titles: Record<string, string> = {
-    sales: 'تحليل المبيعات (آخر 6 أشهر)', gross_profit: 'تحليل مجمل الربح (آخر 6 أشهر)',
-    net_profit: 'تحليل صافي الربح (آخر 6 أشهر)', tax: 'تحليل الضرائب (آخر 6 أشهر)',
-    inventory: 'تحليل المخزون (آخر 6 أشهر)', expenses: 'تحليل المصروفات (آخر 6 أشهر)',
-    customers: 'تحليل العملاء (آخر 6 أشهر)', delivered_orders: 'تحليل الفواتير المسلمة (آخر 6 أشهر)',
-  };
-  return titles[metric ?? ''] || 'تحليل الأداء (آخر 6 أشهر)';
-}
-function metricPieTitle(metric: MetricType): string {
-  const titles: Record<string, string> = {
-    sales: 'توزيع المبيعات', gross_profit: 'توزيع الإيرادات',
-    net_profit: 'توزيع الإيرادات', tax: 'توزيع الضرائب',
-    inventory: 'توزيع المخزون', expenses: 'توزيع المصروفات',
-    customers: 'توزيع العملاء', delivered_orders: 'توزيع التوصيلات',
-  };
-  return titles[metric ?? ''] || 'توزيع المخزون';
-}
-function metricPieData(metric: MetricType, distributionData: { name: string; value: number }[], monthlyData: any[]): { name: string; value: number }[] {
-  if (metric === 'expenses' && monthlyData.length > 0) {
-    return monthlyData.map(d => ({ name: d.month, value: d.مصاريف || 0 }));
-  }
-  if (metric === 'sales' && monthlyData.length > 0) {
-    return monthlyData.map(d => ({ name: d.month, value: d.مبيعات || 0 }));
-  }
-  return distributionData;
-}
-
-interface OverviewCard { label: string; value: string; icon: React.ComponentType<{ className?: string }>; gradient: string; }
-
-const metricOverviewCards: Record<string, (ctx: any) => OverviewCard[]> = {
-  sales: (ctx) => [
-    { label: 'إجمالي الإيرادات', value: formatCurrency(ctx.totalRevenue), icon: DollarSign, gradient: 'from-black/5 to-transparent' },
-    { label: 'عدد الفواتير', value: String(ctx.deliveredOrdersCount), icon: FileText, gradient: 'from-blue-500/10 to-transparent' },
-    { label: 'صافي الربح', value: formatCurrency(ctx.netProfit), icon: CheckCircle2, gradient: 'from-green-500/10 to-transparent' },
-    { label: 'المصاريف', value: formatCurrency(ctx.totalExpenses), icon: Wallet, gradient: 'from-red-500/10 to-transparent' },
-  ],
-  gross_profit: (ctx) => [
-    { label: 'الإيرادات', value: formatCurrency(ctx.totalRevenue), icon: DollarSign, gradient: 'from-black/5 to-transparent' },
-    { label: 'COGS', value: formatCurrency(ctx.totalCostOfGoodsSold), icon: TrendingDown, gradient: 'from-orange-500/10 to-transparent' },
-    { label: 'مجمل الربح', value: formatCurrency(ctx.grossProfit), icon: TrendingUp, gradient: 'from-blue-500/10 to-transparent' },
-    { label: 'الهامش', value: ctx.totalRevenue ? ((ctx.grossProfit / ctx.totalRevenue) * 100).toFixed(1) + '%' : '0%', icon: Percent, gradient: 'from-green-500/10 to-transparent' },
-  ],
-  net_profit: (ctx) => [
-    { label: 'الإيرادات', value: formatCurrency(ctx.totalRevenue), icon: DollarSign, gradient: 'from-black/5 to-transparent' },
-    { label: 'مجمل الربح', value: formatCurrency(ctx.grossProfit), icon: TrendingUp, gradient: 'from-blue-500/10 to-transparent' },
-    { label: 'المصاريف', value: formatCurrency(ctx.totalExpenses), icon: Wallet, gradient: 'from-red-500/10 to-transparent' },
-    { label: 'صافي الربح', value: formatCurrency(ctx.netProfit), icon: CheckCircle2, gradient: ctx.netProfit >= 0 ? 'from-green-500/10 to-transparent' : 'from-red-500/10 to-transparent' },
-  ],
-  tax: (ctx) => [
-    { label: 'الضريبة المحصلة', value: formatCurrency(ctx.totalTaxCollected), icon: Percent, gradient: 'from-purple-500/10 to-transparent' },
-    { label: 'عدد الفواتير', value: String(ctx.deliveredOrdersCount), icon: FileText, gradient: 'from-blue-500/10 to-transparent' },
-    { label: 'الإيرادات', value: formatCurrency(ctx.totalRevenue), icon: DollarSign, gradient: 'from-black/5 to-transparent' },
-    { label: 'نسبة الضريبة', value: '14%', icon: BadgePercent, gradient: 'from-indigo-500/10 to-transparent' },
-  ],
-  inventory: (ctx) => [
-    { label: 'قيمة المخزون', value: formatCurrency(ctx.inventoryTotalValue), icon: Package, gradient: 'from-orange-500/10 to-transparent' },
-    { label: 'إجمالي الأصناف', value: String(ctx.totalItemsCount), icon: Layers, gradient: 'from-blue-500/10 to-transparent' },
-    { label: 'العملاء', value: String(ctx.totalCustomersCount), icon: Users, gradient: 'from-purple-500/10 to-transparent' },
-    { label: 'فواتير مسلمة', value: String(ctx.deliveredOrdersCount), icon: Receipt, gradient: 'from-emerald-500/10 to-transparent' },
-  ],
-  expenses: (ctx) => [
-    { label: 'إجمالي المصروفات', value: formatCurrency(ctx.totalExpenses), icon: Wallet, gradient: 'from-red-500/10 to-transparent' },
-    { label: 'عدد المعاملات', value: String(ctx.expensesQuery?.data?.summary?.totalTransactions ?? 0), icon: FileText, gradient: 'from-orange-500/10 to-transparent' },
-    { label: 'الإيرادات', value: formatCurrency(ctx.totalRevenue), icon: DollarSign, gradient: 'from-black/5 to-transparent' },
-    { label: 'نسبة المصروفات', value: ctx.totalRevenue ? ((ctx.totalExpenses / ctx.totalRevenue) * 100).toFixed(1) + '%' : '0%', icon: Percent, gradient: 'from-amber-500/10 to-transparent' },
-  ],
-  customers: (ctx) => [
-    { label: 'إجمالي العملاء', value: String(ctx.totalCustomersCount), icon: Users, gradient: 'from-purple-500/10 to-transparent' },
-    { label: 'الإيرادات', value: formatCurrency(ctx.totalRevenue), icon: DollarSign, gradient: 'from-black/5 to-transparent' },
-    { label: 'فواتير مسلمة', value: String(ctx.deliveredOrdersCount), icon: Receipt, gradient: 'from-emerald-500/10 to-transparent' },
-    { label: 'متوسط لكل عميل', value: ctx.totalCustomersCount ? formatCurrency(ctx.totalRevenue / ctx.totalCustomersCount) : '0', icon: Target, gradient: 'from-blue-500/10 to-transparent' },
-  ],
-  delivered_orders: (ctx) => [
-    { label: 'فواتير مسلمة', value: String(ctx.deliveredOrdersCount), icon: Receipt, gradient: 'from-emerald-500/10 to-transparent' },
-    { label: 'الإيرادات', value: formatCurrency(ctx.totalRevenue), icon: DollarSign, gradient: 'from-black/5 to-transparent' },
-    { label: 'صافي الربح', value: formatCurrency(ctx.netProfit), icon: CheckCircle2, gradient: 'from-green-500/10 to-transparent' },
-    { label: 'المصاريف', value: formatCurrency(ctx.totalExpenses), icon: Wallet, gradient: 'from-red-500/10 to-transparent' },
-  ],
-};
-
-const CHART_COLORS = ['#0A0A0B', '#2563EB', '#EF4444', '#F59E0B', '#22C55E', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#6366F1'];
-
-// ��� Modal Section Wrapper �������������������������������
+// ─── Modal Section Wrapper ───────────────────────────────
 function ModalSection({ title, icon: Icon, children, className }: {
   title: string; icon?: React.ComponentType<{ className?: string }>; children: React.ReactNode; className?: string;
 }) {
@@ -298,12 +214,12 @@ function ModalSection({ title, icon: Icon, children, className }: {
   );
 }
 
-// ��� Premium Analytics Modal �����������������������������
+// ─── Premium Analytics Modal ─────────────────────────────
 function AnalyticsModal({
   metric, content, onClose, searchTerm, onSearchChange, monthlyData, distributionData,
   topSellingProducts, validSales, items, totalRevenue, grossProfit, netProfit, totalExpenses,
   totalCostOfGoodsSold, totalTaxCollected, inventoryTotalValue, totalCustomersCount,
-  deliveredOrdersCount, totalItemsCount, customers, warehouses,   expensesQuery, salesQuery,
+  deliveredOrdersCount, customers, warehouses,
 }: {
   metric: MetricType; content: ModalContent; onClose: () => void;
   searchTerm: string; onSearchChange: (v: string) => void;
@@ -313,39 +229,18 @@ function AnalyticsModal({
   totalRevenue: number; grossProfit: number; netProfit: number; totalExpenses: number;
   totalCostOfGoodsSold: number; totalTaxCollected: number; inventoryTotalValue: number;
   totalCustomersCount: number; deliveredOrdersCount: number;
-  totalItemsCount: number;
   customers: any[] | undefined; warehouses: any[] | undefined;
-  expensesQuery: any;
+  expenseTransactions?: any[];
+  expenseCategoryBreakdown?: { category: string; totalAmount: number; count: number; percentage: number }[];
 }) {
-  // ── Computed analytics values ──
-  const prevMonth = monthlyData.length >= 2 ? monthlyData[monthlyData.length - 2] : null;
-  const currMonth = monthlyData.length >= 1 ? monthlyData[monthlyData.length - 1] : null;
-  const prevSales = prevMonth?.مبيعات ?? 0;
-  const currSales = currMonth?.مبيعات ?? 0;
-  const prevProfit = prevMonth?.صافي_الربح ?? 0;
-  const currProfit = currMonth?.صافي_الربح ?? 0;
-  const prevExpenses = prevMonth?.مصاريف ?? 0;
-  const currExpenses = currMonth?.مصاريف ?? 0;
+  const [modalTab, setModalTab] = useState<'overview' | 'chart' | 'table' | 'insights'>('overview');
 
-  const avgOrderValue = deliveredOrdersCount > 0 ? totalRevenue / deliveredOrdersCount : 0;
-  const grossMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
-  const netMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
-  const expenseRatio = totalRevenue > 0 ? (totalExpenses / totalRevenue) * 100 : 0;
-
-  const orders = salesQuery?.data?.tables?.orders ?? [];
-  const sortedOrders = [...orders].sort((a, b) => (b.totalAmount || 0) - (a.totalAmount || 0));
-  const largestInvoices = sortedOrders.slice(0, 5);
-
-  const customerSalesMap: Record<string, number> = {};
-  orders.forEach(o => { customerSalesMap[o.customer] = (customerSalesMap[o.customer] || 0) + (o.totalAmount || 0); });
-  const topCustomersBySales = Object.entries(customerSalesMap)
-    .sort(([, a], [, b]) => b - a).slice(0, 5)
-    .map(([name, amount]) => ({ name, amount }));
-
-  const customersWithBalance = (customers || []).filter(c => (c.balance || 0) > 0).sort((a, b) => b.balance - a.balance);
-  const lowStockItems = (items || []).filter((i: any) => (i.quantity || 0) <= (i.minQuantity || 0));
-  const expenseTransactions = expensesQuery?.data?.tables?.transactions ?? [];
-  const expenseCategoryBreakdown = expensesQuery?.data?.charts?.categoryBreakdown ?? [];
+  const tabs = [
+    { id: 'overview' as const, label: 'نظرة عامة', icon: Activity },
+    { id: 'chart' as const, label: 'تحليل بياني', icon: BarChart3 },
+    { id: 'table' as const, label: 'جدول تفصيلي', icon: FileText },
+    { id: 'insights' as const, label: 'رؤى ذكية', icon: Zap },
+  ];
 
   const handleExport = useCallback((type: 'pdf' | 'excel') => {
     const txt = `${content.title}\nالتاريخ: ${new Date().toLocaleString('ar-EG')}\n` +
@@ -357,164 +252,75 @@ function AnalyticsModal({
     a.click(); URL.revokeObjectURL(url);
   }, [content.title, totalRevenue, inventoryTotalValue]);
 
-  function pct(curr: number, prev: number): string {
-    if (prev === 0) return '—';
-    return `${((curr - prev) / prev * 100).toFixed(1)}%`;
-  }
+  // ── Metric-specific Overview Renderer ──
+  function renderMetricOverview() {
+    const grossMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+    const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+    const expenseRate = totalRevenue > 0 ? (totalExpenses / totalRevenue) * 100 : 0;
+    const avgPerCustomer = totalCustomersCount > 0 ? totalRevenue / totalCustomersCount : 0;
+    const avgOrderValue = deliveredOrdersCount > 0 ? totalRevenue / deliveredOrdersCount : 0;
 
-  function StatCard({ label, value, change, icon: Icon, trend }: {
-    label: string; value: string; change?: string; icon: React.ComponentType<any>; trend?: 'up' | 'down' | 'neutral';
-  }) {
-    return (
+    const KpiCard = ({ label, value, icon: Icon, gradient }: { label: string; value: string; icon: any; gradient: string }) => (
       <div className="relative rounded-xl border border-[var(--border-light)] bg-gradient-to-br from-white to-gray-50/50 p-4 overflow-hidden">
+        <div className={cn('absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r', gradient)} />
         <div className="flex items-center gap-2 mb-2">
           <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center">
             <Icon className="w-3.5 h-3.5 text-gray-600" />
           </div>
           <p className="text-[10px] font-bold text-[var(--text-tertiary)]">{label}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <p className="text-lg font-black">{value}</p>
-          {change && (
-            <span className={cn('text-[10px] font-bold', trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-500' : 'text-gray-400')}>
-              {change}
-            </span>
-          )}
-        </div>
+        <p className="text-lg font-black">{value}</p>
       </div>
     );
-  }
 
-  function Section({ title, icon: Icon, children }: { title: string; icon?: React.ComponentType<any>; children: React.ReactNode }) {
-    return (
-      <div className="bg-white rounded-xl border border-[var(--border-light)] p-5">
-        {title && (
-          <div className="flex items-center gap-2 mb-4">
-            {Icon && <Icon className="w-4 h-4 text-[var(--text-tertiary)]" />}
-            <h4 className="text-sm font-bold text-[var(--text-primary)]">{title}</h4>
-          </div>
-        )}
-        {children}
+    const cardGrid = (cards: { label: string; value: string; icon: any; gradient: string }[]) => (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {cards.map((kpi, i) => <KpiCard key={i} {...kpi} />)}
       </div>
     );
-  }
 
-  function InsightCard({ icon: Icon, label, value, note, color, bg }: {
-    icon: React.ComponentType<any>; label: string; value: string; note: string; color: string; bg: string;
-  }) {
-    return (
-      <div className="flex items-center gap-4 p-4 rounded-xl border border-[var(--border-light)] bg-white">
-        <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', bg)}>
-          <Icon className={cn('w-5 h-5', color)} />
-        </div>
-        <div className="flex-1">
-          <p className="text-[11px] font-bold text-[var(--text-tertiary)]">{label}</p>
-          <p className="text-base font-black text-[var(--text-primary)]">{value}</p>
-        </div>
-        <span className="text-[10px] font-bold text-[var(--text-tertiary)]">{note}</span>
-      </div>
-    );
-  }
-
-  function ExportBar() {
-    return (
-      <div className="flex items-center gap-2">
-        <button onClick={() => handleExport('pdf')} className="btn-premium px-3 py-2 text-[11px] bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg flex items-center gap-1.5">
-          <FileText className="w-3.5 h-3.5" /> PDF
-        </button>
-        <button onClick={() => handleExport('excel')} className="btn-premium px-3 py-2 text-[11px] bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg flex items-center gap-1.5">
-          <FileSpreadsheet className="w-3.5 h-3.5" /> Excel
-        </button>
-        <button onClick={() => window.print()} className="btn-premium px-3 py-2 text-[11px] bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg flex items-center gap-1.5">
-          <Printer className="w-3.5 h-3.5" /> طباعة
-        </button>
-      </div>
-    );
-  }
-
-  function renderPanel() {
     switch (metric) {
       case 'sales':
         return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatCard label="إجمالي المبيعات" value={formatCurrency(totalRevenue)} change={pct(currSales, prevSales)} icon={DollarSign} trend={currSales >= prevSales ? 'up' : 'down'} />
-              <StatCard label="عدد الفواتير" value={deliveredOrdersCount.toLocaleString()} icon={FileText} />
-              <StatCard label="متوسط الفاتورة" value={formatCurrency(avgOrderValue)} icon={BarChart3} />
-              <StatCard label="الضرائب المحصلة" value={formatCurrency(totalTaxCollected)} icon={Percent} />
-            </div>
-            <Section title="اتجاه المبيعات الشهري" icon={ChartLine}>
+            {cardGrid([
+              { label: 'إجمالي الإيرادات', value: formatCurrency(totalRevenue), icon: DollarSign, gradient: 'from-black/5 to-transparent' },
+              { label: 'الفواتير المسلمة', value: deliveredOrdersCount.toLocaleString(), icon: Receipt, gradient: 'from-emerald-500/10 to-transparent' },
+              { label: 'مجمل الربح', value: formatCurrency(grossProfit), icon: TrendingUp, gradient: 'from-blue-500/10 to-transparent' },
+              { label: 'الضرائب المحصلة', value: formatCurrency(totalTaxCollected), icon: Percent, gradient: 'from-purple-500/10 to-transparent' },
+            ])}
+            <ModalSection title="اتجاه المبيعات الشهري" icon={ChartLine}>
               <div className="min-h-[256px] h-64" style={{ position: 'relative' }}>
                 <ResponsiveContainer width="100%" height="100%" debounce={100}>
                   <AreaChart data={monthlyData}>
-                    <defs><linearGradient id="saleGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#0A0A0B" stopOpacity={0.15} /><stop offset="95%" stopColor="#0A0A0B" stopOpacity={0.01} /></linearGradient></defs>
+                    <defs>
+                      <linearGradient id="gSalesOv" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0A0A0B" stopOpacity={0.15} />
+                        <stop offset="95%" stopColor="#0A0A0B" stopOpacity={0.01} />
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F1F3" />
                     <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8A8D94' }} />
                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8A8D94' }} />
                     <Tooltip content={<ChartTooltip />} />
-                    <Area type="monotone" dataKey="مبيعات" stroke="#0A0A0B" strokeWidth={2} fill="url(#saleGrad)" />
+                    <Area type="monotone" dataKey="مبيعات" stroke="#0A0A0B" strokeWidth={2} fill="url(#gSalesOv)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
-            </Section>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Section title="أكبر الفواتير" icon={Receipt}>
-                <div className="space-y-2">
-                  {largestInvoices.length > 0 ? largestInvoices.map((o, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                      <div><p className="text-xs font-bold">{o.orderNumber || `#${o.id}`}</p><p className="text-[10px] text-gray-400">{o.customer}</p></div>
-                      <span className="text-xs font-black">{formatCurrency(o.totalAmount)}</span>
-                    </div>
-                  )) : <p className="text-xs text-gray-400 text-center py-4">لا توجد فواتير</p>}
-                </div>
-              </Section>
-              {topCustomersBySales.length > 0 && (
-                <Section title="أفضل العملاء" icon={Users}>
-                  <div className="space-y-2">
-                    {topCustomersBySales.map((c, i) => (
-                      <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                        <div className="flex items-center gap-2"><span className="w-5 h-5 bg-black text-white rounded-md flex items-center justify-center text-[10px] font-bold">{i + 1}</span><span className="text-xs font-bold">{c.name}</span></div>
-                        <span className="text-xs font-black">{formatCurrency(c.amount)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </Section>
-              )}
-            </div>
-            {topSellingProducts && topSellingProducts.length > 0 && (
-              <Section title="المنتجات الأكثر مبيعاً" icon={ShoppingCart}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {topSellingProducts.map((p, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                      <div className="flex items-center gap-2"><span className="w-5 h-5 bg-black text-white rounded-md flex items-center justify-center text-[10px] font-bold">{i + 1}</span><div><p className="text-xs font-bold">{p.name}</p><p className="text-[10px] text-gray-400">{p.quantity} وحدة</p></div></div>
-                      <span className="text-xs font-black">{formatCurrency(p.revenue)}</span>
-                    </div>
-                  ))}
-                </div>
-              </Section>
-            )}
-            <Section title="رؤى وتحليلات" icon={Zap}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <InsightCard icon={TrendingUp} label="نمو المبيعات" value={pct(currSales, prevSales)} note={currSales >= prevSales ? 'إيجابي' : 'سلبي'} color={currSales >= prevSales ? 'text-green-600' : 'text-red-500'} bg={currSales >= prevSales ? 'bg-green-50' : 'bg-red-50'} />
-                <InsightCard icon={BarChart3} label="متوسط الفاتورة" value={formatCurrency(avgOrderValue)} note={`${deliveredOrdersCount} فاتورة`} color="text-blue-600" bg="bg-blue-50" />
-                <InsightCard icon={Percent} label="نسبة الضريبة" value={totalRevenue > 0 ? `${((totalTaxCollected / totalRevenue) * 100).toFixed(1)}%` : '0%'} note="من المبيعات" color="text-purple-600" bg="bg-purple-50" />
-                <InsightCard icon={Receipt} label="أكبر فاتورة" value={largestInvoices[0] ? formatCurrency(largestInvoices[0].totalAmount) : '—'} note={largestInvoices[0]?.customer || ''} color="text-emerald-600" bg="bg-emerald-50" />
-              </div>
-            </Section>
-            <Section title="تصدير التقرير"><ExportBar /></Section>
+            </ModalSection>
           </motion.div>
         );
 
       case 'gross_profit':
         return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatCard label="الإيرادات" value={formatCurrency(totalRevenue)} change={pct(currSales, prevSales)} icon={DollarSign} trend={currSales >= prevSales ? 'up' : 'down'} />
-              <StatCard label="تكلفة البضاعة (COGS)" value={formatCurrency(totalCostOfGoodsSold || 0)} icon={Wallet} />
-              <StatCard label="مجمل الربح" value={formatCurrency(grossProfit)} change={pct(currProfit, prevProfit)} icon={TrendingUp} trend={currProfit >= prevProfit ? 'up' : 'down'} />
-              <StatCard label="هامش الربح" value={`${grossMargin.toFixed(1)}%`} icon={Percent} />
-            </div>
-            <Section title="مقارنة الإيرادات والتكلفة" icon={BarChart3}>
+            {cardGrid([
+              { label: 'إجمالي الإيرادات', value: formatCurrency(totalRevenue), icon: DollarSign, gradient: 'from-black/5 to-transparent' },
+              { label: 'تكلفة البضاعة المباعة', value: formatCurrency(totalCostOfGoodsSold || 0), icon: Wallet, gradient: 'from-red-500/10 to-transparent' },
+              { label: 'مجمل الربح', value: formatCurrency(grossProfit), icon: TrendingUp, gradient: 'from-blue-500/10 to-transparent' },
+              { label: 'هامش الربح الإجمالي', value: `${grossMargin.toFixed(1)}%`, icon: Percent, gradient: 'from-green-500/10 to-transparent' },
+            ])}
+            <ModalSection title="مقارنة الإيرادات والتكلفة" icon={BarChart3}>
               <div className="min-h-[256px] h-64" style={{ position: 'relative' }}>
                 <ResponsiveContainer width="100%" height="100%" debounce={100}>
                   <BarChart data={monthlyData}>
@@ -527,314 +333,174 @@ function AnalyticsModal({
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-            </Section>
-            <Section title="تحليل مجمل الربح" icon={FileText}>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"><span className="text-xs font-bold">الإيرادات</span><span className="text-xs font-black">{formatCurrency(totalRevenue)}</span></div>
-                <div className="flex items-center justify-between p-3 bg-red-50 rounded-xl"><span className="text-xs font-bold">تكلفة البضاعة المباعة</span><span className="text-xs font-black">{formatCurrency(totalCostOfGoodsSold || 0)}</span></div>
-                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-xl"><span className="text-xs font-bold">مجمل الربح</span><span className="text-xs font-black">{formatCurrency(grossProfit)}</span></div>
-                <div className="flex items-center justify-between p-3 bg-green-50 rounded-xl"><span className="text-xs font-bold">هامش الربح الإجمالي</span><span className="text-xs font-black">{grossMargin.toFixed(1)}%</span></div>
-              </div>
-            </Section>
-            <Section title="رؤى وتحليلات" icon={Zap}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <InsightCard icon={TrendingUp} label="نمو الإيرادات" value={pct(currSales, prevSales)} note={currSales >= prevSales ? 'تصاعدي' : 'تنازلي'} color={currSales >= prevSales ? 'text-green-600' : 'text-red-500'} bg={currSales >= prevSales ? 'bg-green-50' : 'bg-red-50'} />
-                <InsightCard icon={Percent} label="نسبة COGS" value={totalRevenue > 0 ? `${((totalCostOfGoodsSold / totalRevenue) * 100).toFixed(1)}%` : '0%'} note="من الإيرادات" color="text-orange-600" bg="bg-orange-50" />
-              </div>
-            </Section>
-            <Section title="تصدير التقرير"><ExportBar /></Section>
+            </ModalSection>
           </motion.div>
         );
 
       case 'net_profit':
         return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatCard label="الإيرادات" value={formatCurrency(totalRevenue)} change={pct(currSales, prevSales)} icon={DollarSign} trend={currSales >= prevSales ? 'up' : 'down'} />
-              <StatCard label="مجمل الربح" value={formatCurrency(grossProfit)} icon={TrendingUp} />
-              <StatCard label="المصاريف" value={formatCurrency(totalExpenses)} change={pct(currExpenses, prevExpenses)} icon={Wallet} trend={currExpenses <= prevExpenses ? 'up' : 'down'} />
-              <StatCard label="صافي الربح" value={formatCurrency(netProfit)} change={pct(currProfit, prevProfit)} icon={CheckCircle2} trend={currProfit >= prevProfit ? 'up' : 'down'} />
-            </div>
-            <Section title="اتجاه الربحية الشهري" icon={ChartLine}>
+            {cardGrid([
+              { label: 'إجمالي الإيرادات', value: formatCurrency(totalRevenue), icon: DollarSign, gradient: 'from-black/5 to-transparent' },
+              { label: 'مجمل الربح', value: formatCurrency(grossProfit), icon: TrendingUp, gradient: 'from-blue-500/10 to-transparent' },
+              { label: 'إجمالي المصاريف', value: formatCurrency(totalExpenses), icon: Wallet, gradient: 'from-red-500/10 to-transparent' },
+              { label: 'صافي الربح', value: formatCurrency(netProfit), icon: CheckCircle2, gradient: 'from-green-500/10 to-transparent' },
+            ])}
+            <ModalSection title="تحليل الربحية الشهري" icon={TrendingUp}>
               <div className="min-h-[256px] h-64" style={{ position: 'relative' }}>
                 <ResponsiveContainer width="100%" height="100%" debounce={100}>
                   <AreaChart data={monthlyData}>
-                    <defs><linearGradient id="netGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#0A0A0B" stopOpacity={0.15} /><stop offset="95%" stopColor="#0A0A0B" stopOpacity={0.01} /></linearGradient></defs>
+                    <defs>
+                      <linearGradient id="gNetProfit" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0A0A0B" stopOpacity={0.15} />
+                        <stop offset="95%" stopColor="#0A0A0B" stopOpacity={0.01} />
+                      </linearGradient>
+                      <linearGradient id="gNetProfitSales" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#2563EB" stopOpacity={0.15} />
+                        <stop offset="95%" stopColor="#2563EB" stopOpacity={0.01} />
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F1F3" />
                     <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8A8D94' }} />
                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8A8D94' }} />
                     <Tooltip content={<ChartTooltip />} />
-                    <Area type="monotone" dataKey="صافي_الربح" stroke="#0A0A0B" strokeWidth={2} fill="url(#netGrad)" />
+                    <Area type="monotone" dataKey="صافي_الربح" stroke="#0A0A0B" strokeWidth={2} fill="url(#gNetProfit)" />
+                    <Area type="monotone" dataKey="مبيعات" stroke="#2563EB" strokeWidth={2} fill="url(#gNetProfitSales)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
-            </Section>
-            <Section title="قائمة الدخل" icon={FileText}>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"><span className="text-xs font-bold">الإيرادات</span><span className="text-xs font-black">{formatCurrency(totalRevenue)}</span></div>
-                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-xl"><span className="text-xs font-bold">مجمل الربح</span><span className="text-xs font-black">{formatCurrency(grossProfit)}</span></div>
-                <div className="flex items-center justify-between p-3 bg-red-50 rounded-xl"><span className="text-xs font-bold">إجمالي المصاريف</span><span className="text-xs font-black">({formatCurrency(totalExpenses)})</span></div>
-                <div className="border-t border-gray-200 pt-2 flex items-center justify-between p-3 bg-green-50 rounded-xl"><span className="text-xs font-bold">صافي الربح</span><span className="text-xs font-black">{formatCurrency(netProfit)}</span></div>
-              </div>
-            </Section>
-            <Section title="تحليل المصاريف" icon={Wallet}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="p-4 bg-gray-50 rounded-xl"><p className="text-[10px] font-bold text-gray-500">نسبة المصاريف</p><p className="text-lg font-black">{expenseRatio.toFixed(1)}%</p></div>
-                <div className="p-4 bg-gray-50 rounded-xl"><p className="text-[10px] font-bold text-gray-500">هامش الربح الصافي</p><p className="text-lg font-black">{netMargin.toFixed(1)}%</p></div>
-              </div>
-            </Section>
-            <Section title="رؤى وتحليلات" icon={Zap}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <InsightCard icon={TrendingUp} label="نمو الأرباح" value={pct(currProfit, prevProfit)} note={currProfit >= prevProfit ? 'إيجابي' : 'سلبي'} color={currProfit >= prevProfit ? 'text-green-600' : 'text-red-500'} bg={currProfit >= prevProfit ? 'bg-green-50' : 'bg-red-50'} />
-                <InsightCard icon={Percent} label="نسبة المصاريف" value={`${expenseRatio.toFixed(1)}%`} note={`${totalExpenses > 0 ? 'مقابل كل 1 ج.م إيرادات' : ''}`} color="text-red-500" bg="bg-red-50" />
-              </div>
-            </Section>
-            <Section title="تصدير التقرير"><ExportBar /></Section>
+            </ModalSection>
           </motion.div>
         );
 
       case 'tax':
-        const avgTaxPerInvoice = deliveredOrdersCount > 0 ? totalTaxCollected / deliveredOrdersCount : 0;
         return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatCard label="الضرائب المحصلة" value={formatCurrency(totalTaxCollected)} icon={Percent} />
-              <StatCard label="عدد الفواتير" value={deliveredOrdersCount.toLocaleString()} icon={Receipt} />
-              <StatCard label="متوسط الضريبة لكل فاتورة" value={formatCurrency(avgTaxPerInvoice)} icon={BarChart3} />
-              <StatCard label="نسبة الضريبة" value={totalRevenue > 0 ? `${((totalTaxCollected / totalRevenue) * 100).toFixed(2)}%` : '0%'} icon={BadgePercent} />
-            </div>
-            <Section title="تحصيل الضرائب الشهري" icon={ChartLine}>
-              <div className="min-h-[256px] h-64" style={{ position: 'relative' }}>
-                <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                  <AreaChart data={monthlyData.map(m => ({ ...m, ضريبة: (m.مبيعات || 0) * 0.14 }))}>
-                    <defs><linearGradient id="taxGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.15} /><stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.01} /></linearGradient></defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F1F3" />
-                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8A8D94' }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8A8D94' }} />
-                    <Tooltip content={<ChartTooltip />} />
-                    <Area type="monotone" dataKey="ضريبة" stroke="#8B5CF6" strokeWidth={2} fill="url(#taxGrad)" />
-                  </AreaChart>
-                </ResponsiveContainer>
+            {cardGrid([
+              { label: 'الضرائب المحصلة', value: formatCurrency(totalTaxCollected), icon: Percent, gradient: 'from-purple-500/10 to-transparent' },
+              { label: 'عدد الفواتير', value: deliveredOrdersCount.toLocaleString(), icon: Receipt, gradient: 'from-emerald-500/10 to-transparent' },
+              { label: 'إجمالي المبيعات', value: formatCurrency(totalRevenue), icon: DollarSign, gradient: 'from-black/5 to-transparent' },
+              { label: 'متوسط الضريبة لكل فاتورة', value: deliveredOrdersCount > 0 ? formatCurrency(totalTaxCollected / deliveredOrdersCount) : formatCurrency(0), icon: BarChart3, gradient: 'from-blue-500/10 to-transparent' },
+            ])}
+            <ModalSection title="ملخص تحصيل الضرائب" icon={Landmark}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 bg-gray-50 rounded-xl">
+                  <p className="text-[11px] font-bold text-gray-500 mb-1">إجمالي المبيعات الخاضعة للضريبة</p>
+                  <p className="text-xl font-black">{formatCurrency(totalRevenue)}</p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-xl">
+                  <p className="text-[11px] font-bold text-gray-500 mb-1">نسبة الضريبة</p>
+                  <p className="text-xl font-black">{totalRevenue > 0 ? `${((totalTaxCollected / totalRevenue) * 100).toFixed(2)}%` : '0%'}</p>
+                </div>
               </div>
-            </Section>
-            <Section title="ملخص الضرائب" icon={Landmark}>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 bg-gray-50 rounded-xl"><p className="text-[10px] font-bold text-gray-500">إجمالي المبيعات الخاضعة للضريبة</p><p className="text-lg font-black">{formatCurrency(totalRevenue)}</p></div>
-                <div className="p-4 bg-gray-50 rounded-xl"><p className="text-[10px] font-bold text-gray-500">متوسط الضريبة</p><p className="text-lg font-black">{formatCurrency(avgTaxPerInvoice)}</p></div>
-                <div className="p-4 bg-gray-50 rounded-xl"><p className="text-[10px] font-bold text-gray-500">عدد الفواتير</p><p className="text-lg font-black">{deliveredOrdersCount.toLocaleString()}</p></div>
-              </div>
-            </Section>
-            <Section title="تصدير التقرير"><ExportBar /></Section>
+            </ModalSection>
           </motion.div>
         );
 
       case 'inventory':
-        const uniqueCategories = new Set((items || []).map((i: any) => i.category || i.name).filter(Boolean)).size;
         return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatCard label="قيمة المخزون" value={formatCurrency(inventoryTotalValue)} icon={Package} />
-              <StatCard label="إجمالي الأصناف" value={String(items?.length || 0)} icon={Layers} />
-              <StatCard label="عدد الفئات" value={String(uniqueCategories)} icon={BarChart3} />
-              <StatCard label="منتجات منخفضة" value={String(lowStockItems.length)} icon={AlertTriangle} />
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Section title="توزيع المخزون حسب الفئة" icon={PieChart}>
-                <div className="min-h-[256px] h-64 flex items-center justify-center" style={{ position: 'relative' }}>
-                  <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                    <RePieChart>
-                      <RePie data={distributionData.length > 0 ? distributionData : [{ name: 'لا توجد بيانات', value: 1 }]} innerRadius={55} outerRadius={85} paddingAngle={4} dataKey="value">
-                        {distributionData.map((_e, i) => (<Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />))}
-                      </RePie>
-                      <Tooltip content={<PieTooltip />} />
-                    </RePieChart>
-                  </ResponsiveContainer>
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 flex-wrap justify-center">
-                    {distributionData.map((d, i) => (
-                      <div key={i} className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />{d.name}
-                      </div>
-                    ))}
-                  </div>
+            {cardGrid([
+              { label: 'قيمة المخزون', value: formatCurrency(inventoryTotalValue), icon: DollarSign, gradient: 'from-orange-500/10 to-transparent' },
+              { label: 'إجمالي الأصناف', value: String(items?.length || 0), icon: Package, gradient: 'from-blue-500/10 to-transparent' },
+              { label: 'إجمالي العملاء', value: totalCustomersCount.toLocaleString(), icon: Users, gradient: 'from-indigo-500/10 to-transparent' },
+              { label: 'الضرائب المحصلة', value: formatCurrency(totalTaxCollected), icon: Percent, gradient: 'from-purple-500/10 to-transparent' },
+            ])}
+            <ModalSection title="توزيع المخزون حسب الفئة" icon={PieChart}>
+              <div className="min-h-[256px] h-64 flex items-center justify-center" style={{ position: 'relative' }}>
+                <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                  <RePieChart>
+                    <RePie data={distributionData.length > 0 ? distributionData : [{ name: 'لا توجد بيانات', value: 1 }]}
+                      innerRadius={55} outerRadius={85} paddingAngle={4} dataKey="value">
+                      {distributionData.map((_e, i) => (
+                        <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                      ))}
+                    </RePie>
+                    <Tooltip content={<PieTooltip />} />
+                  </RePieChart>
+                </ResponsiveContainer>
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 flex-wrap justify-center">
+                  {distributionData.map((d, i) => (
+                    <div key={i} className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                      {d.name}
+                    </div>
+                  ))}
                 </div>
-              </Section>
-              {lowStockItems.length > 0 && (
-                <Section title="تنبيهات المخزون المنخفض" icon={AlertTriangle}>
-                  <div className="space-y-2">
-                    {lowStockItems.slice(0, 5).map((i: any, idx: number) => (
-                      <div key={idx} className="flex items-center justify-between p-3 bg-red-50 rounded-xl">
-                        <div><p className="text-xs font-bold">{i.name}</p><p className="text-[10px] text-gray-400">SKU: {i.sku || '—'}</p></div>
-                        <span className="text-xs font-black text-red-600">{i.quantity} / {i.minQuantity || 0}</span>
-                      </div>
-                    ))}
-                  </div>
-                </Section>
-              )}
-            </div>
-            <Section title="رؤى وتحليلات" icon={Zap}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <InsightCard icon={Package} label="إجمالي الأصناف" value={String(items?.length || 0)} note="صنف" color="text-blue-600" bg="bg-blue-50" />
-                <InsightCard icon={AlertTriangle} label="منتجات منخفضة" value={String(lowStockItems.length)} note={lowStockItems.length === 0 ? 'لا يوجد' : 'تحتاج إعادة طلب'} color={lowStockItems.length > 0 ? 'text-red-500' : 'text-green-600'} bg={lowStockItems.length > 0 ? 'bg-red-50' : 'bg-green-50'} />
               </div>
-            </Section>
-            <Section title="تصدير التقرير"><ExportBar /></Section>
+            </ModalSection>
           </motion.div>
         );
 
       case 'expenses':
-        const monthlyAvgExpense = monthlyData.length > 0 ? monthlyData.reduce((s: number, m: any) => s + (m.مصاريف || 0), 0) / monthlyData.length : 0;
-        const expenseCategories = expenseCategoryBreakdown || [];
-        const sortedExpenseTransactions = [...(expenseTransactions || [])].sort((a: any, b: any) => (b.amount || 0) - (a.amount || 0)).slice(0, 5);
+        const monthlyAvg = monthlyData.length > 0 ? monthlyData.reduce((s: number, m: any) => s + (m.مصاريف || 0), 0) / monthlyData.length : 0;
         return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatCard label="إجمالي المصاريف" value={formatCurrency(totalExpenses)} change={pct(currExpenses, prevExpenses)} icon={Wallet} trend={currExpenses <= prevExpenses ? 'up' : 'down'} />
-              <StatCard label="نسبة المصاريف" value={`${expenseRatio.toFixed(1)}%`} icon={Percent} />
-              <StatCard label="متوسط شهري" value={formatCurrency(monthlyAvgExpense)} icon={Calendar} />
-              <StatCard label="عدد المعاملات" value={String(expenseTransactions?.length || 0)} icon={FileText} />
-            </div>
-            <Section title="اتجاه المصاريف الشهري" icon={ChartLine}>
+            {cardGrid([
+              { label: 'إجمالي المصاريف', value: formatCurrency(totalExpenses), icon: Wallet, gradient: 'from-red-500/10 to-transparent' },
+              { label: 'نسبة المصاريف', value: `${expenseRate.toFixed(1)}%`, icon: Percent, gradient: 'from-orange-500/10 to-transparent' },
+              { label: 'متوسط شهري', value: formatCurrency(monthlyAvg), icon: Calendar, gradient: 'from-blue-500/10 to-transparent' },
+              { label: 'صافي الربح', value: formatCurrency(netProfit), icon: CheckCircle2, gradient: 'from-green-500/10 to-transparent' },
+            ])}
+            <ModalSection title="اتجاه المصاريف الشهري" icon={TrendingUp}>
               <div className="min-h-[256px] h-64" style={{ position: 'relative' }}>
                 <ResponsiveContainer width="100%" height="100%" debounce={100}>
                   <AreaChart data={monthlyData}>
-                    <defs><linearGradient id="expGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#EF4444" stopOpacity={0.15} /><stop offset="95%" stopColor="#EF4444" stopOpacity={0.01} /></linearGradient></defs>
+                    <defs>
+                      <linearGradient id="gExpensesOv" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#EF4444" stopOpacity={0.15} />
+                        <stop offset="95%" stopColor="#EF4444" stopOpacity={0.01} />
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F1F3" />
                     <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8A8D94' }} />
                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8A8D94' }} />
                     <Tooltip content={<ChartTooltip />} />
-                    <Area type="monotone" dataKey="مصاريف" stroke="#EF4444" strokeWidth={2} fill="url(#expGrad)" />
+                    <Area type="monotone" dataKey="مصاريف" stroke="#EF4444" strokeWidth={2} fill="url(#gExpensesOv)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
-            </Section>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {expenseCategories.length > 0 && (
-                <Section title="المصاريف حسب الفئة" icon={PieChart}>
-                  <div className="space-y-2">
-                    {expenseCategories.map((c: any, i: number) => (
-                      <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
-                          <span className="text-xs font-bold">{c.category}</span>
-                        </div>
-                        <span className="text-xs font-black">{formatCurrency(c.totalAmount)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </Section>
-              )}
-              {sortedExpenseTransactions.length > 0 && (
-                <Section title="أكبر معاملات المصاريف" icon={Wallet}>
-                  <div className="space-y-2">
-                    {sortedExpenseTransactions.map((t: any, i: number) => (
-                      <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                        <div><p className="text-xs font-bold">{t.category || t.description || '—'}</p><p className="text-[10px] text-gray-400">{t.description || ''}</p></div>
-                        <span className="text-xs font-black">{formatCurrency(t.amount)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </Section>
-              )}
-            </div>
-            <Section title="رؤى وتحليلات" icon={Zap}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <InsightCard icon={Wallet} label="نسبة المصاريف" value={`${expenseRatio.toFixed(1)}%`} note="من الإيرادات" color="text-red-500" bg="bg-red-50" />
-                <InsightCard icon={CheckCircle2} label="صافي الربح بعد المصاريف" value={formatCurrency(netProfit)} note={netProfit >= 0 ? 'إيجابي' : 'سلبي'} color={netProfit >= 0 ? 'text-green-600' : 'text-red-500'} bg={netProfit >= 0 ? 'bg-green-50' : 'bg-red-50'} />
-              </div>
-            </Section>
-            <Section title="تصدير التقرير"><ExportBar /></Section>
+            </ModalSection>
           </motion.div>
         );
 
       case 'customers':
         return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatCard label="إجمالي العملاء" value={totalCustomersCount.toLocaleString()} icon={Users} />
-              <StatCard label="إجمالي المبيعات" value={formatCurrency(totalRevenue)} icon={DollarSign} />
-              <StatCard label="متوسط الشراء" value={formatCurrency(avgOrderValue)} icon={BarChart3} />
-              <StatCard label="فواتير مسلمة" value={deliveredOrdersCount.toLocaleString()} icon={Receipt} />
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {topCustomersBySales.length > 0 && (
-                <Section title="أفضل العملاء حسب المبيعات" icon={Users}>
-                  <div className="space-y-2">
-                    {topCustomersBySales.map((c, i) => (
-                      <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                        <div className="flex items-center gap-2"><span className="w-5 h-5 bg-black text-white rounded-md flex items-center justify-center text-[10px] font-bold">{i + 1}</span><span className="text-xs font-bold">{c.name}</span></div>
-                        <span className="text-xs font-black">{formatCurrency(c.amount)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </Section>
-              )}
-              {customersWithBalance.length > 0 && (
-                <Section title="العملاء ذوو الأرصدة المستحقة" icon={DollarSign}>
-                  <div className="space-y-2">
-                    {customersWithBalance.slice(0, 5).map((c: any, i: number) => (
-                      <div key={i} className="flex items-center justify-between p-3 bg-amber-50 rounded-xl">
-                        <div><p className="text-xs font-bold">{c.name}</p><p className="text-[10px] text-gray-400">{c.phone || ''}</p></div>
-                        <span className="text-xs font-black text-amber-700">{formatCurrency(c.balance)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </Section>
-              )}
-            </div>
-            <Section title="قائمة العملاء" icon={FileText}>
+            {cardGrid([
+              { label: 'إجمالي العملاء', value: totalCustomersCount.toLocaleString(), icon: Users, gradient: 'from-indigo-500/10 to-transparent' },
+              { label: 'إجمالي المبيعات', value: formatCurrency(totalRevenue), icon: DollarSign, gradient: 'from-black/5 to-transparent' },
+              { label: 'متوسط الشراء لكل عميل', value: formatCurrency(avgPerCustomer), icon: BarChart3, gradient: 'from-blue-500/10 to-transparent' },
+              { label: 'الفواتير المسلمة', value: deliveredOrdersCount.toLocaleString(), icon: Receipt, gradient: 'from-emerald-500/10 to-transparent' },
+            ])}
+            <ModalSection title="قائمة العملاء" icon={Users}>
               <div className="space-y-2">
-                {(customers || []).slice(0, 8).map((c: any, i: number) => (
+                {(customers || []).slice(0, 5).map((c: any, i: number) => (
                   <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                    <div><p className="text-xs font-bold">{c.name}</p><p className="text-[10px] text-gray-400">{c.phone || '—'}</p></div>
+                    <div>
+                      <p className="text-xs font-bold">{c.name}</p>
+                      <p className="text-[10px] text-gray-400">{c.phone || '-'}</p>
+                    </div>
                     <span className="text-xs font-black">{formatCurrency(c.balance || 0)}</span>
                   </div>
                 ))}
-                {(!customers || customers.length === 0) && <p className="text-xs text-gray-400 text-center py-4">لا يوجد عملاء</p>}
+                {(!customers || customers.length === 0) && (
+                  <p className="text-center text-xs text-gray-400 py-4 font-bold">لا يوجد عملاء</p>
+                )}
               </div>
-            </Section>
-            <Section title="رؤى وتحليلات" icon={Zap}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <InsightCard icon={Users} label="إجمالي العملاء" value={totalCustomersCount.toLocaleString()} note="عميل مسجل" color="text-purple-600" bg="bg-purple-50" />
-                <InsightCard icon={DollarSign} label="متوسط المبيعات لكل عميل" value={totalCustomersCount > 0 ? formatCurrency(totalRevenue / totalCustomersCount) : '0'} note="للعميل" color="text-blue-600" bg="bg-blue-50" />
-              </div>
-            </Section>
-            <Section title="تصدير التقرير"><ExportBar /></Section>
+            </ModalSection>
           </motion.div>
         );
 
       case 'delivered_orders':
         return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatCard label="فواتير مسلمة" value={deliveredOrdersCount.toLocaleString()} icon={Receipt} />
-              <StatCard label="إجمالي الإيرادات" value={formatCurrency(totalRevenue)} icon={DollarSign} />
-              <StatCard label="متوسط الفاتورة" value={formatCurrency(avgOrderValue)} icon={BarChart3} />
-              <StatCard label="الضرائب المحصلة" value={formatCurrency(totalTaxCollected)} icon={Percent} />
-            </div>
-            <Section title="اتجاه التوصيل" icon={TrendingUp}>
-              <div className="min-h-[256px] h-64" style={{ position: 'relative' }}>
-                <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                  <BarChart data={monthlyData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F1F3" />
-                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8A8D94' }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8A8D94' }} />
-                    <Tooltip content={<ChartTooltip />} />
-                    <Bar dataKey="مبيعات" fill="#10B981" radius={[4, 4, 0, 0]} maxBarSize={32} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </Section>
-            <Section title="أفضل العملاء" icon={Users}>
-              <div className="space-y-2">
-                {topCustomersBySales.length > 0 ? topCustomersBySales.map((c, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                    <div className="flex items-center gap-2"><span className="w-5 h-5 bg-black text-white rounded-md flex items-center justify-center text-[10px] font-bold">{i + 1}</span><span className="text-xs font-bold">{c.name}</span></div>
-                    <span className="text-xs font-black">{formatCurrency(c.amount)}</span>
-                  </div>
-                )) : <p className="text-xs text-gray-400 text-center py-4">لا تبيانات</p>}
-              </div>
-            </Section>
-            <Section title="تصدير التقرير"><ExportBar /></Section>
+            {cardGrid([
+              { label: 'فواتير مسلمة', value: deliveredOrdersCount.toLocaleString(), icon: Receipt, gradient: 'from-emerald-500/10 to-transparent' },
+              { label: 'إجمالي الإيرادات', value: formatCurrency(totalRevenue), icon: DollarSign, gradient: 'from-black/5 to-transparent' },
+              { label: 'متوسط قيمة الفاتورة', value: formatCurrency(avgOrderValue), icon: BarChart3, gradient: 'from-blue-500/10 to-transparent' },
+              { label: 'الضرائب المحصلة', value: formatCurrency(totalTaxCollected), icon: Percent, gradient: 'from-purple-500/10 to-transparent' },
+            ])}
           </motion.div>
         );
 
@@ -843,133 +509,281 @@ function AnalyticsModal({
         const totalTopQty = topSellingProducts?.reduce((s, p) => s + p.quantity, 0) || 0;
         return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatCard label="المنتجات الأكثر مبيعاً" value={String(topSellingProducts?.length || 0)} icon={ShoppingCart} />
-              <StatCard label="إجمالي الإيرادات" value={formatCurrency(totalTopRevenue)} icon={DollarSign} />
-              <StatCard label="إجمالي الكميات" value={String(totalTopQty)} icon={Package} />
-              <StatCard label="نسبة من المبيعات" value={totalRevenue > 0 ? `${((totalTopRevenue / totalRevenue) * 100).toFixed(1)}%` : '0%'} icon={Percent} />
-            </div>
+            {cardGrid([
+              { label: 'المنتجات الأكثر مبيعاً', value: String(topSellingProducts?.length || 0), icon: ShoppingCart, gradient: 'from-amber-500/10 to-transparent' },
+              { label: 'إجمالي الإيرادات', value: formatCurrency(totalTopRevenue), icon: DollarSign, gradient: 'from-black/5 to-transparent' },
+              { label: 'إجمالي الكميات المباعة', value: String(totalTopQty), icon: Package, gradient: 'from-blue-500/10 to-transparent' },
+              { label: 'نسبة من إجمالي المبيعات', value: totalRevenue > 0 ? `${((totalTopRevenue / totalRevenue) * 100).toFixed(1)}%` : '0%', icon: Percent, gradient: 'from-purple-500/10 to-transparent' },
+            ])}
             {topSellingProducts && topSellingProducts.length > 0 && (
-              <Section title="تصنيف المنتجات" icon={Target}>
+              <ModalSection title="أكثر المنتجات مبيعاً" icon={Target}>
                 <div className="space-y-2">
                   {topSellingProducts.map((p, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                    <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100/60 transition-colors">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center font-bold text-xs">{i + 1}</div>
-                        <div><p className="text-xs font-bold">{p.name}</p><p className="text-[10px] text-gray-400">باع {p.quantity} وحدة</p></div>
+                        <div>
+                          <p className="text-xs font-bold">{p.name}</p>
+                          <p className="text-[10px] text-gray-400">باع {p.quantity} وحدة</p>
+                        </div>
                       </div>
-                      <span className="text-xs font-black">{formatCurrency(p.revenue)}</span>
+                      <p className="text-xs font-black">{formatCurrency(p.revenue)}</p>
                     </div>
                   ))}
                 </div>
-              </Section>
+              </ModalSection>
             )}
-            <Section title="تحليل المبيعات" icon={BarChart3}>
-              <div className="min-h-[256px] h-64" style={{ position: 'relative' }}>
-                <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                  <BarChart data={monthlyData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F1F3" />
-                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8A8D94' }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8A8D94' }} />
-                    <Tooltip content={<ChartTooltip />} />
-                    <Bar dataKey="مبيعات" fill="#0A0A0B" radius={[4, 4, 0, 0]} maxBarSize={32} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </Section>
-            <Section title="تصدير التقرير"><ExportBar /></Section>
           </motion.div>
         );
 
       default:
-        return (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <Section title={content.title} icon={BarChart3}>
-              <p className="text-[11px] font-bold text-[var(--text-tertiary)]">{content.subtitle}</p>
-            </Section>
-            <div className="bg-white rounded-xl border border-[var(--border-light)] overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-right text-sm">
-                  <thead>
-                    <tr className="bg-gray-50 border-b border-[var(--border-light)]">
-                      {content.headers.map((h, i) => (<th key={i} className="px-5 py-3.5 text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">{h}</th>))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--border-light)]">
-                    {content.rows.length > 0 ? content.rows.map((row, ri) => (
-                      <motion.tr key={row.id ?? ri} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: ri * 0.015 }} className="hover:bg-gray-50/50 transition-colors">
-                        {Object.entries(row).filter(([k]) => k !== 'id' && k !== 'raw_search').map(([_k, val], ci) => (
-                          <td key={ci} className="px-5 py-3.5 text-xs font-medium text-[var(--text-primary)]">{String(val ?? '')}</td>
-                        ))}
-                      </motion.tr>
-                    )) : (
-                      <tr><td colSpan={content.headers.length} className="px-5 py-12 text-center">
-                        <div className="flex flex-col items-center gap-2 text-gray-400"><Search className="w-8 h-8 opacity-30" /><span className="text-xs font-bold">لا توجد بيانات مطابقة</span></div>
-                      </td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <Section title="تصدير التقرير"><ExportBar /></Section>
-          </motion.div>
-        );
+        return null;
     }
   }
 
   return (
+    
     <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
     >
+      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={onClose} />
+
+      {/* Modal */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.96, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: 20 }} transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+        initial={{ opacity: 0, scale: 0.96, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 20 }}
+        transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className="relative w-full max-w-5xl max-h-[90vh] flex flex-col bg-white rounded-2xl shadow-[var(--shadow-modal)] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* ── Sticky Header ── */}
         <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-[var(--border-light)] px-6 py-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center shadow-sm"><BarChart3 className="w-5 h-5 text-white" /></div>
+            <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center shadow-sm">
+              <BarChart3 className="w-5 h-5 text-white" />
+            </div>
             <div>
               <h2 className="text-lg font-black text-[var(--text-primary)]">{content.title}</h2>
               <p className="text-[11px] text-[var(--text-tertiary)] font-bold">{content.subtitle}</p>
             </div>
           </div>
-          <button onClick={onClose} className="btn-premium w-9 h-9 bg-gray-100 hover:bg-gray-200 rounded-xl text-gray-500"><X className="w-4 h-4" /></button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => handleExport('pdf')} className="btn-premium px-3 py-2 text-[11px] bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg">
+              <FileText className="w-3.5 h-3.5" /> PDF
+            </button>
+            <button onClick={() => handleExport('excel')} className="btn-premium px-3 py-2 text-[11px] bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg">
+              <FileSpreadsheet className="w-3.5 h-3.5" /> Excel
+            </button>
+            <button onClick={() => handleExport('pdf')} className="btn-premium px-3 py-2 text-[11px] bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg">
+              <Printer className="w-3.5 h-3.5" /> طباعة
+            </button>
+            <button onClick={onClose} className="btn-premium w-9 h-9 bg-gray-100 hover:bg-gray-200 rounded-xl text-gray-500">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
+
+        {/* ── Tabs + Filter Bar ── */}
+        <div className="sticky top-[73px] z-10 bg-white border-b border-[var(--border-light)] px-6 py-3 flex items-center justify-between gap-4 shrink-0">
+          <div className="flex items-center gap-1 bg-gray-100/50 p-0.5 rounded-lg">
+            {tabs.map(tab => {
+              const TIcon = tab.icon;
+              const isActive = modalTab === tab.id;
+              return (
+    
+                <button key={tab.id} onClick={() => setModalTab(tab.id)}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-md transition-all',
+                    isActive ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700',
+                  )}
+                >
+                  <TIcon className="w-3.5 h-3.5" /> {tab.label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="relative">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+            <input type="text" placeholder="بحث..." value={searchTerm} onChange={(e) => onSearchChange(e.target.value)}
+              className="input-premium w-56 pr-9 pl-3 py-1.5 text-xs" />
+          </div>
+        </div>
+
+        {/* ── Scrollable Content ── */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {renderPanel()}
+          {modalTab === 'overview' && renderMetricOverview()}
+
+          {modalTab === 'chart' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              <ModalSection title="تحليل الإتجاه الشهري" icon={TrendingUp}>
+                <div className="min-h-[288px] h-72" style={{ position: 'relative' }}>
+                  <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                    <AreaChart data={monthlyData}>
+                      <defs>
+                        <linearGradient id="gSales" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#0A0A0B" stopOpacity={0.15} />
+                          <stop offset="95%" stopColor="#0A0A0B" stopOpacity={0.01} />
+                        </linearGradient>
+                        <linearGradient id="gProfit" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#2563EB" stopOpacity={0.15} />
+                          <stop offset="95%" stopColor="#2563EB" stopOpacity={0.01} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F1F3" />
+                      <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8A8D94' }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8A8D94' }} />
+                      <Tooltip content={<ChartTooltip />} />
+                      <Area type="monotone" dataKey="مبيعات" stroke="#0A0A0B" strokeWidth={2} fill="url(#gSales)" />
+                      <Area type="monotone" dataKey="صافي_الربح" stroke="#2563EB" strokeWidth={2} fill="url(#gProfit)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </ModalSection>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <ModalSection title="توزيع المستودعات" icon={Layers}>
+                    <div className="min-h-[224px] h-56" style={{ position: 'relative' }}>
+                    <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                      <RePieChart>
+                        <RePie data={distributionData.length > 0 ? distributionData : [{ name: 'لا توجد', value: 1 }]}
+                          innerRadius={45} outerRadius={70} paddingAngle={4} dataKey="value">
+                          {distributionData.map((_e, i) => (
+                            <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                          ))}
+                        </RePie>
+                      </RePieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </ModalSection>
+
+                <ModalSection title="مقارنة الأداء" icon={BarChart3}>
+                  <div className="min-h-[224px] h-56" style={{ position: 'relative' }}>
+                    <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                      <BarChart data={monthlyData}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F1F3" />
+                        <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#8A8D94' }} />
+                        <Tooltip content={<ChartTooltip />} />
+                        <Bar dataKey="مبيعات" fill="#0A0A0B" radius={[3, 3, 0, 0]} maxBarSize={24} />
+                        <Bar dataKey="مصاريف" fill="#EF4444" radius={[3, 3, 0, 0]} maxBarSize={24} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </ModalSection>
+              </div>
+            </motion.div>
+          )}
+
+          {modalTab === 'table' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <div className="bg-white rounded-xl border border-[var(--border-light)] overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-right text-sm">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-[var(--border-light)]">
+                        {content.headers.map((h, i) => (
+                          <th key={i} className="px-5 py-3.5 text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--border-light)]">
+                      {content.rows.length > 0 ? content.rows.map((row, ri) => (
+                        <motion.tr key={row.id ?? ri}
+                          initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: ri * 0.015 }}
+                          className="hover:bg-gray-50/50 transition-colors"
+                        >
+                          {Object.entries(row).filter(([k]) => k !== 'id' && k !== 'raw_search').map(([_k, val], ci) => (
+                            <td key={ci} className="px-5 py-3.5 text-xs font-medium text-[var(--text-primary)]">{String(val ?? '')}</td>
+                          ))}
+                        </motion.tr>
+                      )) : (
+                        <tr><td colSpan={content.headers.length} className="px-5 py-12 text-center">
+                          <div className="flex flex-col items-center gap-2 text-gray-400">
+                            <Search className="w-8 h-8 opacity-30" />
+                            <span className="text-xs font-bold">لا توجد بيانات مطابقة</span>
+                          </div>
+                        </td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {modalTab === 'insights' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                { icon: DollarSign, label: 'إجمالي الإيرادات', value: formatCurrency(totalRevenue), note: 'من الفواتير المسلمة', color: 'text-black', bg: 'bg-black/5' },
+                { icon: TrendingUp, label: 'مجمل الربح', value: formatCurrency(grossProfit), note: `الهامش ${totalRevenue ? ((grossProfit / totalRevenue) * 100).toFixed(1) : 0}%`, color: 'text-blue-600', bg: 'bg-blue-50' },
+                { icon: CheckCircle2, label: 'صافي الربح', value: formatCurrency(netProfit), note: netProfit >= 0 ? 'إيجابي' : 'سلبي', color: netProfit >= 0 ? 'text-green-600' : 'text-red-500', bg: netProfit >= 0 ? 'bg-green-50' : 'bg-red-50' },
+                { icon: Wallet, label: 'إجمالي المصاريف', value: formatCurrency(totalExpenses), note: 'نسبة من الإيرادات', color: 'text-red-500', bg: 'bg-red-50' },
+                { icon: Package, label: 'قيمة المخزون', value: formatCurrency(inventoryTotalValue), note: `${items?.length || 0} صنف`, color: 'text-orange-600', bg: 'bg-orange-50' },
+                { icon: Users, label: 'إجمالي العملاء', value: totalCustomersCount.toLocaleString(), note: 'عميل مسجل', color: 'text-purple-600', bg: 'bg-purple-50' },
+                { icon: Receipt, label: 'فواتير مسلمة', value: deliveredOrdersCount.toLocaleString(), note: 'فاتورة', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                { icon: Percent, label: 'الضرائب المحصلة', value: formatCurrency(totalTaxCollected), note: 'VAT', color: 'text-indigo-600', bg: 'bg-indigo-50' },
+              ].map((item, i) => (
+                <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                  className="flex items-center gap-4 p-4 rounded-xl border border-[var(--border-light)] bg-white hover:border-gray-200 transition-colors"
+                >
+                  <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', item.bg)}>
+                    <item.icon className={cn('w-5 h-5', item.color)} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[11px] font-bold text-[var(--text-tertiary)]">{item.label}</p>
+                    <p className="text-base font-black text-[var(--text-primary)]">{item.value}</p>
+                  </div>
+                  <span className="text-[10px] font-bold text-[var(--text-tertiary)]">{item.note}</span>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </div>
+
+        {/* ── Footer ── */}
+        <div className="sticky bottom-0 bg-white/90 backdrop-blur-md border-t border-[var(--border-light)] px-6 py-3 flex items-center justify-between shrink-0">
+          <span className="text-[11px] text-[var(--text-tertiary)] font-bold">
+            إجمالي النتائج: {content.rows.length}
+          </span>
+          <button onClick={onClose} className="btn-premium px-5 py-2 bg-black text-white rounded-xl text-xs font-bold hover:opacity-90">
+            إغلاق
+          </button>
         </div>
       </motion.div>
     </motion.div>
   );
 }
 
-// �����������������������������������������������������������
+// ═══════════════════════════════════════════════════════════
 //  MAIN REPORTS PAGE
-// �����������������������������������������������������������
+// ═══════════════════════════════════════════════════════════
 export default function Reports({ setActivePage }: { setActivePage: (page: string) => void }) {
   const [activeTab, setActiveTab] = useState<'analytics' | 'audit'>('analytics');
   const [selectedMetric, setSelectedMetric] = useState<MetricType>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // �� Backend Analytics (React Query) ��
+  // ── Backend Analytics (React Query) ──
   const summaryQuery = useAnalyticsSummary();
   const profitQuery = useProfitDetails();
   const salesQuery = useSalesDetails();
   const inventoryQuery = useInventoryAnalytics();
   const expensesQuery = useExpensesDetails();
 
-  // �� Backend Data — replaces Dexie ��
+  // ── Backend Data — replaces Dexie ──
   const inventoryReportsQuery = useInventoryReports();
   const customerBalancesQuery = useCustomerBalances();
   const items = inventoryReportsQuery.data?.tables?.items ?? [];
   const inventoryTransactions = inventoryReportsQuery.data?.tables?.transactions ?? [];
   const customers = customerBalancesQuery.data?.data ?? [];
+  const expenseTransactions = expensesQuery.data?.tables?.transactions ?? [];
+  const expenseCategoryBreakdown = expensesQuery.data?.charts?.categoryBreakdown ?? [];
 
-  // �� Computed from API ��
+  // ── Computed from API ──
   const s = summaryQuery.data?.summary;
   const totalRevenue = s?.totalSales ?? 0;
   const totalExpenses = s?.totalExpenses ?? 0;
@@ -981,13 +795,15 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
   const deliveredOrdersCount = s?.totalOrders ?? 0;
   const totalItemsCount = inventoryQuery.data?.summary?.totalItems ?? 0;
 
+  console.log('[Reports Page] Inventory:', { inventoryCostValue: inventoryTotalValue, inventorySellingValue: s?.inventorySellingValue ?? 0, expectedProfit: (s?.inventorySellingValue ?? 0) - inventoryTotalValue });
+
   const profitSummary = profitQuery.data?.summary;
   const totalCostOfGoodsSold = profitSummary?.totalCost ?? 0;
   const grossProfit = totalRevenue - totalCostOfGoodsSold;
 
   const totalTaxCollected = profitQuery.data?.summary?.totalTaxCollected ?? 0;
 
-  // �� Monthly Chart Data from API ��
+  // ── Monthly Chart Data from API ──
   const monthlyData = useMemo(() => {
     const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
     const trends = profitQuery.data?.charts?.trends ?? [];
@@ -999,26 +815,26 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
     });
   }, [profitQuery.data]);
 
-  // �� Distribution Data (category-based) from API ��
+  // ── Distribution Data (category-based) from API ──
   const distributionData = useMemo(() => {
     const catDist = inventoryQuery.data?.charts?.categoryDistribution ?? [];
     return catDist.slice(0, 4).map(d => ({ name: d.category, value: d.value }));
   }, [inventoryQuery.data]);
 
-  // �� Top Selling from API ��
+  // ── Top Selling from API ──
   const topSellingProducts = useMemo(() => {
     const topItems = salesQuery.data?.charts?.topItems ?? [];
     return topItems.slice(0, 5).map(i => ({ name: i.name, quantity: i.totalQuantity, revenue: i.totalRevenue }));
   }, [salesQuery.data]);
 
-  // �� Modal Content ��
+  // ── Modal Content ──
   const modalContent = useMemo((): ModalContent | null => {
     if (!selectedMetric) return null;
     let title = '', subtitle = '', headers: string[] = [], rows: StatRow[] = [];
-    console.log('SELECTED METRIC', selectedMetric);
     switch (selectedMetric) {
-      case 'sales':
-        title = 'تفاصيل إجمالي المبيعات'; subtitle = 'جميع المبيعات المكتملة والنشطة';
+      case 'sales': case 'delivered_orders':
+        title = selectedMetric === 'sales' ? 'تفاصيل إجمالي المبيعات' : 'تفاصيل الفواتير المسلمة';
+        subtitle = selectedMetric === 'sales' ? 'جميع المبيعات المكتملة والنشطة' : 'الفواتير التي تم تسليمها بالكامل';
         headers = ['رقم الفاتورة', 'العميل', 'التاريخ', 'الحالة', 'المبلغ'];
         rows = (salesQuery.data?.tables?.orders ?? []).map((o: any) => ({
           id: o.id, number: o.orderNumber, customer: o.customer,
@@ -1026,35 +842,23 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
           raw_search: `${o.orderNumber} ${o.customer}`,
         }));
         break;
-      case 'delivered_orders':
-        title = 'تفاصيل الفواتير المسلمة'; subtitle = 'الفواتير التي تم تسليمها بالكامل';
-        headers = ['رقم الفاتورة', 'العميل', 'التاريخ', 'الحالة', 'المبلغ'];
-        rows = (salesQuery.data?.tables?.orders ?? [])
-          .filter((o: any) => o.status === 'delivered')
-          .map((o: any) => ({
-            id: o.id, number: o.orderNumber, customer: o.customer,
-            date: formatDate(o.date), status: 'مستلم', amount: formatCurrency(o.totalAmount),
-            raw_search: `${o.orderNumber} ${o.customer}`,
-          }));
-        break;
-      case 'tax':
-        title = 'تفاصيل الضرائب المحصلة'; subtitle = 'ضريبة القيمة المضافة على الفواتير';
-        headers = ['رقم الفاتورة', 'العميل', 'التاريخ', 'قبل الضريبة', 'الضريبة', 'الإجمالي'];
-        rows = (salesQuery.data?.tables?.orders ?? []).map((o: any) => ({
-          id: o.id, number: o.orderNumber, customer: o.customer,
-          date: formatDate(o.date), subtotal: formatCurrency((o.totalAmount || 0) / 1.14),
-          tax: formatCurrency((o.totalAmount || 0) * 0.14 / 1.14), total: formatCurrency(o.totalAmount || 0),
-          raw_search: `${o.orderNumber} ${o.customer}`,
-        }));
-        break;
       case 'expenses':
         title = 'بيان المصروفات التشغيلية'; subtitle = 'جميع المصاريف باستثناء المشتريات وتكلفة البضاعة';
         headers = ['التاريخ', 'البند', 'المبلغ', 'الوصف'];
-        rows = (expensesQuery.data?.tables?.transactions ?? []).map((t: any) => ({
-          id: t.id, date: formatDate(t.date), name: t.category || t.description,
-          amount: formatCurrency(t.amount || 0), description: t.description || '-',
-          raw_search: `${t.category} ${t.description}`,
+        rows = expenseTransactions.map((t: any) => ({
+          id: t.id, date: formatDate(t.date), category: t.category, amount: formatCurrency(t.amount), description: t.description || '',
+          raw_search: `${t.category} ${t.description ?? ''}`,
         }));
+        break;
+      case 'tax':
+        title = 'تحليل الضرائب المحصلة'; subtitle = 'ضريبة القيمة المضافة على المبيعات';
+        headers = ['البيان', 'القيمة', 'ملاحظة'];
+        rows = [
+          { id: 1, label: 'إجمالي الضرائب المحصلة', value: formatCurrency(totalTaxCollected), note: 'VAT', raw_search: 'tax collected' },
+          { id: 2, label: 'إجمالي المبيعات الخاضعة للضريبة', value: formatCurrency(totalRevenue), note: 'إيرادات', raw_search: 'taxable sales' },
+          { id: 3, label: 'عدد الفواتير', value: deliveredOrdersCount.toLocaleString(), note: 'فاتورة', raw_search: 'invoices' },
+          { id: 4, label: 'نسبة الضريبة', value: totalRevenue > 0 ? `${((totalTaxCollected / totalRevenue) * 100).toFixed(2)}%` : '0%', note: 'من إجمالي المبيعات', raw_search: 'tax rate' },
+        ];
         break;
       case 'inventory':
         title = 'قيمة المخزون الحالي'; subtitle = 'محسوب بسعر الشراء الأصلي';
@@ -1098,18 +902,17 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
       }));
     }
     const filteredRows = rows.filter(r => !searchTerm || Object.values(r).some(v => String(v ?? '').toLowerCase().includes(searchTerm.toLowerCase())));
-    console.log('🔵 modalContent RESULT:', { title, subtitle, headers: headers.join('|'), rowsLen: filteredRows.length });
     return { title, subtitle, headers, rows: filteredRows };
-  }, [selectedMetric, salesQuery.data, expensesQuery.data, customers, items, searchTerm, totalRevenue, totalCostOfGoodsSold, totalExpenses, grossProfit, netProfit, topSellingProducts, profitQuery.data, inventoryQuery.data]);
+  }, [selectedMetric, salesQuery.data, customers, items, searchTerm, totalRevenue, totalCostOfGoodsSold, totalExpenses, grossProfit, netProfit, topSellingProducts, profitQuery.data, inventoryQuery.data, expenseTransactions]);
 
-  // �� KPI Card Definitions ��
+  // ── KPI Card Definitions ──
   const netLabel = profitVal > 0 ? 'صافي الأرباح' : lossVal > 0 ? 'إجمالي الخسائر' : 'صافي الربح/الخسارة';
   const netValue = profitVal > 0 ? profitVal : lossVal > 0 ? lossVal : 0;
   const netIcon = profitVal > 0 ? CheckCircle2 : lossVal > 0 ? TrendingDown : Minus;
   const netGradient = profitVal > 0 ? 'bg-gradient-to-r from-green-500 to-emerald-400' : lossVal > 0 ? 'bg-gradient-to-r from-red-500 to-rose-400' : 'bg-gradient-to-r from-gray-500 to-gray-400';
   const netIconBg = profitVal > 0 ? 'bg-green-500' : lossVal > 0 ? 'bg-red-500' : 'bg-gray-500';
   const netTrendDir = profitVal > 0 ? 'up' : lossVal > 0 ? 'down' : 'neutral';
-  const netTrendLabel = profitVal > 0 ? 'ربح' : lossVal > 0 ? 'خسارة' : '�';
+  const netTrendLabel = profitVal > 0 ? 'ربح' : lossVal > 0 ? 'خسارة' : '─';
 
   const kpiCards: KPICardData[] = [
     {
@@ -1134,7 +937,7 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
       label: 'الضرائب المحصلة', value: formatCurrency(totalTaxCollected), icon: Percent,
       gradient: 'bg-gradient-to-r from-purple-500 to-violet-400', iconBg: 'bg-purple-500',
       trend: { direction: 'neutral', value: 'VAT', color: 'text-gray-500' },
-      type: 'tax', rawValue: totalTaxCollected,
+      type: 'sales', rawValue: totalTaxCollected,
     },
     {
       label: 'رأس مال المخزون', value: formatCurrency(inventoryTotalValue || 0), icon: Package,
@@ -1162,7 +965,7 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
     },
   ];
 
-  // �� Loading State ��
+  // ── Loading State ──
   const isLoading = summaryQuery.isLoading || profitQuery.isLoading || salesQuery.isLoading || inventoryQuery.isLoading;
   const isError = summaryQuery.isError || profitQuery.isError || salesQuery.isError || inventoryQuery.isError;
 
@@ -1217,7 +1020,7 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
             </div>
           </motion.div>
 
-          {/* �� KPI Cards Grid �� */}
+          {/* ── KPI Cards Grid ── */}
           {isLoading ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {Array.from({ length: 8 }).map((_, i) => (
@@ -1242,12 +1045,12 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {kpiCards.map((stat, i) => (
-                <KPICard key={i} stat={stat} index={i} onClick={() => { console.log('CARD CLICK', stat.type); setSearchTerm(''); setSelectedMetric(stat.type); }} />
+                <KPICard key={i} stat={stat} index={i} onClick={() => { setSearchTerm(''); setSelectedMetric(stat.type); }} />
               ))}
             </div>
           )}
 
-          {/* �� Charts Section �� */}
+          {/* ── Charts Section ── */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main Chart */}
             <div className="lg:col-span-2 bg-white rounded-2xl border border-[var(--border-light)] p-6 shadow-[var(--shadow-card)]">
@@ -1343,7 +1146,7 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
           </div>
         </>
       ) : (
-        /* �� Audit Log Tab �� */
+        /* ── Audit Log Tab ── */
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
           className="bg-white rounded-2xl border border-[var(--border-light)] overflow-hidden shadow-[var(--shadow-card)]"
         >
@@ -1413,7 +1216,7 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
         </motion.div>
       )}
 
-      {/* �� Analytics Modal �� */}
+      {/* ── Analytics Modal ── */}
       <AnimatePresence>
         {selectedMetric && modalContent && (
           <AnalyticsModal
@@ -1436,11 +1239,10 @@ export default function Reports({ setActivePage }: { setActivePage: (page: strin
             inventoryTotalValue={inventoryTotalValue}
             totalCustomersCount={totalCustomersCount}
             deliveredOrdersCount={deliveredOrdersCount}
-            totalItemsCount={totalItemsCount}
             customers={customers}
             warehouses={[]}
-            expensesQuery={expensesQuery}
-            salesQuery={salesQuery}
+            expenseTransactions={expensesQuery.data?.tables?.transactions ?? []}
+            expenseCategoryBreakdown={expensesQuery.data?.charts?.categoryBreakdown ?? []}
           />
         )}
       </AnimatePresence>

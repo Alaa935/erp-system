@@ -1,6 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api-client';
-import { useProtectedMutation } from './useProtectedMutation';
 import type { InvoiceSettings } from '../types';
 
 interface SingleResponse {
@@ -16,9 +15,10 @@ export function useInvoiceSettings() {
 }
 
 export function useUpsertInvoiceSettings() {
-  return useProtectedMutation(
-    (data: Partial<InvoiceSettings>) =>
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<InvoiceSettings>) =>
       api<SingleResponse>('/invoice-settings', { method: 'PUT', body: JSON.stringify(data) }),
-    { invalidates: [['invoiceSettings']] },
-  );
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['invoiceSettings'] }); },
+  });
 }

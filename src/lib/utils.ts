@@ -12,13 +12,10 @@ export function formatCurrency(amount: number) {
   }).format(amount);
 }
 
-export function formatDate(timestamp: number | string | null | undefined) {
-  if (timestamp == null) return '-';
-  const d = new Date(timestamp);
-  if (isNaN(d.getTime())) return '-';
+export function formatDate(timestamp: number) {
   return new Intl.DateTimeFormat('ar-EG', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-  }).format(d);
+  }).format(new Date(timestamp));
 }

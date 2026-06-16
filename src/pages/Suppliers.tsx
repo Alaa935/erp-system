@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Supplier } from '../types';
 import { Search, Plus, Phone, Mail, MapPin, MoreVertical, Edit2, Trash2, X, Save, Users, Truck, ShoppingCart, Eye, ArrowRightLeft, FileText, Send, Printer } from 'lucide-react';
 import { cn, formatDate } from '../lib/utils';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { EmptyState } from '../components/design-system';
@@ -10,7 +10,6 @@ import { useSuppliers, useCreateSupplier, useUpdateSupplier, useDeleteSupplier }
 import { useInventory } from '../hooks/useInventory';
 import { usePurchaseOrders, useCreatePurchaseOrder, useUpdatePurchaseOrder, useDeletePurchaseOrder } from '../hooks/usePurchaseOrders';
 import type { Item } from '../types';
-import { LoadingButton } from '../components/ui/LoadingButton';
 
 export default function Suppliers() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -33,12 +32,18 @@ export default function Suppliers() {
     taxNumber: ''
   });
 
-  const suppliersQuery = useSuppliers(debouncedSearch ? { search: debouncedSearch } : undefined);
+  const suppliersQuery = useSuppliers({ search: debouncedSearch || undefined });
   const createSupplier = useCreateSupplier();
   const updateSupplier = useUpdateSupplier();
   const deleteSupplier = useDeleteSupplier();
 
   const suppliers = suppliersQuery.data?.items;
+
+  console.log('[Suppliers Page] suppliersQuery.data:', suppliersQuery.data);
+  console.log('[Suppliers Page] suppliers array:', suppliers);
+  console.log('[Suppliers Page] suppliers length:', suppliers?.length);
+  console.log('[Suppliers Page] isLoading:', suppliersQuery.isLoading);
+  console.log('[Suppliers Page] isError:', suppliersQuery.isError);
 
   const createPurchaseOrder = useCreatePurchaseOrder();
   const updatePurchaseOrder = useUpdatePurchaseOrder();
@@ -360,12 +365,14 @@ export default function Suppliers() {
       )}
 
       {/* Add Supplier Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 modal-overlay">
-          <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden"
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 modal-overlay">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden"
             >
               <div className="p-6 border-b border-[#E0E3E5] flex justify-between items-center bg-gray-50/50">
                 <div className="flex items-center gap-3">
@@ -451,16 +458,13 @@ export default function Suppliers() {
                 </div>
 
                 <div className="flex gap-4 pt-6 border-t border-[#E0E3E5]">
-                  <LoadingButton
+                  <button 
                     type="submit"
-                    isPending={isSubmitting || createSupplier.isPending || updateSupplier.isPending}
-                    loadingText="جاري الحفظ..."
-                    icon={<Save className="w-5 h-5" />}
-                    className="flex-1 py-3 rounded-xl font-bold"
-                    size="lg"
+                    className="flex-1 bg-black text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
                   >
+                    <Save className="w-5 h-5" />
                     حفظ المورد
-                  </LoadingButton>
+                  </button>
                   <button 
                     type="button"
                     onClick={() => setModalOpen(false)}
@@ -473,12 +477,16 @@ export default function Suppliers() {
             </motion.div>
           </div>
         )}
+      </AnimatePresence>
+
       {/* Delete Confirmation Modal */}
-      {deleteReasonModalOpen && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 modal-overlay text-right" dir="rtl">
-          <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
+      <AnimatePresence>
+        {deleteReasonModalOpen && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 modal-overlay text-right" dir="rtl">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
               className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden"
             >
               <div className="p-6 bg-red-50 border-b border-red-100 flex items-center gap-3">
@@ -513,15 +521,13 @@ export default function Suppliers() {
                 </div>
 
                 <div className="flex gap-3 pt-4">
-                  <LoadingButton
+                  <button 
                     onClick={handleDeleteSupplier}
-                    isPending={deleteSupplier.isPending}
-                    loadingText="جاري الحذف..."
-                    variant="danger"
-                    size="md"
+                    disabled={isSubmitting}
+                    className="flex-1 bg-red-600 text-white py-4 rounded-2xl font-black shadow-lg hover:bg-red-700 transition-colors disabled:opacity-50"
                   >
                     تأكيد الحذف
-                  </LoadingButton>
+                  </button>
                   <button 
                     onClick={() => {
                       setDeleteReasonModalOpen(false);
@@ -537,13 +543,16 @@ export default function Suppliers() {
             </motion.div>
           </div>
         )}
+      </AnimatePresence>
       {/* Supplier Detail Modal */}
-      {selectedSupplierForDetail && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 modal-overlay">
-          <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+      <AnimatePresence>
+        {selectedSupplierForDetail && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 modal-overlay">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
             >
               <div className="p-6 border-b border-[#E0E3E5] flex justify-between items-center bg-gray-50">
                 <div className="flex items-center gap-4">
@@ -663,12 +672,16 @@ export default function Suppliers() {
             </motion.div>
           </div>
         )}
+      </AnimatePresence>
+
       {/* Order Details Modal */}
-      {isOrderDetailsModalOpen && selectedOrderDetails && (
-        <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 modal-overlay">
-          <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
+      <AnimatePresence>
+        {isOrderDetailsModalOpen && selectedOrderDetails && (
+          <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 modal-overlay">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
               className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden"
               dir="rtl"
             >
@@ -767,12 +780,15 @@ export default function Suppliers() {
             </motion.div>
           </div>
         )}
+      </AnimatePresence>
       {/* Create Order Modal */}
-      {isOrderModalOpen && (
-        <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 modal-overlay">
-          <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
+      <AnimatePresence>
+        {isOrderModalOpen && (
+          <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 modal-overlay">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
               className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden"
               dir="rtl"
             >
@@ -851,8 +867,11 @@ export default function Suppliers() {
                                   onChange={(e) => {
                                     const newItems = [...newOrder.newItems];
                                     const niIdx = newItems.findIndex(ni => ni.id === orderItem.itemId);
-                                    newItems[niIdx].name = e.target.value;
-                                    setNewOrder({...newOrder, newItems});
+                                    const currentNewItem = newItems[niIdx];
+                                    if (currentNewItem) {
+                                      currentNewItem.name = e.target.value;
+                                      setNewOrder({...newOrder, newItems});
+                                    }
                                   }}
                                   placeholder="اسم المنتج الجديد"
                                   className="w-full bg-gray-50 border-none rounded-lg py-1 px-2 text-sm font-black focus:ring-1 focus:ring-black"
@@ -867,8 +886,11 @@ export default function Suppliers() {
                                   value={orderItem.price}
                                   onChange={(e) => {
                                     const items = [...newOrder.items];
-                                    items[idx].price = parseFloat(e.target.value) || 0;
-                                    setNewOrder({...newOrder, items});
+                                    const currentItem = items[idx];
+                                    if (currentItem) {
+                                      currentItem.price = parseFloat(e.target.value) || 0;
+                                      setNewOrder({...newOrder, items});
+                                    }
                                   }}
                                   className="w-20 bg-gray-50 border-none rounded-md px-1 text-[10px] font-black focus:ring-1 focus:ring-black"
                                 />
@@ -879,8 +901,9 @@ export default function Suppliers() {
                                 type="button"
                                 onClick={() => {
                                   const items = [...newOrder.items];
-                                  if (items[idx].quantity > 1) {
-                                    items[idx].quantity -= 1;
+                                  const currentItem = items[idx];
+                                  if (currentItem && currentItem.quantity > 1) {
+                                    currentItem.quantity -= 1;
                                     setNewOrder({...newOrder, items});
                                   }
                                 }}
@@ -891,8 +914,11 @@ export default function Suppliers() {
                                 type="button"
                                 onClick={() => {
                                   const items = [...newOrder.items];
-                                  items[idx].quantity += 1;
-                                  setNewOrder({...newOrder, items});
+                                  const currentItem = items[idx];
+                                  if (currentItem) {
+                                    currentItem.quantity += 1;
+                                    setNewOrder({...newOrder, items});
+                                  }
                                 }}
                                 className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-all font-black"
                               >+</button>
@@ -921,8 +947,11 @@ export default function Suppliers() {
                                 onChange={(e) => {
                                   const newItems = [...newOrder.newItems];
                                   const niIdx = newItems.findIndex(ni => ni.id === orderItem.itemId);
-                                  newItems[niIdx].sku = e.target.value;
-                                  setNewOrder({...newOrder, newItems});
+                                  const currentNewItem = newItems[niIdx];
+                                  if (currentNewItem) {
+                                    currentNewItem.sku = e.target.value;
+                                    setNewOrder({...newOrder, newItems});
+                                  }
                                 }}
                                 className="bg-gray-50 border-none rounded-lg py-1 px-2 text-[10px] font-bold"
                               />
@@ -933,8 +962,11 @@ export default function Suppliers() {
                                 onChange={(e) => {
                                   const newItems = [...newOrder.newItems];
                                   const niIdx = newItems.findIndex(ni => ni.id === orderItem.itemId);
-                                  newItems[niIdx].category = e.target.value;
-                                  setNewOrder({...newOrder, newItems});
+                                  const currentNewItem = newItems[niIdx];
+                                  if (currentNewItem) {
+                                    currentNewItem.category = e.target.value;
+                                    setNewOrder({...newOrder, newItems});
+                                  }
                                 }}
                                 className="bg-gray-50 border-none rounded-lg py-1 px-2 text-[10px] font-bold"
                               />
@@ -975,7 +1007,7 @@ export default function Suppliers() {
  
                 <div className="flex gap-4">
                   <button 
-                    disabled={isSubmitting || createPurchaseOrder.isPending || updatePurchaseOrder.isPending || newOrder.items.length === 0}
+                    disabled={isSubmitting || newOrder.items.length === 0}
                     type="submit"
                     className="flex-1 bg-black text-white py-4 rounded-2xl font-black shadow-lg hover:opacity-90 transition-all disabled:opacity-50"
                   >
@@ -993,45 +1025,17 @@ export default function Suppliers() {
             </motion.div>
           </div>
         )}
+      </AnimatePresence>
 
-      {deleteConfirmOrder && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 modal-overlay text-right" dir="rtl">
-          <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-              className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden"
-            >
-              <div className="p-6 bg-red-50 border-b border-red-100 flex items-center gap-3">
-                <div className="w-12 h-12 bg-red-500 text-white rounded-2xl flex items-center justify-center shadow-lg">
-                  <Trash2 className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-black text-red-900">حذف فاتورة توريد</h3>
-                  <p className="text-xs font-bold text-red-600">
-                    {deleteConfirmOrder ? `هل أنت متأكد من حذف الفاتورة رقم ${deleteConfirmOrder.orderNumber}؟ سيتم خصم الكميات من المخزون.` : ''}
-                  </p>
-                </div>
-              </div>
-              <div className="p-8 flex gap-3">
-                <LoadingButton
-                  onClick={executeDeleteInvoice}
-                  isPending={deletePurchaseOrder.isPending}
-                  loadingText="جاري الحذف..."
-                  variant="danger"
-                  size="md"
-                >
-                  تأكيد الحذف
-                </LoadingButton>
-                <button 
-                  onClick={() => setDeleteConfirmOrder(null)}
-                  className="flex-1 bg-gray-100 text-gray-600 py-4 rounded-2xl font-black hover:bg-gray-200 transition-colors"
-                >
-                  تراجع
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
+      <ConfirmDialog
+        open={!!deleteConfirmOrder}
+        title="حذف فاتورة توريد"
+        message={deleteConfirmOrder ? `هل أنت متأكد من حذف الفاتورة رقم ${deleteConfirmOrder.orderNumber}؟ سيتم خصم الكميات من المخزون.` : ''}
+        confirmLabel="تأكيد الحذف"
+        variant="danger"
+        onConfirm={executeDeleteInvoice}
+        onCancel={() => setDeleteConfirmOrder(null)}
+      />
     </div>
   );
 }

@@ -51,22 +51,14 @@ export const branchesService = {
     managerId?: number | null;
     phone?: string;
   }) {
-    try {
-      const branch = await prisma.branch.create({
-        data: {
-          name: data.name,
-          location: data.location ?? '',
-          managerId: data.managerId ?? undefined,
-          phone: data.phone ?? '',
-        },
-      });
-      return branch;
-    } catch (err: any) {
-      if (err?.code === 'P2002') {
-        throw new AppError(409, 'اسم الفرع موجود مسبقاً');
-      }
-      throw err;
-    }
+    return prisma.branch.create({
+      data: {
+        name: data.name,
+        location: data.location ?? '',
+        managerId: data.managerId ?? undefined,
+        phone: data.phone ?? '',
+      },
+    });
   },
 
   async updateBranch(id: number, data: Partial<{

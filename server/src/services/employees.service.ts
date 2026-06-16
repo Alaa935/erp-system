@@ -60,24 +60,16 @@ export const employeesService = {
     permissions?: string;
     branchId?: number | null;
   }) {
-    try {
-      const employee = await prisma.employee.create({
-        data: {
-          name: data.name,
-          role: data.role ?? '',
-          department: data.department ?? '',
-          email: data.email ?? '',
-          permissions: data.permissions ?? 'limited',
-          branchId: data.branchId ?? undefined,
-        },
-      });
-      return employee;
-    } catch (err: any) {
-      if (err?.code === 'P2002') {
-        throw new AppError(409, 'البريد الإلكتروني موجود مسبقاً');
-      }
-      throw err;
-    }
+    return prisma.employee.create({
+      data: {
+        name: data.name,
+        role: data.role ?? '',
+        department: data.department ?? '',
+        email: data.email ?? '',
+        permissions: data.permissions ?? 'limited',
+        branchId: data.branchId ?? undefined,
+      },
+    });
   },
 
   async updateEmployee(id: number, data: Partial<{

@@ -133,7 +133,6 @@ export const sessionManager = {
       const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
       const res = await fetch(`${API_BASE}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(10_000),
       });
       const json = await res.json();
       return !!(json.success && json.data);

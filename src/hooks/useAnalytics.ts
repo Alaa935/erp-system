@@ -52,7 +52,7 @@ export function useProfitDetails(startDate?: string, endDate?: string) {
     queryKey: ['analytics', 'profit', startDate, endDate],
     queryFn: analyticsApi<{
       success: boolean;
-      summary: { totalRevenue: number; totalCost: number; netProfit: number; profit: number; loss: number; profitMargin: number; totalOrders: number };
+      summary: { totalRevenue: number; totalCost: number; netProfit: number; profit: number; loss: number; profitMargin: number; totalOrders: number; totalTaxCollected: number };
       charts: { trends: { month: string; revenue: number; cost: number; profit: number }[] };
     }>('/profit/details'),
   });

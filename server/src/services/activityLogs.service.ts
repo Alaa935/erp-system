@@ -12,8 +12,8 @@ export const activityLogsService = {
     endDate?: string;
     userId?: number;
   }) {
-    const page = Number(params.page) || 1;
-    const pageSize = Number(params.pageSize) || 50;
+    const page = params.page || 1;
+    const pageSize = params.pageSize || 50;
 
     const where: Prisma.ActivityLogWhereInput = {};
 
@@ -110,8 +110,8 @@ export const activityLogsService = {
   },
 
   async getByEntity(entity: string, entityId: number, params: { page?: number; pageSize?: number }) {
-    const page = Number(params.page) || 1;
-    const pageSize = Number(params.pageSize) || 50;
+    const page = params.page || 1;
+    const pageSize = params.pageSize || 50;
 
     const [logs, total] = await Promise.all([
       prisma.activityLog.findMany({

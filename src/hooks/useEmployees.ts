@@ -1,6 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api-client';
-import { useProtectedMutation } from './useProtectedMutation';
 import type { Employee } from '../types';
 
 interface ListResponse {
@@ -30,25 +29,28 @@ export function useEmployee(id: number | undefined) {
 }
 
 export function useCreateEmployee() {
-  return useProtectedMutation(
-    (data: Partial<Employee>) =>
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<Employee>) =>
       api<SingleResponse>('/employees', { method: 'POST', body: JSON.stringify(data) }),
-    { invalidates: [['employees']] },
-  );
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['employees'] }); },
+  });
 }
 
 export function useUpdateEmployee() {
-  return useProtectedMutation(
-    ({ id, data }: { id: number; data: Partial<Employee> }) =>
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<Employee> }) =>
       api<SingleResponse>(`/employees/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    { invalidates: [['employees']] },
-  );
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['employees'] }); },
+  });
 }
 
 export function useDeleteEmployee() {
-  return useProtectedMutation(
-    ({ id, reason }: { id: number; reason: string }) =>
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
       api(`/employees/${id}`, { method: 'DELETE', body: JSON.stringify({ reason }) }),
-    { invalidates: [['employees']] },
-  );
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['employees'] }); },
+  });
 }

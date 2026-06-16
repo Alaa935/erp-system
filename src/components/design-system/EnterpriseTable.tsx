@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Search, ChevronLeft, ChevronRight, ChevronsUpDown, ArrowUpDown, Square, CheckSquare, Columns3 } from 'lucide-react';
 
 type SortDirection = 'asc' | 'desc' | null;
@@ -38,6 +38,13 @@ interface EnterpriseTableProps<T> {
   sortKey?: string;
   sortDirection?: SortDirection;
   totalLabel?: string;
+  
+  // Server-side support props
+  serverSide?: boolean;
+  totalItems?: number;
+  page?: number;
+  onPageChange?: (page: number) => void;
+  onSearchChange?: (query: string) => void;
 }
 
 function EnterpriseTable<T>({
@@ -47,9 +54,12 @@ function EnterpriseTable<T>({
   selectedRows: externalSelectedRows, onSelectionChange, toolbar,
   className = '', rowActions, compact = false, stickyHeader = true,
   sortable: externallySortable = false, onSort, sortKey: externalSortKey, sortDirection: externalSortDir,
+  
+  // Server-side destructured props
+  serverSide = false, totalItems, page, onPageChange, onSearchChange,
 }: EnterpriseTableProps<T>) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [internalPage, setInternalPage] = useState(1);
   const [internalSelected, setInternalSelected] = useState<Set<string | number>>(new Set());
   const [hoveredRow, setHoveredRow] = useState<string | number | null>(null);
   const [internalSortKey, setInternalSortKey] = useState<string | null>(null);
@@ -57,6 +67,8 @@ function EnterpriseTable<T>({
   const selectedRows = externalSelectedRows ?? internalSelected;
   const sortKey = externalSortKey ?? internalSortKey;
   const sortDir = externalSortDir ?? internalSortDir;
+
+  const currentPage = serverSide ? (page ?? 1) : internalPage;
 
   const handleSelectionChange = useCallback((newSelected: Set<string | number>) => {
     if (onSelectionChange) onSelectionChange(newSelected);
@@ -81,16 +93,26 @@ function EnterpriseTable<T>({
     });
   };
 
+  const handlePageChange = (p: number) => {
+    if (serverSide && onPageChange) {
+      onPageChange(p);
+    } else {
+      setInternalPage(p);
+    }
+  };
+
   const filtered = useMemo(() => {
+    if (serverSide) return data;
     if (!searchQuery || !searchKeys) return data;
     const q = searchQuery.toLowerCase();
     return data.filter(item => searchKeys.some(key => {
       const val = item[key];
       return val != null && String(val).toLowerCase().includes(q);
     }));
-  }, [data, searchQuery, searchKeys]);
+  }, [data, searchQuery, searchKeys, serverSide]);
 
   const sorted = useMemo(() => {
+    if (serverSide) return filtered;
     if (!sortKey || !sortDir) return filtered;
     return [...filtered].sort((a, b) => {
       const col = columns.find(c => (c.sortKey ?? c.key) === sortKey);
@@ -102,11 +124,12 @@ function EnterpriseTable<T>({
       const cmp = typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal), 'ar');
       return sortDir === 'desc' ? -cmp : cmp;
     });
-  }, [filtered, sortKey, sortDir, columns]);
+  }, [filtered, sortKey, sortDir, columns, serverSide]);
 
-  const totalPages = pagination ? Math.max(1, Math.ceil(sorted.length / pageSize)) : 1;
+  const totalItemsCount = serverSide ? (totalItems ?? data.length) : sorted.length;
+  const totalPages = pagination ? Math.max(1, Math.ceil(totalItemsCount / pageSize)) : 1;
   const safePage = Math.min(currentPage, totalPages);
-  const paginated = pagination ? sorted.slice((safePage - 1) * pageSize, safePage * pageSize) : sorted;
+  const paginated = pagination ? (serverSide ? data : sorted.slice((safePage - 1) * pageSize, safePage * pageSize)) : sorted;
   const allSelected = paginated.length > 0 && paginated.every(item => selectedRows.has(keyExtractor(item)));
   const cellPad = compact ? 'px-2.5 py-2' : 'px-3 py-2.5';
   const textSize = compact ? 'text-xs' : 'text-sm';
@@ -148,7 +171,15 @@ function EnterpriseTable<T>({
               <div className="relative max-w-56">
                 <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
                 <input type="text" placeholder={searchPlaceholder} value={searchQuery}
-                  onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                  onChange={(e) => { 
+                    setSearchQuery(e.target.value); 
+                    if (serverSide && onSearchChange) {
+                      onSearchChange(e.target.value);
+                    }
+                    if (!serverSide) {
+                      setInternalPage(1); 
+                    }
+                  }}
                   className="w-full bg-transparent rounded-lg px-3 py-1.5 pr-8 text-xs outline-none border border-transparent focus:border-gray-300 transition-all duration-150" />
               </div>
             )}
@@ -236,28 +267,28 @@ function EnterpriseTable<T>({
         </table>
       </div>
 
-      {pagination && sorted.length > pageSize && (
+      {pagination && totalItemsCount > pageSize && (
         <div className="px-4 py-2.5 border-t border-gray-100 flex items-center justify-between">
           <span className="text-[11px] text-gray-400 font-medium">
-            {((safePage - 1) * pageSize) + 1}-{Math.min(safePage * pageSize, sorted.length)} من {sorted.length}
+            {((safePage - 1) * pageSize) + 1}-{Math.min(safePage * pageSize, totalItemsCount)} من {totalItemsCount}
           </span>
           <div className="flex items-center gap-1">
-            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={safePage <= 1}
+            <button onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={safePage <= 1}
               className="p-1.5 hover:bg-gray-100 rounded-lg disabled:opacity-30 transition-colors active:scale-95">
               <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
             </button>
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               const start = Math.max(1, Math.min(totalPages - 4, safePage - 2));
-              const page = start + i;
-              if (page > totalPages) return null;
+              const pageNum = start + i;
+              if (pageNum > totalPages) return null;
               return (
-                <button key={page} onClick={() => setCurrentPage(page)}
-                  className={`w-7 h-7 rounded-lg text-xs font-bold transition-colors ${safePage === page ? 'bg-gray-900 text-white' : 'text-gray-400 hover:bg-gray-50'}`}>
-                  {page}
+                <button key={pageNum} onClick={() => handlePageChange(pageNum)}
+                  className={`w-7 h-7 rounded-lg text-xs font-bold transition-colors ${safePage === pageNum ? 'bg-gray-900 text-white' : 'text-gray-400 hover:bg-gray-50'}`}>
+                  {pageNum}
                 </button>
               );
             })}
-            <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
+            <button onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={safePage >= totalPages}
               className="p-1.5 hover:bg-gray-100 rounded-lg disabled:opacity-30 transition-colors active:scale-95">
               <ChevronLeft className="w-3.5 h-3.5 text-gray-500" />
             </button>

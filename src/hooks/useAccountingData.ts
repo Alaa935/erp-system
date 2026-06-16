@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAccountingOverview, useConfirmCollection } from '../hooks/useAccounting';
 import type { PurchaseOrder, SalesOrder, Customer, EmployeePayroll } from '../types';
+import api from '../lib/api-client';
 
 export type AccountingTab = 'overview' | 'vendors' | 'customers' | 'payroll' | 'fleet';
 export type KpiType = 'liquidity' | 'custody' | 'inventory' | 'debtors' | 'creditors' | 'capital';
@@ -37,7 +38,7 @@ export function useAccountingData() {
   const { data: overviewData } = useAccountingOverview();
   const confirmCollectionMutation = useConfirmCollection();
 
-  const d = overviewData;
+  const d = overviewData?.data;
 
   const transactions = d?.transactions;
   const allItems = d?.items;
@@ -74,11 +75,10 @@ export function useAccountingData() {
   const fetchPaymentHistory = async (referenceId: number, category: string) => {
     if (!referenceId) return;
     try {
-      const res = await fetch(`/api/accounting/payment-history/${referenceId}?category=${category}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      const data = await api<any>(`/accounting/payment-history/${referenceId}`, {
+        params: { category }
       });
-      const json = await res.json();
-      setSelectedReferenceTransactions(json.data || []);
+      setSelectedReferenceTransactions(data || []);
       setPaymentHistoryModalOpen(true);
     } catch (error) {
       console.error('Error fetching payment history:', error);

@@ -260,7 +260,10 @@ export const financialAnalyticsService = {
       if (trendsMap[key]) trendsMap[key].cost += Number(e.amount);
     }
     for (const key of Object.keys(trendsMap)) {
-      trendsMap[key].profit = trendsMap[key].revenue - trendsMap[key].cost;
+      const item = trendsMap[key];
+      if (item) {
+        item.profit = item.revenue - item.cost;
+      }
     }
 
     const trends = Object.entries(trendsMap)

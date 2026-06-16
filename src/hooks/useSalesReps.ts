@@ -1,6 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api-client';
-import { useProtectedMutation } from './useProtectedMutation';
 import type { SalesRep } from '../types';
 
 interface ListResponse {
@@ -16,8 +15,19 @@ interface SingleResponse {
 
 export function useSalesReps(params?: Record<string, string>) {
   return useQuery({
-    queryKey: params ? ['salesReps', params] : ['salesReps'],
-    queryFn: () => api<ListResponse>('/sales-reps', { params }),
+    queryKey: ['salesReps', params],
+    queryFn: () => {
+      const url = new URL(`${import.meta.env.VITE_API_URL || 'https://server-e6y4.onrender.com'}/api/sales-reps`);
+      if (params) for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v as string);
+      console.log('[useSalesReps] FETCH URL:', url.toString());
+      console.log('[useSalesReps] REQUEST PARAMS:', params);
+      return api<ListResponse>('/sales-reps', { params }).then(raw => {
+        console.log('[useSalesReps] RAW RESPONSE:', raw);
+        console.log('[useSalesReps] items.length:', raw?.items?.length);
+        console.log('[useSalesReps] meta:', raw?.meta);
+        return raw;
+      });
+    },
   });
 }
 
@@ -30,25 +40,28 @@ export function useSalesRep(id: number | undefined) {
 }
 
 export function useCreateSalesRep() {
-  return useProtectedMutation(
-    (data: Partial<SalesRep>) =>
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<SalesRep>) =>
       api<SingleResponse>('/sales-reps', { method: 'POST', body: JSON.stringify(data) }),
-    { invalidates: [['salesReps']] },
-  );
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['salesReps'] }); },
+  });
 }
 
 export function useUpdateSalesRep() {
-  return useProtectedMutation(
-    ({ id, data }: { id: number; data: Partial<SalesRep> }) =>
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<SalesRep> }) =>
       api<SingleResponse>(`/sales-reps/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    { invalidates: [['salesReps']] },
-  );
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['salesReps'] }); },
+  });
 }
 
 export function useDeleteSalesRep() {
-  return useProtectedMutation(
-    ({ id, reason }: { id: number; reason: string }) =>
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
       api(`/sales-reps/${id}`, { method: 'DELETE', body: JSON.stringify({ reason }) }),
-    { invalidates: [['salesReps']] },
-  );
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['salesReps'] }); },
+  });
 }

@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/db';
+import React, { useState, useEffect } from 'react';
+import { useSystemConfig, useUpdateSystemConfig } from '../hooks/useSystemConfig';
 import {
   Palette, Sun, Moon, Monitor, Type, TextSelect, LayoutDashboard,
   AlignRight, AlignLeft, Eye, Save, CheckCircle2, X, RefreshCw,
@@ -23,18 +22,29 @@ const layouts = [
 ];
 
 export default function AppearanceSettings() {
-  const config = useLiveQuery(() => db.systemConfig.get('default'));
-  const [theme, setTheme] = useState<'light' | 'dark'>(config?.theme || 'light');
-  const [fontSize, setFontSize] = useState<'small' | 'medium' | 'large'>(config?.fontSize || 'medium');
-  const [layout, setLayout] = useState<'sidebar' | 'topbar'>(config?.layout || 'sidebar');
+  const { data: configData, isLoading } = useSystemConfig();
+  const config = configData?.data;
+  const updateConfig = useUpdateSystemConfig();
+
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [fontSize, setFontSize] = useState<'small' | 'medium' | 'large'>('medium');
+  const [layout, setLayout] = useState<'sidebar' | 'topbar'>('sidebar');
   const [selectedFont, setSelectedFont] = useState('tajawal');
   const [compactMode, setCompactMode] = useState(false);
+
+  useEffect(() => {
+    if (config) {
+      setTheme((config.theme as 'light' | 'dark') || 'light');
+      setFontSize((config.fontSize as 'small' | 'medium' | 'large') || 'medium');
+      setLayout((config.layout as 'sidebar' | 'topbar') || 'sidebar');
+    }
+  }, [config]);
 
   const sizeMap = { small: 'صغير', medium: 'متوسط', large: 'كبير' };
 
   const handleSave = async () => {
     try {
-      await db.systemConfig.update('default', { theme, fontSize, layout: layout as any });
+      await updateConfig.mutateAsync({ theme, fontSize, layout: layout as any });
       toast.success('تم حفظ إعدادات المظهر');
     } catch { toast.error('فشل حفظ الإعدادات'); }
   };

@@ -5,7 +5,6 @@ import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { EmptyState, EnterpriseTable, type Column, Modal, Form, FormInput, FormSelect, FormActions } from '../components/design-system';
 import { useTaxConfigs, useCreateTaxConfig, useUpdateTaxConfig, useDeleteTaxConfig } from '../hooks/useTaxConfigs';
 import type { TaxConfig } from '../types';
-import { LoadingButton } from '../components/ui/LoadingButton';
 
 export default function TaxManagement() {
   const { data: taxRes, isLoading } = useTaxConfigs();
@@ -35,16 +34,13 @@ export default function TaxManagement() {
     setIsModalOpen(false);
   };
 
-  const toggleStatus = async (id: number) => {
-    const tax = taxes.find((t: TaxConfig) => t.id === id);
-    if (tax) {
-      await updateTaxConfig.mutateAsync({ id: tax.id!, data: { isActive: !tax.isActive } as any });
-    }
+  const toggleStatus = async (tax: TaxConfig) => {
+    await updateTaxConfig.mutateAsync({ id: tax.id!, data: { isActive: !tax.isActive } as any });
   };
 
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const handleDelete = async (id: number) => { setDeleteConfirmId(id); };
-  const handleDeleteConfirm = async () => {
+  const executeDelete = async () => {
     if (deleteConfirmId === null) return;
     await deleteTaxConfig.mutateAsync({ id: deleteConfirmId, reason: 'Manual deletion' });
     setDeleteConfirmId(null);
@@ -54,7 +50,7 @@ export default function TaxManagement() {
     { key: 'name', label: 'الضريبة', sortable: true, render: (tax) => (<div><div className="font-black text-black">{tax.name}</div><div className="text-[10px] text-gray-400">{tax.isInclusive ? 'شامل السعر' : 'يضاف للسعر'}</div></div>) },
     { key: 'rate', label: 'النسبة', sortable: true, render: (tax) => (<span className="font-black text-blue-600">{tax.rate}%</span>) },
     { key: 'type', label: 'النوع', sortable: true, render: (tax) => (<span className="bg-gray-100 px-2 py-1 rounded-lg text-xs font-bold text-gray-600">{tax.type}</span>) },
-    { key: 'isActive', label: 'الحالة', render: (tax) => (<LoadingButton onClick={() => toggleStatus(tax.id!)} isPending={updateTaxConfig.isPending} loadingText="..." variant="ghost" size="sm">{tax.isActive ? 'تعطيل' : 'تفعيل'}</LoadingButton>) },
+    { key: 'isActive', label: 'الحالة', render: (tax) => (<button onClick={() => toggleStatus(tax)} className={cn("flex items-center gap-1 font-bold text-xs p-1 rounded-lg transition-all", tax.isActive ? "bg-green-50 text-green-600" : "bg-red-50 text-red-400")}>{tax.isActive ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}{tax.isActive ? 'نشط' : 'معطل'}</button>) },
     { key: 'actions', label: '', render: (tax) => (<div className="flex items-center justify-start gap-2"><button onClick={() => handleOpenModal(tax)} className="p-2 hover:bg-gray-100 rounded-xl text-gray-500 hover:text-black transition-colors"><Edit2 className="w-4 h-4" /></button><button onClick={() => handleDelete(tax.id!)} className="p-2 hover:bg-red-50 rounded-xl text-gray-300 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button></div>), className: 'text-left' }
   ];
 
@@ -84,10 +80,10 @@ export default function TaxManagement() {
         </div>
       </div>
 
-      <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingTax ? 'تعديل الضريبة' : 'إضافة ضريبة جديدة'} size="xl" footer={<FormActions primaryLabel="حفظ التعديلات" secondaryLabel="إلغاء" onSecondary={() => setIsModalOpen(false)} loading={createTaxConfig.isPending || updateTaxConfig.isPending} />}>
+      <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingTax ? 'تعديل الضريبة' : 'إضافة ضريبة جديدة'} size="xl" footer={<FormActions primaryLabel="حفظ التعديلات" secondaryLabel="إلغاء" onSecondary={() => setIsModalOpen(false)} />}>
         <Form onSubmit={handleSave} autoFocusFirst>
           <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2 sm:col-span-1"><FormInput label="اسم الضريبة" type="text" value={formData.name ?? ''} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required /></div>
+            <div className="col-span-2 sm:col-span-1"><FormInput label="اسم الضريبة" type="text" value={formData.name ?? ''} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required autoFocus /></div>
             <div className="col-span-2 sm:col-span-1"><FormInput label="النسبة (%)" type="number" step="0.01" value={formData.rate ?? 0} onChange={(e) => setFormData({ ...formData, rate: parseFloat(e.target.value) })} required /></div>
             <div className="col-span-2 sm:col-span-1"><FormSelect label="نوع الضريبة" options={[{ value: 'VAT', label: 'ضريبة القيمة المضافة (VAT)' }, { value: 'Sales', label: 'ضريبة مبيعات' }, { value: 'Service', label: 'ضريبة خدمات' }, { value: 'Custom', label: 'أخرى' }]} value={formData.type ?? ''} onChange={(e) => setFormData({ ...formData, type: e.target.value as any })} /></div>
             <div className="col-span-2 sm:col-span-1"><FormInput label="كود الضريبة (اختياري)" type="text" value={formData.code ?? ''} onChange={(e) => setFormData({ ...formData, code: e.target.value })} /></div>
@@ -99,9 +95,7 @@ export default function TaxManagement() {
         </Form>
       </Modal>
 
-      <Modal open={deleteConfirmId !== null} onClose={() => setDeleteConfirmId(null)} title="حذف ضريبة" size="sm" footer={<LoadingButton onClick={handleDeleteConfirm} isPending={deleteTaxConfig.isPending} loadingText="جاري الحذف..." variant="danger" size="md">تأكيد الحذف</LoadingButton>}>
-        <p className="text-sm font-bold text-gray-600">هل أنت متأكد من حذف هذه الضريبة؟</p>
-      </Modal>
+      <ConfirmDialog open={deleteConfirmId !== null} title="حذف ضريبة" message="هل أنت متأكد من حذف هذه الضريبة؟" confirmLabel="تأكيد الحذف" variant="danger" onConfirm={executeDelete} onCancel={() => setDeleteConfirmId(null)} />
     </div>
   );
 }

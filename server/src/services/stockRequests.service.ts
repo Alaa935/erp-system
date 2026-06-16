@@ -1,6 +1,6 @@
 ﻿import { prisma } from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
-import { Prisma } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 
 export const stockRequestsService = {
@@ -13,12 +13,8 @@ export const stockRequestsService = {
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
   }) {
-    const { page = 1, pageSize = 10, search, status, sortBy, sortOrder } = params;
-    const pageNum = Number(page) || 1;
-    const pageSizeNum = Number(pageSize) || 10;
-    const rawRepId = (params as any).repId;
-    const repId = rawRepId ? Number(rawRepId) : undefined;
-    const where: Record<string, unknown> = { deletedAt: null };
+    const { page = 1, pageSize = 10, search, status, repId, sortBy, sortOrder } = params;
+    const where: Prisma.StockRequestWhereInput = { deletedAt: null };
 
     if (search) {
       where.OR = [
@@ -27,7 +23,7 @@ export const stockRequestsService = {
     }
 
     if (status) {
-      where.status = status as string;
+      where.status = status as any;
     }
 
     if (repId) {
@@ -44,14 +40,14 @@ export const stockRequestsService = {
       prisma.stockRequest.findMany({
         where,
         orderBy,
-        skip: (pageNum - 1) * pageSizeNum,
-        take: pageSizeNum,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
         include: { rep: true, items: { include: { item: true } } },
       }),
       prisma.stockRequest.count({ where }),
     ]);
 
-    return { items, meta: { page: pageNum, pageSize: pageSizeNum, total, totalPages: Math.ceil(total / pageSizeNum) } };
+    return { items, meta: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) } };
   },
 
   async getStockRequest(id: number) {
@@ -69,33 +65,26 @@ export const stockRequestsService = {
     status?: string;
     date?: string;
   }) {
-    const requestNumber = 'SR-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-    try {
-      return prisma.$transaction(async (tx) => {
-        const request = await tx.stockRequest.create({
-          data: {
-            requestNumber,
-            repId: data.repId,
-            status: (data.status as any) || 'pending',
-            date: data.date ? new Date(data.date) : undefined,
-            items: {
-              create: data.items.map((item) => ({
-                itemId: item.itemId,
-                quantity: new Decimal(item.quantity),
-                sellingPrice: item.sellingPrice != null ? new Decimal(item.sellingPrice) : null,
-              })),
-            },
+    return prisma.$transaction(async (tx) => {
+      const request = await tx.stockRequest.create({
+        data: {
+          requestNumber: `SR-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          repId: data.repId,
+          status: (data.status as any) || 'pending',
+          date: data.date ? new Date(data.date) : undefined,
+          items: {
+            create: data.items.map((item) => ({
+              itemId: item.itemId,
+              quantity: new Decimal(item.quantity),
+              sellingPrice: item.sellingPrice != null ? new Decimal(item.sellingPrice) : null,
+            })),
           },
-          include: { rep: true, items: { include: { item: true } } },
-        });
-        return request;
+        },
+        include: { rep: true, items: { include: { item: true } } },
       });
-    } catch (err: any) {
-      if (err?.code === 'P2002') {
-        throw new AppError(409, 'رقم الطلب مكرر، يرجى المحاولة مرة أخرى');
-      }
-      throw err;
-    }
+
+      return request;
+    });
   },
 
   async updateStockRequest(

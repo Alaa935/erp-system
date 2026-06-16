@@ -1,6 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api-client';
-import { useProtectedMutation } from './useProtectedMutation';
 import type { StockTransfer } from '../types';
 
 interface ListResponse {
@@ -30,25 +29,28 @@ export function useStockTransfer(id: number | undefined) {
 }
 
 export function useCreateStockTransfer() {
-  return useProtectedMutation(
-    (data: Partial<StockTransfer>) =>
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<StockTransfer>) =>
       api<SingleResponse>('/stock-transfers', { method: 'POST', body: JSON.stringify(data) }),
-    { invalidates: [['stockTransfers']] },
-  );
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['stockTransfers'] }); },
+  });
 }
 
 export function useUpdateStockTransfer() {
-  return useProtectedMutation(
-    ({ id, data }: { id: number; data: Partial<StockTransfer> }) =>
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<StockTransfer> }) =>
       api<SingleResponse>(`/stock-transfers/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    { invalidates: [['stockTransfers']] },
-  );
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['stockTransfers'] }); },
+  });
 }
 
 export function useDeleteStockTransfer() {
-  return useProtectedMutation(
-    ({ id, reason }: { id: number; reason: string }) =>
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
       api(`/stock-transfers/${id}`, { method: 'DELETE', body: JSON.stringify({ reason }) }),
-    { invalidates: [['stockTransfers']] },
-  );
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['stockTransfers'] }); },
+  });
 }

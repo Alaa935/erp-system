@@ -1,6 +1,5 @@
 import { prisma } from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
-import { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 
 function toNumber(d: Decimal | null | undefined): number {
@@ -9,8 +8,8 @@ function toNumber(d: Decimal | null | undefined): number {
 
 export const paymentCollectionsService = {
   async list(params: { page?: number; pageSize?: number; repId?: number; customerId?: number; status?: string }) {
-    const pageNum = Number(params.page) || 1;
-    const pageSizeNum = Number(params.pageSize) || 100;
+    const page = params.page || 1;
+    const pageSize = params.pageSize || 100;
     const where: any = {};
     if (params.repId) where.repId = params.repId;
     if (params.customerId) where.customerId = params.customerId;
@@ -19,14 +18,14 @@ export const paymentCollectionsService = {
       prisma.paymentCollection.findMany({
         where,
         orderBy: { date: 'desc' },
-        skip: (pageNum - 1) * pageSizeNum,
-        take: pageSizeNum,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
       }),
       prisma.paymentCollection.count({ where }),
     ]);
     return {
       items: items.map(c => ({ ...c, amount: toNumber(c.amount) })),
-      meta: { page: pageNum, pageSize: pageSizeNum, total, totalPages: Math.ceil(total / pageSizeNum) },
+      meta: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
     };
   },
 
@@ -35,31 +34,22 @@ export const paymentCollectionsService = {
       where: { repId, status: 'pending', type: 'rep_settlement' },
       orderBy: { date: 'desc' },
     });
-    console.log('[SERVICE getPendingSettlement] repId:', repId, 'collection:', collection);
     return collection ? { ...collection, amount: toNumber(collection.amount) } : null;
   },
 
   async create(data: { repId: number; amount: number; method: string; status?: string; type?: string; date?: number }) {
-    const collectionNumber = 'COL-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-    try {
-      const collection = await prisma.paymentCollection.create({
-        data: {
-          collectionNumber,
-          repId: data.repId,
-          amount: new Decimal(data.amount),
-          method: data.method as any,
-          status: (data.status as any) || 'pending',
-          type: (data.type as any) || 'customer',
-          date: data.date ? new Date(data.date) : new Date(),
-        },
-      });
-      return { ...collection, amount: toNumber(collection.amount) };
-    } catch (err: any) {
-      if (err?.code === 'P2002') {
-        throw new AppError(409, 'رقم التحصيل مكرر، يرجى المحاولة مرة أخرى');
-      }
-      throw err;
-    }
+    const collection = await prisma.paymentCollection.create({
+      data: {
+        collectionNumber: `COL-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        repId: data.repId,
+        amount: new Decimal(data.amount),
+        method: data.method as any,
+        status: (data.status as any) || 'pending',
+        type: (data.type as any) || 'customer',
+        date: data.date ? new Date(data.date) : new Date(),
+      },
+    });
+    return { ...collection, amount: toNumber(collection.amount) };
   },
 
   async update(id: number, data: { status?: string }) {

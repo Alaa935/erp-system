@@ -23,7 +23,7 @@ export const purchaseOrdersService = {
     const where: any = { deletedAt: null };
     if (status) where.status = status;
     if (paymentStatus) where.paymentStatus = paymentStatus;
-    if (supplierId) where.supplierId = supplierId;
+    if (supplierId) where.supplierId = Number(supplierId);
     if (search) {
       where.OR = [
         { orderNumber: { contains: search, mode: 'insensitive' } },

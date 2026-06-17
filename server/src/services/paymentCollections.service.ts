@@ -11,8 +11,8 @@ export const paymentCollectionsService = {
     const page = params.page || 1;
     const pageSize = params.pageSize || 100;
     const where: any = {};
-    if (params.repId) where.repId = params.repId;
-    if (params.customerId) where.customerId = params.customerId;
+    if (params.repId) where.repId = Number(params.repId);
+    if (params.customerId) where.customerId = Number(params.customerId);
     if (params.status) where.status = params.status;
     const [items, total] = await Promise.all([
       prisma.paymentCollection.findMany({

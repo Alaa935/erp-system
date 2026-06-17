@@ -25,7 +25,7 @@ export const salesOrdersService = {
     const where: any = { deletedAt: null };
 
     if (status) where.status = status;
-    if (customerId) where.customerId = customerId;
+    if (customerId) where.customerId = Number(customerId);
     if (paymentStatus) where.paymentStatus = paymentStatus;
     if (search) {
       where.OR = [

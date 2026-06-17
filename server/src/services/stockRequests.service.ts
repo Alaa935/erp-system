@@ -27,7 +27,7 @@ export const stockRequestsService = {
     }
 
     if (repId) {
-      where.repId = repId;
+      where.repId = Number(repId);
     }
 
     const orderBy: Prisma.StockRequestOrderByWithRelationInput = {};

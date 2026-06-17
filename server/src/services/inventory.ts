@@ -36,7 +36,7 @@ async listItems(params: {
       ];
     }
     if (category) where.category = category;
-    if (supplierId) where.supplierId = supplierId;
+    if (supplierId) where.supplierId = Number(supplierId);
 
     const orderBy: Prisma.ItemOrderByWithRelationInput = {};
     if (sortBy === 'name') orderBy.name = sortOrder;

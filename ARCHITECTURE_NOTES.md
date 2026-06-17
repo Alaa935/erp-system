@@ -124,3 +124,5 @@ All major entities use soft delete:
 8. **Prisma query logging in production**: database.ts logs ALL queries to stdout — potential performance issue and log noise.
 
 9. **Missing render.yaml**: All Render config is dashboard-only. Infrastructure as code missing.
+
+10. **SupplierInvoiceCreate page (feature-flagged)**: Dedicated page restored from commit `a0c0be0` (was created in `9ce4586`, enhanced in `df9f647`, deleted in `883b442`). Controlled by `VITE_USE_SUPPLIER_INVOICE_PAGE` env var. Default `false` → Modal; `true` → full-page create form at route `supplier-invoice-create`.

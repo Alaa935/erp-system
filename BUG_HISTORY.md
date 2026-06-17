@@ -150,6 +150,20 @@
 
 ---
 
+### B024 — ✅ 🔵 SupplierInvoiceCreate page deleted then restored with feature flag
+- **Date**: 2026-06-17
+- **Commit**: [latest — see git log]
+- **Severity**: LOW — feature flag protects existing behavior
+- **Symptom**: Dedicated create-purchase-order page (`SupplierInvoiceCreate.tsx`) was deleted in refactoring merge `883b442`, replaced with inline Modal
+- **Root Cause**: Commit `883b442` was a large refactoring that consolidated the create flow into a Modal inside `SupplierInvoices.tsx` to reduce page navigation
+- **Files affected**: `src/pages/SupplierInvoiceCreate.tsx` (restored), `src/App.tsx` (route added), `src/pages/SupplierInvoices.tsx` (onNavigate prop + conditional), `.env.production` (feature flag)
+- **Fix applied**: Restored `SupplierInvoiceCreate.tsx` from commit `a0c0be0`. Added `VITE_USE_SUPPLIER_INVOICE_PAGE` env var. When `true`: full-page route at `supplier-invoice-create`. When `false` (default): existing Modal behavior preserved exactly.
+- **Verification**: Build passes (vite build success). Both code paths compile. Modal path unchanged.
+- **Regression risk**: ZERO — Modal code is untouched. Feature flag defaults to `false` (Modal). Only the "إضافة فاتورة مورد" button behavior changes when flag is `true`.
+- **Status**: VERIFIED
+
+---
+
 ## Statistics
 
 | Status | Count |
@@ -159,4 +173,4 @@
 | 🟡 Medium (OPEN) | 2 |
 | 🔵 Low (OPEN) | 5 |
 | **Total OPEN** | **9** |
-| ✅ Fixed | 14 |
+| ✅ Fixed | 15 |

@@ -78,6 +78,12 @@ Key models (see `server/prisma/schema.prisma` for full schema):
   - API: `https://server-e6y4.onrender.com`
   - API Health: `https://server-e6y4.onrender.com/api/health`
 
+## Feature Flags
+
+| Flag | Default | Purpose |
+|------|---------|---------|
+| `VITE_USE_SUPPLIER_INVOICE_PAGE` | `false` | When `true`, purchase order creation uses dedicated page (`/supplier-invoice-create`) instead of Modal. Set in `.env.production`. |
+
 ## Known Constraints
 
 1. **No render.yaml** — deployment config is dashboard-only, not reproducible

@@ -28,7 +28,13 @@ import { toast } from 'sonner';
 import { WorkspaceLayout, EnterpriseTable, type Column, Modal, Form, FormInput, FormSelect, FormTextarea, FormSection, FormActions } from '../components/design-system';
 import { TableActionMenu, type ActionItem } from '../components/ui/TableActionMenu';
 
-export default function SupplierInvoices() {
+interface Props {
+  onNavigate?: (page: string) => void;
+}
+
+const USE_PAGE_MODE = import.meta.env.VITE_USE_SUPPLIER_INVOICE_PAGE === 'true';
+
+export default function SupplierInvoices({ onNavigate }: Props) {
   console.log('[RENDER] SupplierInvoices page');
   useEffect(() => {
     console.log('[MOUNT] SupplierInvoices page');
@@ -498,7 +504,7 @@ export default function SupplierInvoices() {
         subtitle="إدارة المشتريات وتحديث المخزون مباشرة"
         actions={
           <button 
-            onClick={() => setModalOpen(true)}
+            onClick={() => USE_PAGE_MODE ? onNavigate?.('supplier-invoice-create') : setModalOpen(true)}
             className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />

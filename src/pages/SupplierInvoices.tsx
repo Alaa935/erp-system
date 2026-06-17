@@ -34,6 +34,9 @@ interface Props {
 
 const USE_PAGE_MODE = import.meta.env.VITE_USE_SUPPLIER_INVOICE_PAGE === 'true';
 
+console.log('USE_SUPPLIER_INVOICE_PAGE=', import.meta.env.VITE_USE_SUPPLIER_INVOICE_PAGE);
+console.log('USE_PAGE_MODE=', USE_PAGE_MODE);
+
 export default function SupplierInvoices({ onNavigate }: Props) {
   console.log('[RENDER] SupplierInvoices page');
   useEffect(() => {

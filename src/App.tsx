@@ -57,6 +57,9 @@ export default function App() {
     if (/^#\/customer\/\d+$/.test(hash)) return 'customer-details';
     return getSavedPage() || 'dashboard';
   });
+  useEffect(() => {
+    console.log('[ACTIVE PAGE]', activePage);
+  }, [activePage]);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setNotificationsOpen] = useState(false);
@@ -256,8 +259,12 @@ export default function App() {
   };
 
   const handleNavigate = (page: string) => {
+    console.log('[NAVIGATE] Requested page =', page);
     if (canAccessPage(page, currentUser)) {
+      console.log('[NAVIGATE] Access granted');
       setActivePage(page);
+    } else {
+      console.error('[NAVIGATE] Access denied');
     }
   };
 

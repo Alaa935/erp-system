@@ -516,7 +516,15 @@ export default function SupplierInvoices({ onNavigate }: Props) {
             إضافة فاتورة مورد
           </button>
           <button
-            onClick={() => onNavigate?.('supplier-invoice-create')}
+            onClick={() => {
+              console.log('[TEST] Button clicked');
+              if (!onNavigate) {
+                console.error('[TEST] onNavigate is undefined');
+                return;
+              }
+              console.log('[TEST] Calling onNavigate');
+              onNavigate('supplier-invoice-create');
+            }}
             className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-800 transition-colors ml-2"
           >
             TEST PAGE NAVIGATION

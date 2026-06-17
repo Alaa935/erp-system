@@ -39,6 +39,7 @@ console.log('USE_PAGE_MODE=', USE_PAGE_MODE);
 
 export default function SupplierInvoices({ onNavigate }: Props) {
   console.log('[RENDER] SupplierInvoices page');
+  console.log('onNavigate exists=', !!onNavigate);
   useEffect(() => {
     console.log('[MOUNT] SupplierInvoices page');
     return () => console.log('[UNMOUNT] SupplierInvoices page');
@@ -506,6 +507,7 @@ export default function SupplierInvoices({ onNavigate }: Props) {
         title="فواتير الموردين"
         subtitle="إدارة المشتريات وتحديث المخزون مباشرة"
         actions={
+          <>
           <button 
             onClick={() => USE_PAGE_MODE ? onNavigate?.('supplier-invoice-create') : setModalOpen(true)}
             className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors"
@@ -513,6 +515,13 @@ export default function SupplierInvoices({ onNavigate }: Props) {
             <Plus className="w-3.5 h-3.5" />
             إضافة فاتورة مورد
           </button>
+          <button
+            onClick={() => onNavigate?.('supplier-invoice-create')}
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-800 transition-colors ml-2"
+          >
+            TEST PAGE NAVIGATION
+          </button>
+          </>
         }
       />
 

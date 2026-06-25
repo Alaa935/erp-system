@@ -288,6 +288,7 @@ export default function App() {
   };
 
   const renderPage = () => {
+    console.log('[ACTIVE PAGE]', activePage);
     if (!currentUser) return null;
     if (!canAccessPage(activePage, currentUser)) {
       const target = getDefaultPage(currentUser);

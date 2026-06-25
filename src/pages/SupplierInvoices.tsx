@@ -35,6 +35,7 @@ interface Props {
 const USE_PAGE_MODE = import.meta.env.VITE_USE_SUPPLIER_INVOICE_PAGE === 'true';
 
 export default function SupplierInvoices({ onNavigate }: Props) {
+  console.log('[SupplierInvoices] mounted');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPaymentStatus, setFilterPaymentStatus] = useState<'all' | 'paid' | 'partial' | 'unpaid'>('all');
   const [isModalOpen, setModalOpen] = useState(false);

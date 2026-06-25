@@ -50,6 +50,7 @@ interface InvoiceItem {
 }
 
 export default function SupplierInvoiceCreate({ onNavigate }: Props) {
+  console.log('[SupplierInvoiceCreate] mounted');
   const [isAddingNewItem, setIsAddingNewItem] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dateMode, setDateMode] = useState<'auto' | 'manual'>('auto');

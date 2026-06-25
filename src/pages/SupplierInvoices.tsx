@@ -34,16 +34,7 @@ interface Props {
 
 const USE_PAGE_MODE = import.meta.env.VITE_USE_SUPPLIER_INVOICE_PAGE === 'true';
 
-console.log('USE_SUPPLIER_INVOICE_PAGE=', import.meta.env.VITE_USE_SUPPLIER_INVOICE_PAGE);
-console.log('USE_PAGE_MODE=', USE_PAGE_MODE);
-
 export default function SupplierInvoices({ onNavigate }: Props) {
-  console.log('[RENDER] SupplierInvoices page');
-  console.log('onNavigate exists=', !!onNavigate);
-  useEffect(() => {
-    console.log('[MOUNT] SupplierInvoices page');
-    return () => console.log('[UNMOUNT] SupplierInvoices page');
-  }, []);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPaymentStatus, setFilterPaymentStatus] = useState<'all' | 'paid' | 'partial' | 'unpaid'>('all');
   const [isModalOpen, setModalOpen] = useState(false);
@@ -515,20 +506,7 @@ export default function SupplierInvoices({ onNavigate }: Props) {
             <Plus className="w-3.5 h-3.5" />
             إضافة فاتورة مورد
           </button>
-          <button
-            onClick={() => {
-              console.log('[TEST] Button clicked');
-              if (!onNavigate) {
-                console.error('[TEST] onNavigate is undefined');
-                return;
-              }
-              console.log('[TEST] Calling onNavigate');
-              onNavigate('supplier-invoice-create');
-            }}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-800 transition-colors ml-2"
-          >
-            TEST PAGE NAVIGATION
-          </button>
+
           </>
         }
       />

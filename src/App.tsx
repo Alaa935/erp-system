@@ -259,12 +259,8 @@ export default function App() {
   };
 
   const handleNavigate = (page: string) => {
-    console.log('[NAVIGATE] Requested page =', page);
     if (canAccessPage(page, currentUser)) {
-      console.log('[NAVIGATE] Access granted');
       setActivePage(page);
-    } else {
-      console.error('[NAVIGATE] Access denied');
     }
   };
 

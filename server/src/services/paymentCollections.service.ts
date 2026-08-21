@@ -1,6 +1,7 @@
 import { prisma } from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
 import Decimal from 'decimal.js';
+import crypto from 'crypto';
 
 function toNumber(d: Decimal | null | undefined): number {
   return d ? Number(d) : 0;
@@ -38,8 +39,10 @@ export const paymentCollectionsService = {
   },
 
   async create(data: { repId: number; amount: number; method: string; status?: string; type?: string; date?: number }) {
+    const collectionNumber = `COL-${Date.now()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
     const collection = await prisma.paymentCollection.create({
       data: {
+        collectionNumber,
         repId: data.repId,
         amount: new Decimal(data.amount),
         method: data.method as any,

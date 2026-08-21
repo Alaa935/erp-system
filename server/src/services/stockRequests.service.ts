@@ -2,6 +2,7 @@ import { prisma } from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
 import type { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
+import crypto from 'crypto';
 
 export const stockRequestsService = {
   async listStockRequests(params: {
@@ -65,9 +66,11 @@ export const stockRequestsService = {
     status?: string;
     date?: string;
   }) {
+    const requestNumber = `SR-${Date.now()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
     return prisma.$transaction(async (tx) => {
       const request = await tx.stockRequest.create({
         data: {
+          requestNumber,
           repId: data.repId,
           status: (data.status as any) || 'pending',
           date: data.date ? new Date(data.date) : undefined,

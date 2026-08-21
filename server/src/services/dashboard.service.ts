@@ -8,6 +8,32 @@ function toNumber(d: Decimal | null | undefined): number {
 const ASC = 'asc' as const;
 const DESC = 'desc' as const;
 
+function getCairoTodayStart(): Date {
+  const now = new Date();
+  const utcDate = new Date();
+  const cairoString = utcDate.toLocaleString('en-US', { timeZone: 'Africa/Cairo' });
+  const utcString = utcDate.toLocaleString('en-US', { timeZone: 'UTC' });
+  const cairoTime = new Date(cairoString).getTime();
+  const utcTime = new Date(utcString).getTime();
+  const diffHours = Math.round((cairoTime - utcTime) / (3600 * 1000));
+
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Africa/Cairo',
+    year: 'numeric', month: 'numeric', day: 'numeric'
+  }).formatToParts(now);
+
+  let year = now.getFullYear();
+  let month = now.getMonth() + 1;
+  let day = now.getDate();
+  for (const part of parts) {
+    if (part.type === 'year') year = parseInt(part.value, 10);
+    if (part.type === 'month') month = parseInt(part.value, 10);
+    if (part.type === 'day') day = parseInt(part.value, 10);
+  }
+
+  return new Date(Date.UTC(year, month - 1, day, -diffHours, 0, 0));
+}
+
 export const dashboardService = {
   async getSummary(repId?: number) {
     const now = new Date();
@@ -17,16 +43,15 @@ export const dashboardService = {
     const startOfMonth = new Date(currentYear, currentMonth, 1);
     const startOfPrevMonth = new Date(currentYear, currentMonth - 1, 1);
     const endOfPrevMonth = new Date(currentYear, currentMonth, 1);
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStart = getCairoTodayStart();
     const repFilter = repId ? { repId } : {};
 
     const [
-      salesAgg,
+      completedSalesAgg,
       expenseAgg,
       cogsOrders,
       totalItems,
       totalValue,
-      lowStockItems,
       allMinStockItems,
       customerCount,
       supplierCount,
@@ -42,12 +67,12 @@ export const dashboardService = {
       todayCompletedOrders,
       totalPurchaseAgg,
       totalTaxAgg,
-      allSalesOrders,
+      allCompletedSalesOrders,
     ] = await Promise.all([
       prisma.salesOrder.aggregate({
-        _sum: { totalAmount: true, paidAmount: true, taxAmount: true },
+        _sum: { totalAmount: true, paidAmount: true },
         _count: true,
-        where: { deletedAt: null, status: { not: 'cancelled' }, ...repFilter },
+        where: { deletedAt: null, status: { in: ['shipped', 'delivered'] }, ...repFilter },
       }),
       prisma.financialTransaction.aggregate({
         _sum: { amount: true },
@@ -67,13 +92,9 @@ export const dashboardService = {
         select: { quantity: true, purchasePrice: true, sellingPrice: true },
       }),
       prisma.item.findMany({
-        where: { deletedAt: null, quantity: { lte: prisma.item.fields.minQuantity } },
+        where: { deletedAt: null },
         select: { id: true, name: true, sku: true, quantity: true, minQuantity: true },
         orderBy: { quantity: ASC },
-      }),
-      prisma.item.findMany({
-        where: { deletedAt: null },
-        select: { quantity: true, minQuantity: true },
       }),
       prisma.customer.count({ where: { deletedAt: null } }),
       prisma.supplier.count({ where: { deletedAt: null } }),
@@ -84,11 +105,11 @@ export const dashboardService = {
       prisma.user.count(),
       prisma.salesOrder.aggregate({
         _sum: { totalAmount: true },
-        where: { deletedAt: null, status: { not: 'cancelled' }, date: { gte: startOfMonth }, ...repFilter },
+        where: { deletedAt: null, status: { in: ['shipped', 'delivered'] }, date: { gte: startOfMonth }, ...repFilter },
       }),
       prisma.salesOrder.aggregate({
         _sum: { totalAmount: true },
-        where: { deletedAt: null, status: { not: 'cancelled' }, date: { gte: startOfPrevMonth, lt: endOfPrevMonth }, ...repFilter },
+        where: { deletedAt: null, status: { in: ['shipped', 'delivered'] }, date: { gte: startOfPrevMonth, lt: endOfPrevMonth }, ...repFilter },
       }),
       prisma.salesOrderItem.findMany({
         where: {
@@ -120,15 +141,15 @@ export const dashboardService = {
       }),
       prisma.salesOrder.aggregate({
         _sum: { taxAmount: true },
-        where: { deletedAt: null, status: { not: 'cancelled' }, ...repFilter },
+        where: { deletedAt: null, status: { in: ['shipped', 'delivered'] }, ...repFilter },
       }),
       prisma.salesOrder.findMany({
-        where: { deletedAt: null, status: { not: 'cancelled' }, ...repFilter },
+        where: { deletedAt: null, status: { in: ['shipped', 'delivered'] }, ...repFilter },
         select: { id: true, status: true, date: true, totalAmount: true, customerId: true },
       }),
     ]);
 
-    const totalSales = toNumber(salesAgg._sum.totalAmount);
+    const totalSales = toNumber(completedSalesAgg._sum.totalAmount);
     const totalCogs = cogsOrders.reduce((sum, o) =>
       sum + o.items.reduce((s, i) => s + Number(i.quantity) * Number(i.purchasePrice ?? 0), 0)
     , 0);
@@ -165,28 +186,29 @@ export const dashboardService = {
     const pendingOrders = pendingSalesOrders;
     const pendingSales = pendingSalesOrders;
     const unpaidPurchases = unpaidPurchaseOrders;
-    const totalOrders = salesAgg._count;
+    const totalOrders = completedSalesAgg._count;
 
-    const completedOrders = allSalesOrders.filter(o => o.status === 'shipped' || o.status === 'delivered');
     const nowDate = new Date();
     const salesTrend = Array.from({ length: 7 }, (_, i) => {
       const d = new Date(nowDate); d.setDate(d.getDate() - (6 - i));
       const ds = d.toDateString();
-      return completedOrders.filter(o => new Date(o.date).toDateString() === ds).reduce((s, o) => s + Number(o.totalAmount), 0);
+      return allCompletedSalesOrders.filter(o => new Date(o.date).toDateString() === ds).reduce((s, o) => s + Number(o.totalAmount), 0);
     });
 
     const profitTrend = Array.from({ length: 7 }, (_, i) => {
       const d = new Date(nowDate); d.setDate(d.getDate() - (6 - i));
       const ds = d.toDateString();
-      const dailySales = completedOrders.filter(o => new Date(o.date).toDateString() === ds).reduce((s, o) => s + Number(o.totalAmount), 0);
+      const dailySales = allCompletedSalesOrders.filter(o => new Date(o.date).toDateString() === ds).reduce((s, o) => s + Number(o.totalAmount), 0);
       return Math.round(dailySales * (totalSales > 0 ? netProfit / totalSales : 0.2));
     });
 
     const customerTrend = Array.from({ length: 7 }, (_, i) => {
       const d = new Date(nowDate); d.setDate(d.getDate() - (6 - i));
       const ds = d.toDateString();
-      return allSalesOrders.filter(o => new Date(o.date).toDateString() === ds).length;
+      return allCompletedSalesOrders.filter(o => new Date(o.date).toDateString() === ds).length;
     });
+
+    const lowStockItems = allMinStockItems.filter(i => Number(i.quantity) <= Number(i.minQuantity));
 
     let availableCount = 0;
     let lowStockCount = 0;
@@ -260,7 +282,7 @@ export const dashboardService = {
 
     const [orders, purchaseOrders, items] = await Promise.all([
       prisma.salesOrder.findMany({
-        where: { deletedAt: null, status: { not: 'cancelled' }, ...repFilter },
+        where: { deletedAt: null, status: { in: ['shipped', 'delivered'] }, ...repFilter },
         select: { totalAmount: true, date: true, status: true },
       }),
       prisma.purchaseOrder.findMany({
@@ -275,7 +297,7 @@ export const dashboardService = {
 
     const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
     const salesByMonth = monthNames.map((name, i) => {
-      const ms = orders.filter(o => new Date(o.date).getMonth() === i && (o.status === 'shipped' || o.status === 'delivered'));
+      const ms = orders.filter(o => new Date(o.date).getMonth() === i);
       const mp = purchaseOrders.filter(o => new Date(o.date).getMonth() === i);
       return {
         name,
@@ -292,11 +314,10 @@ export const dashboardService = {
     const categoryData = Object.entries(categoryMap).map(([name, value]) => ({ name, value }));
 
     const dayNames = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-    const completedOrders = orders.filter(o => o.status === 'shipped' || o.status === 'delivered');
     const weeklyRevenue = dayNames.map((name, i) => {
       const d = new Date(now); d.setDate(d.getDate() - (6 - i));
       const ds = d.toDateString();
-      const val = completedOrders.filter(o => new Date(o.date).toDateString() === ds).reduce((s, o) => s + Number(o.totalAmount), 0);
+      const val = orders.filter(o => new Date(o.date).toDateString() === ds).reduce((s, o) => s + Number(o.totalAmount), 0);
       return { name, value: val };
     });
 
@@ -363,12 +384,11 @@ export const dashboardService = {
   },
 
   async getAlerts() {
-    const [lowStockItems, pendingSalesOrders, unpaidPurchaseOrders] = await Promise.all([
+    const [allMinStockItems, pendingSalesOrders, unpaidPurchaseOrders] = await Promise.all([
       prisma.item.findMany({
-        where: { deletedAt: null, quantity: { lte: prisma.item.fields.minQuantity } },
+        where: { deletedAt: null },
         select: { id: true, name: true, sku: true, quantity: true, minQuantity: true },
         orderBy: { quantity: ASC },
-        take: 10,
       }),
       prisma.salesOrder.count({ where: { deletedAt: null, status: 'pending' } }),
       prisma.purchaseOrder.count({
@@ -376,8 +396,10 @@ export const dashboardService = {
       }),
     ]);
 
+    const lowStockItems = allMinStockItems.filter(i => Number(i.quantity) <= Number(i.minQuantity));
+
     return {
-      lowStock: lowStockItems.map(i => ({
+      lowStock: lowStockItems.slice(0, 10).map(i => ({
         id: i.id,
         name: i.name,
         sku: i.sku,
@@ -437,12 +459,13 @@ export const dashboardService = {
 
   async getLowStock() {
     const items = await prisma.item.findMany({
-      where: { deletedAt: null, quantity: { lte: prisma.item.fields.minQuantity } },
+      where: { deletedAt: null },
       select: { id: true, name: true, sku: true, category: true, quantity: true, minQuantity: true, purchasePrice: true, sellingPrice: true },
       orderBy: { quantity: ASC },
     });
+    const lowStockItems = items.filter(i => Number(i.quantity) <= Number(i.minQuantity));
     return {
-      items: items.map(i => ({
+      items: lowStockItems.map(i => ({
         ...i,
         quantity: Number(i.quantity),
         minQuantity: Number(i.minQuantity),

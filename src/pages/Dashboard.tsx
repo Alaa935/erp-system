@@ -1,13 +1,13 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  TrendingUp, DollarSign, Package, AlertTriangle,
+  TrendingUp, Package, AlertTriangle,
   ArrowUpRight, ArrowDownRight, Eye, RefreshCw,
-  Activity, Layers, Percent, Wallet, Truck,
-  Bell, Zap, Shield, UserCheck,
+  Activity, Percent, Wallet, Truck,
+  Bell, Zap,
   CheckCircle2, Info, BarChart3, PieChart, Users, FileText, Target,
-  Plus, ShoppingCart, UserPlus, ClipboardList, Sparkles,
-  Star, Award, Clock, Filter, ExternalLink, MoreHorizontal
+  ShoppingCart, UserPlus, ClipboardList, Sparkles,
+  Star, Award, Clock, ExternalLink
 } from 'lucide-react';
 import { cn, formatCurrency, formatDate } from '../lib/utils';
 import {
@@ -15,7 +15,7 @@ import {
   PieChart as RPieChart, Pie, Cell, Area, AreaChart
 } from 'recharts';
 import { toast } from 'sonner';
-import { Card, PageHeader, EmptyState, WorkspaceSection } from '../components/design-system';
+import { PageHeader, EmptyState, WorkspaceSection } from '../components/design-system';
 import {
   useDashboardSummary,
   useDashboardCharts,
@@ -48,8 +48,8 @@ const MiniSparkline = ({ data, color = '#000' }: { data: number[]; color?: strin
   const range = max - min || 1;
   const pts = data.map((v, i) => [((i / (data.length - 1)) * w).toFixed(1), (h - ((v - min) / range) * (h - 4) - 2).toFixed(1)].join(',')).join(' ');
   const gradId = 'sparkGrad-' + color.replace('#', '');
-  const lastPt = pts.split(' ').slice(-1)[0];
-  const firstPt = pts.split(' ')[0];
+  const lastPt = pts.split(' ').slice(-1)[0] || '';
+  const firstPt = pts.split(' ')[0] || '';
   return (
     <svg width={w} height={h} viewBox={'0 0 ' + w + ' ' + h} className="shrink-0">
       <defs>
@@ -189,6 +189,11 @@ export default function Dashboard({ setActivePage }: { setActivePage: (page: str
   const { data: notificationsRes } = useDashboardNotifications();
 
   const s = summaryRes?.data;
+  console.log('[Dashboard] summaryRes:', summaryRes);
+  console.log('[Dashboard] s (summaryRes?.data):', s);
+  console.log('[Dashboard] totalCustomers:', s?.totalCustomers);
+  console.log('[Dashboard] chartsRes:', chartsRes);
+
   const charts = chartsRes?.data;
   const alerts = alertsRes?.data;
   const topProducts = topProductsRes?.data?.items ?? [];

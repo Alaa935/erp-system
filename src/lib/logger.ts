@@ -1,6 +1,6 @@
 import { sessionManager } from './session';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://server-e6y4.onrender.com';
 
 export type LogLevel = 'info' | 'warn' | 'error';
 export type LogEntity = string;

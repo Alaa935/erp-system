@@ -16,7 +16,18 @@ interface SingleResponse {
 export function useSalesReps(params?: Record<string, string>) {
   return useQuery({
     queryKey: ['salesReps', params],
-    queryFn: () => api<ListResponse>('/sales-reps', { params }),
+    queryFn: () => {
+      const url = new URL(`${import.meta.env.VITE_API_URL || 'https://server-e6y4.onrender.com'}/api/sales-reps`);
+      if (params) for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v as string);
+      console.log('[useSalesReps] FETCH URL:', url.toString());
+      console.log('[useSalesReps] REQUEST PARAMS:', params);
+      return api<ListResponse>('/sales-reps', { params }).then(raw => {
+        console.log('[useSalesReps] RAW RESPONSE:', raw);
+        console.log('[useSalesReps] items.length:', raw?.items?.length);
+        console.log('[useSalesReps] meta:', raw?.meta);
+        return raw;
+      });
+    },
   });
 }
 

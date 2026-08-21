@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/db';
+import React, { useState, useEffect } from 'react';
+import { useSystemConfig, useUpdateSystemConfig } from '../hooks/useSystemConfig';
+import { useNotifications } from '../hooks/useNotifications';
 import {
   Bell, MessageSquare, Send, Mail, Smartphone, CheckCircle2, X,
   Save, Activity, RefreshCw, AlertCircle, Phone, Globe, Settings2
@@ -17,15 +17,30 @@ const channels = [
 ];
 
 export default function NotificationsSettings() {
-  const config = useLiveQuery(() => db.systemConfig.get('default'));
-  const notifications = useLiveQuery(() => db.notifications.orderBy('date').reverse().limit(20).toArray());
+  const { data: configData } = useSystemConfig();
+  const config = configData?.data;
+  const updateConfig = useUpdateSystemConfig();
+
+  const { data: notificationsData } = useNotifications(20);
+  const notifications = notificationsData?.data;
 
   const [channelsState, setChannelsState] = useState({
-    whatsapp: config?.whatsappNotifications ?? true,
+    whatsapp: true,
     telegram: true,
-    email: config?.emailNotifications ?? true,
+    email: true,
     sms: false,
   });
+
+  useEffect(() => {
+    if (config) {
+      setChannelsState({
+        whatsapp: config.whatsappNotifications ?? true,
+        telegram: true,
+        email: config.emailNotifications ?? true,
+        sms: false,
+      });
+    }
+  }, [config]);
 
   const toggleChannel = (id: string) => {
     setChannelsState(prev => ({ ...prev, [id]: !(prev as any)[id] }));
@@ -37,7 +52,7 @@ export default function NotificationsSettings() {
 
   const handleSave = async () => {
     try {
-      await db.systemConfig.update('default', {
+      await updateConfig.mutateAsync({
         whatsappNotifications: channelsState.whatsapp,
         emailNotifications: channelsState.email,
       });

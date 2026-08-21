@@ -12,6 +12,8 @@ export const salesRepsService = {
     sortOrder?: 'asc' | 'desc';
   }) {
     const { page = 1, pageSize = 10, search, sortBy, sortOrder } = params;
+    const pageNum = Number(page) || 1;
+    const pageSizeNum = Number(pageSize) || 10;
     const where: Prisma.SalesRepWhereInput = { deletedAt: null };
 
     if (search) {
@@ -32,14 +34,14 @@ export const salesRepsService = {
       prisma.salesRep.findMany({
         where,
         orderBy,
-        skip: (page - 1) * pageSize,
-        take: pageSize,
+        skip: (pageNum - 1) * pageSizeNum,
+        take: pageSizeNum,
         include: { _count: { select: { repInventories: true } } },
       }),
       prisma.salesRep.count({ where }),
     ]);
 
-    return { items, meta: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) } };
+    return { items, meta: { page: pageNum, pageSize: pageSizeNum, total, totalPages: Math.ceil(total / pageSizeNum) } };
   },
 
   async getSalesRep(id: number) {

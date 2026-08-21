@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Plus, UserCircle, MapPin, Coins, ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react';
-import { Customer, SalesOrder } from '../../db/db';
+import { Customer, SalesOrder } from '../../types';
 import { cn, formatDate } from '../../lib/utils';
 
 interface RepCustomersProps {

@@ -11,8 +11,8 @@ export const paymentCollectionsService = {
     const page = params.page || 1;
     const pageSize = params.pageSize || 100;
     const where: any = {};
-    if (params.repId) where.repId = params.repId;
-    if (params.customerId) where.customerId = params.customerId;
+    if (params.repId) where.repId = Number(params.repId);
+    if (params.customerId) where.customerId = Number(params.customerId);
     if (params.status) where.status = params.status;
     const [items, total] = await Promise.all([
       prisma.paymentCollection.findMany({
@@ -40,6 +40,7 @@ export const paymentCollectionsService = {
   async create(data: { repId: number; amount: number; method: string; status?: string; type?: string; date?: number }) {
     const collection = await prisma.paymentCollection.create({
       data: {
+        collectionNumber: `COL-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         repId: data.repId,
         amount: new Decimal(data.amount),
         method: data.method as any,

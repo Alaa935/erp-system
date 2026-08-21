@@ -1,5 +1,5 @@
-﻿import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useState } from 'react';
+import { motion } from 'motion/react';
 import { 
   Users, 
   TrendingUp, 
@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api-client';
-import { useSalesReps, useCreateSalesRep, useDeleteSalesRep } from '../hooks/useSalesReps';
+import { useSalesReps, useDeleteSalesRep } from '../hooks/useSalesReps';
 import { useInventory } from '../hooks/useInventory';
 import { useCustomers } from '../hooks/useCustomers';
 import { useStockTransfers, useCreateStockTransfer } from '../hooks/useStockTransfers';
@@ -53,6 +53,10 @@ export default function SalesRepManagement() {
 
   const { data: repsData } = useSalesReps();
   const reps = repsData?.items;
+  
+  console.log('[SalesReps Page] repsData:', repsData);
+  console.log('[SalesReps Page] reps array:', reps);
+  console.log('[SalesReps Page] reps length:', reps?.length);
 
   const { data: itemsData } = useInventory({ pageSize: '10000' } as any);
   const items = itemsData?.items;
@@ -130,7 +134,6 @@ export default function SalesRepManagement() {
     enabled: !!selectedRepForDetail?.id,
   });
 
-  const createRep = useCreateSalesRep();
   const deleteRep = useDeleteSalesRep();
   const createTransfer = useCreateStockTransfer();
   const updateStockRequest = useUpdateStockRequest();
@@ -279,29 +282,23 @@ export default function SalesRepManagement() {
         return;
       }
 
-      const repResult = await createRep.mutateAsync({
-        name: newRep.name,
-        phone: cleanedPhone,
-        email: newRep.email,
-        zone: newRep.zone,
-        target: newRep.target,
-        commissionRate: newRep.commissionRate,
-        currentSales: 0,
-        createdAt: Date.now()
-      });
-
-      const repId = (repResult as any).id;
-
-      await api('/auth/register', {
+      const repResult = await api<any>('/sales-reps', {
         method: 'POST',
         body: JSON.stringify({
+          name: newRep.name,
+          phone: cleanedPhone,
+          email: newRep.email,
+          zone: newRep.zone,
+          target: newRep.target,
+          commissionRate: newRep.commissionRate,
+          currentSales: 0,
           username: cleanUsername,
           password: newRep.password,
-          role: 'rep',
-          repId,
-          nationalId: cleanedNationalId
+          nationalId: cleanedNationalId,
         }),
       });
+
+      const repId = repResult.data?.id || repResult.id;
 
       await api('/activity-logs', {
         method: 'POST',
@@ -564,12 +561,10 @@ export default function SalesRepManagement() {
                       </div>
                     </div>
                     
-                    <AnimatePresence>
                       {isExpanded && (
                         <motion.div 
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
                           className="overflow-hidden bg-gray-50/80 border-t border-gray-100"
                         >
                           <div className="p-4 flex flex-col gap-4">
@@ -624,7 +619,6 @@ export default function SalesRepManagement() {
                           </div>
                         </motion.div>
                       )}
-                    </AnimatePresence>
                   </div>
                 )
               })
@@ -815,11 +809,10 @@ export default function SalesRepManagement() {
       </div>
 
       {/* Add Rep Modal */}
-      <AnimatePresence>
         {isAddModalOpen && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setAddModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-lg rounded-3xl p-8 relative z-10 shadow-2xl overflow-hidden">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => setAddModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white w-full max-w-lg rounded-3xl p-8 relative z-10 shadow-2xl overflow-hidden">
               <h2 className="text-2xl font-black mb-6">إضافة مندوب جديد للمؤسسة</h2>
               <form onSubmit={handleAddRep} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -889,8 +882,8 @@ export default function SalesRepManagement() {
 
         {isTransferModalOpen && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setTransferModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-2xl rounded-3xl p-8 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => setTransferModalOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white w-full max-w-2xl rounded-3xl p-8 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
               <h2 className="text-2xl font-black mb-6">حوّلة مخزنية لمندوب بيع</h2>
               <form onSubmit={handleTransfer} className="space-y-6">
                 <div className="space-y-2">
@@ -938,8 +931,11 @@ export default function SalesRepManagement() {
                                 onChange={(e) => {
                                   const val = parseInt(e.target.value) || 0;
                                   const items = [...newTransfer.items];
-                                  items[idx].quantity = Math.min(val, itemDetails?.quantity || val);
-                                  setNewTransfer({...newTransfer, items});
+                                  const currentItem = items[idx];
+                                  if (currentItem) {
+                                    currentItem.quantity = Math.min(val, itemDetails?.quantity || val);
+                                    setNewTransfer({...newTransfer, items});
+                                  }
                                 }}
                                 className="w-20 bg-white border border-gray-200 rounded-lg p-2 text-center text-sm font-bold"
                               />
@@ -952,8 +948,11 @@ export default function SalesRepManagement() {
                                 onChange={(e) => {
                                   const val = parseFloat(e.target.value) || 0;
                                   const items = [...newTransfer.items];
-                                  items[idx].sellingPrice = val;
-                                  setNewTransfer({...newTransfer, items});
+                                  const currentItem = items[idx];
+                                  if (currentItem) {
+                                    currentItem.sellingPrice = val;
+                                    setNewTransfer({...newTransfer, items});
+                                  }
                                 }}
                                 className="w-24 bg-white border border-gray-200 rounded-lg p-2 text-center text-sm font-bold text-green-600"
                               />
@@ -991,8 +990,8 @@ export default function SalesRepManagement() {
 
         {selectedRepForDetail && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedRepForDetail(null)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-4xl rounded-3xl p-8 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => setSelectedRepForDetail(null)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white w-full max-w-4xl rounded-3xl p-8 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
               <div className="flex justify-between items-start mb-8">
                 <div className="flex items-center gap-6">
                   <div className="w-20 h-20 bg-black text-white rounded-2xl flex items-center justify-center text-3xl font-black">
@@ -1105,16 +1104,13 @@ export default function SalesRepManagement() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
 
       {/* Delete Rep Reason Modal */}
-      <AnimatePresence>
         {deleteReasonModalOpen && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm text-right" dir="rtl">
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
               className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden"
             >
               <div className="p-6 bg-red-50 border-b border-red-100 flex items-center gap-3">
@@ -1170,16 +1166,13 @@ export default function SalesRepManagement() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
 
       {/* Transfer Details Modal */}
-      <AnimatePresence>
         {transferDetailsModalOpen && selectedTransferForDetails && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm text-right" dir="rtl">
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
               className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden"
             >
               <div className="p-6 border-b bg-gray-50 flex items-center justify-between">
@@ -1249,7 +1242,6 @@ export default function SalesRepManagement() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
     </div>
   );
 }

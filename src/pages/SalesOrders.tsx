@@ -322,8 +322,11 @@ export default function SalesOrders() {
                           value={item.quantity || ''}
                           onChange={(e) => {
                             const items = [...newOrder.items];
-                            items[idx].quantity = parseInt(e.target.value) || 0;
-                            setNewOrder({...newOrder, items});
+                            const currentItem = items[idx];
+                            if (currentItem) {
+                              currentItem.quantity = parseInt(e.target.value) || 0;
+                              setNewOrder({...newOrder, items});
+                            }
                           }}
                           className="[&_input]:w-16 [&_input]:rounded"
                         />

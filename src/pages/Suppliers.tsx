@@ -39,6 +39,12 @@ export default function Suppliers() {
 
   const suppliers = suppliersQuery.data?.items;
 
+  console.log('[Suppliers Page] suppliersQuery.data:', suppliersQuery.data);
+  console.log('[Suppliers Page] suppliers array:', suppliers);
+  console.log('[Suppliers Page] suppliers length:', suppliers?.length);
+  console.log('[Suppliers Page] isLoading:', suppliersQuery.isLoading);
+  console.log('[Suppliers Page] isError:', suppliersQuery.isError);
+
   const createPurchaseOrder = useCreatePurchaseOrder();
   const updatePurchaseOrder = useUpdatePurchaseOrder();
   const deletePurchaseOrder = useDeletePurchaseOrder();
@@ -861,8 +867,11 @@ export default function Suppliers() {
                                   onChange={(e) => {
                                     const newItems = [...newOrder.newItems];
                                     const niIdx = newItems.findIndex(ni => ni.id === orderItem.itemId);
-                                    newItems[niIdx].name = e.target.value;
-                                    setNewOrder({...newOrder, newItems});
+                                    const currentNewItem = newItems[niIdx];
+                                    if (currentNewItem) {
+                                      currentNewItem.name = e.target.value;
+                                      setNewOrder({...newOrder, newItems});
+                                    }
                                   }}
                                   placeholder="اسم المنتج الجديد"
                                   className="w-full bg-gray-50 border-none rounded-lg py-1 px-2 text-sm font-black focus:ring-1 focus:ring-black"
@@ -877,8 +886,11 @@ export default function Suppliers() {
                                   value={orderItem.price}
                                   onChange={(e) => {
                                     const items = [...newOrder.items];
-                                    items[idx].price = parseFloat(e.target.value) || 0;
-                                    setNewOrder({...newOrder, items});
+                                    const currentItem = items[idx];
+                                    if (currentItem) {
+                                      currentItem.price = parseFloat(e.target.value) || 0;
+                                      setNewOrder({...newOrder, items});
+                                    }
                                   }}
                                   className="w-20 bg-gray-50 border-none rounded-md px-1 text-[10px] font-black focus:ring-1 focus:ring-black"
                                 />
@@ -889,8 +901,9 @@ export default function Suppliers() {
                                 type="button"
                                 onClick={() => {
                                   const items = [...newOrder.items];
-                                  if (items[idx].quantity > 1) {
-                                    items[idx].quantity -= 1;
+                                  const currentItem = items[idx];
+                                  if (currentItem && currentItem.quantity > 1) {
+                                    currentItem.quantity -= 1;
                                     setNewOrder({...newOrder, items});
                                   }
                                 }}
@@ -901,8 +914,11 @@ export default function Suppliers() {
                                 type="button"
                                 onClick={() => {
                                   const items = [...newOrder.items];
-                                  items[idx].quantity += 1;
-                                  setNewOrder({...newOrder, items});
+                                  const currentItem = items[idx];
+                                  if (currentItem) {
+                                    currentItem.quantity += 1;
+                                    setNewOrder({...newOrder, items});
+                                  }
                                 }}
                                 className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-all font-black"
                               >+</button>
@@ -931,8 +947,11 @@ export default function Suppliers() {
                                 onChange={(e) => {
                                   const newItems = [...newOrder.newItems];
                                   const niIdx = newItems.findIndex(ni => ni.id === orderItem.itemId);
-                                  newItems[niIdx].sku = e.target.value;
-                                  setNewOrder({...newOrder, newItems});
+                                  const currentNewItem = newItems[niIdx];
+                                  if (currentNewItem) {
+                                    currentNewItem.sku = e.target.value;
+                                    setNewOrder({...newOrder, newItems});
+                                  }
                                 }}
                                 className="bg-gray-50 border-none rounded-lg py-1 px-2 text-[10px] font-bold"
                               />
@@ -943,8 +962,11 @@ export default function Suppliers() {
                                 onChange={(e) => {
                                   const newItems = [...newOrder.newItems];
                                   const niIdx = newItems.findIndex(ni => ni.id === orderItem.itemId);
-                                  newItems[niIdx].category = e.target.value;
-                                  setNewOrder({...newOrder, newItems});
+                                  const currentNewItem = newItems[niIdx];
+                                  if (currentNewItem) {
+                                    currentNewItem.category = e.target.value;
+                                    setNewOrder({...newOrder, newItems});
+                                  }
                                 }}
                                 className="bg-gray-50 border-none rounded-lg py-1 px-2 text-[10px] font-bold"
                               />

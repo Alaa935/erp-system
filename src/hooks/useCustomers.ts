@@ -16,7 +16,18 @@ interface SingleResponse {
 export function useCustomers(params?: { page?: number; pageSize?: number; search?: string }) {
   return useQuery({
     queryKey: ['customers', params],
-    queryFn: () => api<ListResponse>('/customers', { params: params as Record<string, string> }),
+    queryFn: () => {
+      const url = new URL(`${import.meta.env.VITE_API_URL || 'https://server-e6y4.onrender.com'}/api/customers`);
+      if (params) for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v as string);
+      console.log('[useCustomers] FETCH URL:', url.toString());
+      console.log('[useCustomers] REQUEST PARAMS:', params);
+      return api<ListResponse>('/customers', { params: params as Record<string, string> }).then(raw => {
+        console.log('[useCustomers] RAW RESPONSE:', raw);
+        console.log('[useCustomers] items.length:', raw?.items?.length);
+        console.log('[useCustomers] meta:', raw?.meta);
+        return raw;
+      });
+    },
   });
 }
 

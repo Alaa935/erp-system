@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { usePurchaseOrders, useCreatePurchaseOrder } from '../hooks/usePurchaseOrders';
 import { useSuppliers } from '../hooks/useSuppliers';
 import { useInventory, useCreateInventoryItem } from '../hooks/useInventory';
@@ -28,7 +28,14 @@ import { toast } from 'sonner';
 import { WorkspaceLayout, EnterpriseTable, type Column, Modal, Form, FormInput, FormSelect, FormTextarea, FormSection, FormActions } from '../components/design-system';
 import { TableActionMenu, type ActionItem } from '../components/ui/TableActionMenu';
 
-export default function SupplierInvoices() {
+interface Props {
+  onNavigate?: (page: string) => void;
+}
+
+const USE_PAGE_MODE = import.meta.env.VITE_USE_SUPPLIER_INVOICE_PAGE === 'true';
+
+export default function SupplierInvoices({ onNavigate }: Props) {
+  console.log('[SupplierInvoices] mounted');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPaymentStatus, setFilterPaymentStatus] = useState<'all' | 'paid' | 'partial' | 'unpaid'>('all');
   const [isModalOpen, setModalOpen] = useState(false);
@@ -381,8 +388,11 @@ export default function SupplierInvoices() {
                       value={orderItem.quantity || ''}
                       onChange={(e) => {
                         const items = [...newInvoice.items];
-                        items[idx].quantity = parseInt(e.target.value) || 0;
-                        setNewInvoice({...newInvoice, items});
+                        const currentItem = items[idx];
+                        if (currentItem) {
+                          currentItem.quantity = parseInt(e.target.value) || 0;
+                          setNewInvoice({...newInvoice, items});
+                        }
                       }}
                       className="[&_input]:w-24 [&_input]:text-center [&_input]:text-sm"
                     />
@@ -394,8 +404,11 @@ export default function SupplierInvoices() {
                       value={orderItem.price || ''}
                       onChange={(e) => {
                         const items = [...newInvoice.items];
-                        items[idx].price = parseFloat(e.target.value) || 0;
-                        setNewInvoice({...newInvoice, items});
+                        const currentItem = items[idx];
+                        if (currentItem) {
+                          currentItem.price = parseFloat(e.target.value) || 0;
+                          setNewInvoice({...newInvoice, items});
+                        }
                       }}
                       className="[&_input]:w-32 [&_input]:text-center [&_input]:text-sm"
                     />
@@ -486,13 +499,16 @@ export default function SupplierInvoices() {
         title="فواتير الموردين"
         subtitle="إدارة المشتريات وتحديث المخزون مباشرة"
         actions={
+          <>
           <button 
-            onClick={() => setModalOpen(true)}
+            onClick={() => USE_PAGE_MODE ? onNavigate?.('supplier-invoice-create') : setModalOpen(true)}
             className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
             إضافة فاتورة مورد
           </button>
+
+          </>
         }
       />
 

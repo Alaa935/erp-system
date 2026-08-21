@@ -11,6 +11,8 @@ export const suppliersService = {
     sortOrder?: 'asc' | 'desc';
   }) {
     const { page = 1, pageSize = 10, search, sortBy, sortOrder } = params;
+    const pageNum = Number(page) || 1;
+const pageSizeNum = Number(pageSize) || 10;
     const where: Prisma.SupplierWhereInput = { deletedAt: null };
 
     if (search) {
@@ -31,8 +33,8 @@ export const suppliersService = {
       prisma.supplier.findMany({
         where,
         orderBy,
-        skip: (page - 1) * pageSize,
-        take: pageSize,
+       skip: (pageNum - 1) * pageSizeNum,
+take: pageSizeNum,
       }),
       prisma.supplier.count({ where }),
     ]);

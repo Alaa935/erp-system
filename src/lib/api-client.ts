@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://server-e6y4.onrender.com';
 
 const ACCESS_TOKEN_KEY = 'wms_access_token';
 const REFRESH_TOKEN_KEY = 'wms_refresh_token';
@@ -23,7 +23,10 @@ export function clearTokens(): void {
 
 function decodeToken(token: string): { exp?: number } | null {
   try {
-    return JSON.parse(atob(token.split('.')[1]));
+    const parts = token.split('.');
+    const payload = parts[1];
+    if (!payload) return null;
+    return JSON.parse(atob(payload));
   } catch {
     return null;
   }
@@ -78,11 +81,17 @@ let wasTokenSent = false;
 
 export async function api<T = unknown>(
   path: string,
-  options: RequestInit & { params?: Record<string, string> } = {},
+  options: RequestInit & { params?: Record<string, string | number | boolean | undefined | null> } = {},
 ): Promise<T> {
   const { params, ...fetchOptions } = options;
   const url = new URL(`${API_BASE}/api${path}`);
-  if (params) for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null && String(v) !== 'undefined') {
+        url.searchParams.set(k, String(v));
+      }
+    }
+  }
 
   const headers = new Headers(fetchOptions.headers);
   if (!headers.has('Content-Type') && !(fetchOptions.body instanceof FormData)) {
@@ -105,6 +114,10 @@ export async function api<T = unknown>(
       wasTokenSent = true;
     }
   }
+
+  console.log('[api-client] REQUEST URL:', url.toString());
+  console.log('[api-client] REQUEST METHOD:', fetchOptions.method || 'GET');
+  console.log('[api-client] REQUEST PARAMS:', params);
 
   let response = await fetch(url.toString(), { ...fetchOptions, headers });
 
@@ -131,11 +144,16 @@ export async function api<T = unknown>(
   }
 
   const data = await response.json();
+  console.log('[api-client] RESPONSE STATUS:', response.status);
+  console.log('[api-client] RAW RESPONSE BODY:', data);
+
   if (!response.ok) {
     throw new ApiError(response.status, data.error || `Request failed with status ${response.status}`);
   }
 
-  return (data.data ?? data) as T;
+  const result = data as T;
+  console.log('[api-client] RETURN VALUE:', result);
+  return result;
 }
 
 export default api;

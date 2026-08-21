@@ -42,18 +42,20 @@ export interface DashboardAlerts {
   totalAlerts: number;
 }
 
-export function useDashboardSummary() {
+export function useDashboardSummary(repId?: number) {
+  const params = repId ? `?repId=${repId}` : '';
   return useQuery({
-    queryKey: ['dashboard', 'summary'],
-    queryFn: () => api<{ success: boolean; data: DashboardSummary }>('/dashboard/summary'),
+    queryKey: ['dashboard', 'summary', repId],
+    queryFn: () => api<{ success: boolean; data: DashboardSummary }>(`/dashboard/summary${params}`),
     staleTime: 60_000,
   });
 }
 
-export function useDashboardCharts() {
+export function useDashboardCharts(repId?: number) {
+  const params = repId ? `?repId=${repId}` : '';
   return useQuery({
-    queryKey: ['dashboard', 'charts'],
-    queryFn: () => api<{ success: boolean; data: DashboardCharts }>('/dashboard/charts'),
+    queryKey: ['dashboard', 'charts', repId],
+    queryFn: () => api<{ success: boolean; data: DashboardCharts }>(`/dashboard/charts${params}`),
     staleTime: 60_000,
   });
 }
@@ -66,26 +68,29 @@ export function useDashboardAlerts() {
   });
 }
 
-export function useTopProducts() {
+export function useTopProducts(repId?: number) {
+  const params = repId ? `?repId=${repId}` : '';
   return useQuery({
-    queryKey: ['dashboard', 'top-products'],
-    queryFn: () => api<{ success: boolean; data: { items: { name: string; qty: number; revenue: number }[] } }>('/dashboard/top-products'),
+    queryKey: ['dashboard', 'top-products', repId],
+    queryFn: () => api<{ success: boolean; data: { items: { name: string; qty: number; revenue: number }[] } }>(`/dashboard/top-products${params}`),
     staleTime: 60_000,
   });
 }
 
-export function useTopCustomers() {
+export function useTopCustomers(repId?: number) {
+  const params = repId ? `?repId=${repId}` : '';
   return useQuery({
-    queryKey: ['dashboard', 'top-customers'],
-    queryFn: () => api<{ success: boolean; data: { items: { name: string; total: number; orders: number }[] } }>('/dashboard/top-customers'),
+    queryKey: ['dashboard', 'top-customers', repId],
+    queryFn: () => api<{ success: boolean; data: { items: { name: string; total: number; orders: number }[] } }>(`/dashboard/top-customers${params}`),
     staleTime: 60_000,
   });
 }
 
-export function useDashboardRecentActivity() {
+export function useDashboardRecentActivity(repId?: number) {
+  const params = repId ? `?repId=${repId}` : '';
   return useQuery({
-    queryKey: ['dashboard', 'recent-activity'],
-    queryFn: () => api<{ success: boolean; data: { logs: { id: number; action: string; username: string; entity: string; entityId: string | null; details: string; timestamp: string }[] } }>('/dashboard/recent-activity'),
+    queryKey: ['dashboard', 'recent-activity', repId],
+    queryFn: () => api<{ success: boolean; data: { logs: { id: number; action: string; username: string; entity: string; entityId: string | null; details: string; timestamp: string }[] } }>(`/dashboard/recent-activity${params}`),
     staleTime: 15_000,
   });
 }

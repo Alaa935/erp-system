@@ -12,7 +12,10 @@ export const paymentCollectionsController = {
   async getPendingSettlement(req: Request, res: Response, next: NextFunction) {
     try {
       const repId = Number(req.query.repId);
-      if (!repId) return res.status(400).json({ success: false, error: 'repId is required' });
+      if (!repId) {
+        res.status(400).json({ success: false, error: 'repId is required' });
+        return;
+      }
       const result = await paymentCollectionsService.getPendingSettlement(repId);
       res.json({ success: true, data: result });
     } catch (err) { next(err); }

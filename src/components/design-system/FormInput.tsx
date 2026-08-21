@@ -1,4 +1,6 @@
-import React, { type ReactNode } from 'react';
+import React, { useEffect, useRef, type ReactNode } from 'react';
+
+let _inputIdCounter = 0;
 
 interface FormInputProps {
   label?: string;
@@ -39,6 +41,27 @@ function FormInput({
   maxLength,
   step,
 }: FormInputProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const instanceId = useRef(++_inputIdCounter);
+  const inputElId = useRef<string | null>(null);
+
+  useEffect(() => {
+    console.log('[MOUNT] FormInput id=' + instanceId.current, 'label=' + label);
+    return () => console.log('[UNMOUNT] FormInput id=' + instanceId.current, 'label=' + label);
+  }, [label]);
+
+  useEffect(() => {
+    if (inputRef.current) {
+      if (inputElId.current === null) {
+        inputElId.current = `fi-${instanceId.current}`;
+        inputRef.current.dataset.fiid = String(instanceId.current);
+      }
+    }
+  });
+
+  console.log('[RENDER] FormInput id=' + instanceId.current, 'label=' + label,
+    'inputEl=' + (inputRef.current ? 'SAME#' + (inputRef.current.dataset.fiid || '?') : 'null'));
+
   return (
     <div className={'space-y-1.5 ' + className}>
       {label && (
@@ -54,6 +77,7 @@ function FormInput({
           </div>
         )}
         <input
+          ref={inputRef}
           type={type}
           value={value}
           onChange={onChange}

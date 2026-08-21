@@ -27,7 +27,7 @@ export const stockRequestsService = {
     }
 
     if (repId) {
-      where.repId = repId;
+      where.repId = Number(repId);
     }
 
     const orderBy: Prisma.StockRequestOrderByWithRelationInput = {};
@@ -68,6 +68,7 @@ export const stockRequestsService = {
     return prisma.$transaction(async (tx) => {
       const request = await tx.stockRequest.create({
         data: {
+          requestNumber: `SR-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           repId: data.repId,
           status: (data.status as any) || 'pending',
           date: data.date ? new Date(data.date) : undefined,

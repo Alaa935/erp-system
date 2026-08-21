@@ -12,7 +12,10 @@ export const activityLogsController = {
   async getById(req: Request, res: Response, next: NextFunction) {
     try {
       const log = await activityLogsService.getById(Number(req.params.id));
-      if (!log) return res.status(404).json({ success: false, message: 'Log not found' });
+      if (!log) {
+        res.status(404).json({ success: false, message: 'Log not found' });
+        return;
+      }
       res.json({ success: true, data: log });
     } catch (err) { next(err); }
   },
@@ -40,7 +43,7 @@ export const activityLogsController = {
 
   async getByEntity(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await activityLogsService.getByEntity(req.params.entityType, Number(req.params.entityId), req.query as any);
+      const data = await activityLogsService.getByEntity(req.params.entityType || '', Number(req.params.entityId), req.query as any);
       res.json({ success: true, ...data });
     } catch (err) { next(err); }
   },

@@ -2,6 +2,14 @@ import { Request, Response, NextFunction } from 'express';
 import { customersService } from '../services/customers.service.js';
 
 export const customersController = {
+  async countToday(req: Request, res: Response, next: NextFunction) {
+    try {
+      const repId = req.query.repId ? Number(req.query.repId) : undefined;
+      const count = await customersService.countToday(repId);
+      res.json({ success: true, data: count });
+    } catch (err) { next(err); }
+  },
+
   async list(req: Request, res: Response, next: NextFunction) {
     try {
       const result = await customersService.listCustomers(req.query as any);

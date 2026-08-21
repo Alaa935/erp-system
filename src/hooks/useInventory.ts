@@ -6,6 +6,14 @@ interface ListResponse {
   success: boolean;
   items: Item[];
   meta: { page: number; pageSize: number; total: number; totalPages: number };
+  stats?: {
+    totalItems: number;
+    totalQuantity: number;
+    costValue: number;
+    sellingValue: number;
+    expectedProfit: number;
+    lowStockCount: number;
+  };
 }
 
 interface SingleResponse {

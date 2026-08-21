@@ -109,7 +109,7 @@ export default function BackupSettings() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'إجمالي النسخ', value: mockBackups.length, icon: Cloud, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: 'آخر نسخة', value: formatDate(mockBackups[0].date), icon: Clock, color: 'text-green-600', bg: 'bg-green-50' },
+          { label: 'آخر نسخة', value: mockBackups[0] ? formatDate(mockBackups[0].date) : 'لا يوجد', icon: Clock, color: 'text-green-600', bg: 'bg-green-50' },
           { label: 'الحجم الإجمالي', value: `${totalSize.toFixed(1)} MB`, icon: HardDrive, color: 'text-purple-600', bg: 'bg-purple-50' },
           { label: 'آخر استعادة', value: 'منذ 7 أيام', icon: History, color: 'text-orange-600', bg: 'bg-orange-50' },
         ].map((stat, i) => (

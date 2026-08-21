@@ -1,4 +1,4 @@
-﻿import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { salesRepsService } from '../services/salesReps.service.js';
 
 export const salesRepsController = {
@@ -13,6 +13,13 @@ export const salesRepsController = {
     try {
       const salesRep = await salesRepsService.getSalesRep(Number(req.params.id));
       res.json({ success: true, data: salesRep });
+    } catch (err) { next(err); }
+  },
+
+  async getInventory(req: Request, res: Response, next: NextFunction) {
+    try {
+      const salesRep = await salesRepsService.getSalesRep(Number(req.params.id));
+      res.json({ success: true, items: salesRep.repInventories || [] });
     } catch (err) { next(err); }
   },
 

@@ -27,7 +27,7 @@ export const activityLogsService = {
     }
     if (params.entity) where.entity = params.entity;
     if (params.action) where.action = { contains: params.action, mode: 'insensitive' };
-    if (params.userId) where.userId = params.userId;
+    if (params.userId) where.userId = Number(params.userId);
     if (params.startDate || params.endDate) {
       where.timestamp = {};
       if (params.startDate) where.timestamp.gte = new Date(params.startDate);

@@ -50,7 +50,7 @@ export class WMSDatabase extends Dexie {
 
   constructor() {
     super('WMSDatabase');
-    // ── Version 1..12 — legacy, never upgrade-properly-handled ──
+    // �� Version 1..12 — legacy, never upgrade-properly-handled ��
     // Define all prior versions as empty so IndexedDB does NOT delete data
     this.version(1).stores({});
     this.version(2).stores({});
@@ -65,7 +65,7 @@ export class WMSDatabase extends Dexie {
     this.version(11).stores({});
     this.version(12).stores({});
 
-    // ── Version 13 — current production schema ──
+    // �� Version 13 — current production schema ��
     this.version(13).stores({
       items: '++id, sku, name, category, supplierId, quantity',
       suppliers: '++id, name, email',
@@ -93,7 +93,7 @@ export class WMSDatabase extends Dexie {
       taxes: '++id, name, isActive'
     });
 
-    // ── Version 14 — compound indexes + soft-delete indexes ──
+    // �� Version 14 — compound indexes + soft-delete indexes ��
     this.version(14).stores({
       items: '++id, sku, name, category, supplierId, quantity, [category+name], deletedAt',
       suppliers: '++id, name, email, deletedAt',
@@ -135,9 +135,16 @@ export class WMSDatabase extends Dexie {
       }
     });
 
-    // ── Version 15 — add repId+isSettledWithWarehouse index for sales orders ──
+    // �� Version 15 — add repId+isSettledWithWarehouse index for sales orders ��
     this.version(15).stores({
       salesOrders: '++id, orderNumber, customerId, repId, date, paymentStatus, status, [customerId+paymentStatus], [repId+paymentStatus], [repId+isSettledWithWarehouse], deletedAt',
+    });
+
+    // Version 16 — add transactionNumber/collectionNumber/requestNumber indexes
+    this.version(16).stores({
+      transactions: '++id, transactionNumber, type, category, date, referenceId, [type+category], [category+referenceId]',
+      paymentCollections: '++id, collectionNumber, repId, customerId, status, date, [repId+status+type], [customerId+status], [repId+status]',
+      stockRequests: '++id, requestNumber, repId, status, date, [repId+status], deletedAt',
     });
   }
 }

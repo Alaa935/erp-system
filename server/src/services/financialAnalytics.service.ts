@@ -37,26 +37,22 @@ export const financialAnalyticsService = {
       }),
       prisma.customer.count({ where: { deletedAt: null } }),
       prisma.supplier.count({ where: { deletedAt: null } }),
-      prisma.item.aggregate({
-        _sum: { purchasePrice: true, sellingPrice: true, quantity: true },
+      prisma.item.findMany({
         where: { deletedAt: null },
+        select: { purchasePrice: true, sellingPrice: true, quantity: true },
       }),
       prisma.item.count({ where: { deletedAt: null, quantity: { lte: prisma.item.fields.minQuantity } } }),
       prisma.salesOrder.count({ where: { deletedAt: null, status: 'pending' } }),
       prisma.salesRep.count({ where: { deletedAt: null } }),
     ]);
 
-    const inventoryQty = toNumber(inventoryAgg._sum.quantity);
-    const avgPurchasePrice = toNumber(inventoryAgg._sum.purchasePrice);
-    const avgSellingPrice = toNumber(inventoryAgg._sum.sellingPrice);
-
     const totalSales = toNumber(salesAgg._sum.totalAmount);
     const totalPaid = toNumber(salesAgg._sum.paidAmount);
     const totalExpenses = toNumber(expenseAgg._sum.amount);
     const netProfit = totalSales - totalExpenses;
 
-    const totalInventoryValue = inventoryQty * avgPurchasePrice;
-    const totalInventorySellingValue = inventoryQty * avgSellingPrice;
+    const totalInventoryValue = inventoryAgg.reduce((s, i) => s + Number(i.quantity) * Number(i.purchasePrice), 0);
+    const totalInventorySellingValue = inventoryAgg.reduce((s, i) => s + Number(i.quantity) * Number(i.sellingPrice), 0);
 
     return {
       success: true,
@@ -264,7 +260,10 @@ export const financialAnalyticsService = {
       if (trendsMap[key]) trendsMap[key].cost += Number(e.amount);
     }
     for (const key of Object.keys(trendsMap)) {
-      trendsMap[key].profit = trendsMap[key].revenue - trendsMap[key].cost;
+      const item = trendsMap[key];
+      if (item) {
+        item.profit = item.revenue - item.cost;
+      }
     }
 
     const trends = Object.entries(trendsMap)
@@ -287,17 +286,11 @@ export const financialAnalyticsService = {
   },
 
   async getInventoryAnalytics(params: { startDate?: string; endDate?: string }) {
-    const [items, categoryAgg, lowStockItems] = await Promise.all([
+    const [items, lowStockItems] = await Promise.all([
       prisma.item.findMany({
         where: { deletedAt: null },
         include: { supplier: { select: { id: true, name: true } } },
         orderBy: { quantity: 'desc' },
-      }),
-      prisma.item.groupBy({
-        by: ['category'],
-        _sum: { quantity: true, purchasePrice: true, sellingPrice: true },
-        _count: true,
-        where: { deletedAt: null },
       }),
       prisma.item.findMany({
         where: { deletedAt: null, quantity: { lte: prisma.item.fields.minQuantity } },
@@ -315,16 +308,19 @@ export const financialAnalyticsService = {
         totalValue,
         totalSellingValue,
         lowStockCount: lowStockItems.length,
-        uniqueCategories: categoryAgg.length,
+        uniqueCategories: new Set(items.map(i => i.category)).size,
         potentialProfit: totalSellingValue - totalValue,
       },
       charts: {
-        categoryDistribution: categoryAgg.map(c => ({
-          category: c.category,
-          quantity: Number(c._sum.quantity ?? 0),
-          value: Number(c._sum.quantity ?? 0) * Number(c._sum.purchasePrice ?? 0),
-          count: c._count,
-        })),
+        categoryDistribution: [...new Set(items.map(i => i.category))].map(cat => {
+          const catItems = items.filter(i => i.category === cat);
+          return {
+            category: cat,
+            quantity: catItems.reduce((s, i) => s + Number(i.quantity), 0),
+            value: catItems.reduce((s, i) => s + Number(i.quantity) * Number(i.purchasePrice), 0),
+            count: catItems.length,
+          };
+        }),
         lowStock: lowStockItems.map(i => ({
           id: i.id,
           name: i.name,

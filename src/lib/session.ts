@@ -130,7 +130,7 @@ export const sessionManager = {
     const token = (() => { try { return localStorage.getItem('wms_access_token'); } catch { return null; } })();
     if (!token) return false;
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+      const API_BASE = import.meta.env.VITE_API_URL || 'https://server-e6y4.onrender.com';
       const res = await fetch(`${API_BASE}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });

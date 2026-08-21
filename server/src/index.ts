@@ -1,9 +1,26 @@
 import app from './app.js';
 import { env } from './config/env.js';
 import { prisma } from './config/database.js';
+import { Prisma } from '@prisma/client';
+
+function printPrismaSchemaDiagnostic() {
+  try {
+    const model = Prisma.dmmf.datamodel.models.find((m: any) => m.name === 'SalesOrder');
+    if (!model) { console.log('[DIAG] SalesOrder model not found in DMMF'); return; }
+    console.log('[DIAG] === Prisma Schema Diagnostic for SalesOrder ===');
+    console.log('[DIAG] Model dbName:', model.dbName);
+    for (const field of model.fields) {
+      console.log(`[DIAG] Field: ${field.name}, column: ${field.dbName ?? field.name}, type: ${field.type}, hasDefault: ${!!field.default}`);
+    }
+    console.log('[DIAG] ===============================================');
+  } catch (err) {
+    console.log('[DIAG] Failed to read DMMF:', err);
+  }
+}
 
 async function main() {
   try {
+    printPrismaSchemaDiagnostic();
     await prisma.$connect();
     console.log('Connected to database');
 

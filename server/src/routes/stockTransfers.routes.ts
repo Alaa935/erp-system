@@ -8,8 +8,8 @@ import { createStockTransferSchema, updateStockTransferSchema, deleteStockTransf
 const router = Router();
 
 router.use(authenticate);
-router.get('/', authorize('admin', 'manager'), stockTransfersController.list);
-router.get('/:id', authorize('admin', 'manager'), stockTransfersController.getById);
+router.get('/', authorize('admin', 'manager', 'rep'), stockTransfersController.list);
+router.get('/:id', authorize('admin', 'manager', 'rep'), stockTransfersController.getById);
 router.post('/', authorize('admin', 'manager'), validate(createStockTransferSchema), stockTransfersController.create);
 router.put('/:id', authorize('admin', 'manager'), validate(updateStockTransferSchema), stockTransfersController.update);
 router.delete('/:id', authorize('admin'), validate(deleteStockTransferSchema), stockTransfersController.remove);

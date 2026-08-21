@@ -189,7 +189,7 @@ model InventoryTransaction {
 
 model Supplier {
   id          Int       @id @default(autoincrement())
-  name        String
+  name        String    @unique
   contactName String    @default("")
   phone       String    @default("")
   email       String    @default("")
@@ -317,7 +317,7 @@ model PurchaseOrderItem {
 model SalesRep {
   id            Int      @id @default(autoincrement())
   name          String
-  phone         String   @default("")
+  phone         String?  @unique
   email         String   @default("")
   zone          String   @default("")
   target        Decimal  @default(0) @db.Decimal(12,2)
@@ -353,7 +353,7 @@ model RepInventory {
 
 model Warehouse {
   id          Int      @id @default(autoincrement())
-  name        String
+  name        String   @unique
   location    String   @default("")
   capacity    Decimal  @default(0) @db.Decimal(12,2)
   manager     String   @default("")
@@ -366,7 +366,7 @@ model Warehouse {
 
 model StockTransfer {
   id            Int            @id @default(autoincrement())
-  transferNumber String
+  transferNumber String         @unique
   fromType      String
   fromId        Int
   toType        String
@@ -397,6 +397,7 @@ model StockTransferItem {
 
 model StockRequest {
   id       Int               @id @default(autoincrement())
+  requestNumber String         @unique
   repId    Int
   status   StockRequestStatus @default(pending)
   date     DateTime           @default(now())
@@ -430,7 +431,7 @@ model Employee {
   name        String
   role        String   @default("")
   department  String   @default("")
-  email       String   @default("")
+  email       String?  @unique
   permissions String   @default("limited")
   branchId    Int?
   deletedAt   DateTime?
@@ -467,6 +468,7 @@ model FinancialTransaction {
   amount      Decimal             @db.Decimal(12,2)
   description String
   referenceId Int?
+  transactionNumber String         @unique
   date        DateTime            @default(now())
 
   @@index([type])
@@ -478,6 +480,7 @@ model FinancialTransaction {
 
 model PaymentCollection {
   id            Int              @id @default(autoincrement())
+  collectionNumber String         @unique
   repId         Int
   customerId    Int?
   orderId       Int?
@@ -498,7 +501,7 @@ model PaymentCollection {
 model Vehicle {
   id              Int           @id @default(autoincrement())
   name            String
-  plateNumber     String
+  plateNumber     String        @unique
   purchaseDate    DateTime      @default(now())
   purchaseValue   Decimal       @default(0) @db.Decimal(12,2)
   licenseExpiry   DateTime      @default(now())
@@ -530,7 +533,7 @@ model Notification {
 
 model Branch {
   id          Int      @id @default(autoincrement())
-  name        String
+  name        String   @unique
   location    String   @default("")
   managerId   Int?
   phone       String   @default("")
@@ -603,7 +606,7 @@ model InvoiceSettings {
 
 model TaxConfig {
   id          Int      @id @default(autoincrement())
-  name        String
+  name        String   @unique
   rate        Decimal  @db.Decimal(5,2)
   type        String   @default("VAT")
   code        String?
@@ -618,4 +621,3 @@ model TaxConfig {
   @@index([name])
   @@map("tax_configs")
 }
-

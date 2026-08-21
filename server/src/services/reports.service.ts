@@ -36,8 +36,8 @@ export const reportsService = {
       prisma.customer.count({ where: { deletedAt: null } }),
       prisma.supplier.count({ where: { deletedAt: null } }),
       prisma.salesOrder.count({ where: { deletedAt: null, status: { not: 'cancelled' } } }),
-      prisma.item.aggregate({ where: { deletedAt: null }, _sum: { purchasePrice: true, sellingPrice: true, quantity: true } }),
-      prisma.item.count({ where: { deletedAt: null, quantity: { lte: new Decimal(10) } } }),
+      prisma.item.findMany({ where: { deletedAt: null }, select: { purchasePrice: true, sellingPrice: true, quantity: true } }),
+      prisma.item.count({ where: { deletedAt: null, quantity: { lte: prisma.item.fields.minQuantity } } }),
       prisma.salesOrder.count({ where: { deletedAt: null, status: 'pending' } }),
       prisma.salesRep.count({ where: { deletedAt: null } }),
     ]);
@@ -48,9 +48,9 @@ export const reportsService = {
     const totalPaid = toNumber(salesAgg._sum.paidAmount);
     const totalTaxCollected = toNumber(salesAgg._sum.taxAmount);
     const totalDue = totalSales - totalPaid;
-    const inventoryValue = toNumber(itemAgg._sum.purchasePrice) * toNumber(itemAgg._sum.quantity);
-    const inventorySellingValue = toNumber(itemAgg._sum.sellingPrice) * toNumber(itemAgg._sum.quantity);
-    const netProfit = totalSales - totalExpenses - totalPurchases;
+    const inventoryValue = itemAgg.reduce((s, i) => s + Number(i.quantity) * Number(i.purchasePrice), 0);
+    const inventorySellingValue = itemAgg.reduce((s, i) => s + Number(i.quantity) * Number(i.sellingPrice), 0);
+    const netProfit = totalSales - totalExpenses;
     const profit = netProfit > 0 ? netProfit : 0;
     const loss = netProfit < 0 ? Math.abs(netProfit) : 0;
 
@@ -82,12 +82,12 @@ export const reportsService = {
 
     const [revenueAgg, cogsAgg, expenseAgg] = await Promise.all([
       prisma.salesOrder.aggregate({ where: { deletedAt: null, status: { not: 'cancelled' }, ...df }, _sum: { totalAmount: true, subtotal: true, taxAmount: true } }),
-      prisma.salesOrderItem.aggregate({ where: { order: { deletedAt: null, status: { not: 'cancelled' }, ...df } }, _sum: { purchasePrice: true, quantity: true } }),
+      prisma.salesOrderItem.findMany({ where: { order: { deletedAt: null, status: { not: 'cancelled' }, ...df } }, select: { purchasePrice: true, quantity: true } }),
       prisma.financialTransaction.aggregate({ where: { type: 'expense', ...df }, _sum: { amount: true } }),
     ]);
 
     const totalRevenue = toNumber(revenueAgg._sum.totalAmount);
-    const totalCost = toNumber(cogsAgg._sum.purchasePrice) * toNumber(cogsAgg._sum.quantity);
+    const totalCost = cogsAgg.reduce((s, i) => s + Number(i.quantity) * Number(i.purchasePrice ?? 0), 0);
     const totalExpenses = toNumber(expenseAgg._sum.amount);
     const netProfit = totalRevenue - totalCost - totalExpenses;
     const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;

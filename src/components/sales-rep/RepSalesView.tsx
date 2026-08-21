@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Search, Plus, ShoppingCart, Eye, FileText } from 'lucide-react';
-import { SalesOrder, Customer } from '../../db/db';
+import { Search, Plus, ShoppingCart, Eye, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { SalesOrder, Customer } from '../../types';
 import { cn, formatDate } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -114,8 +114,24 @@ export const RepSalesView = ({ mySales, customers, onNewSale, onViewInvoice }: R
       </div>
 
       {totalPages > 1 && (
-        <div className="flex justify-center gap-2">
-           {/* Pagination buttons logic same as others */}
+        <div className="flex justify-center gap-2 pt-4">
+          <button 
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(p => p - 1)}
+            className="p-2 bg-white border border-[#E0E3E5] rounded-xl disabled:opacity-30 hover:bg-gray-50 transition-colors"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+          <div className="flex items-center px-6 font-black text-sm bg-white border border-[#E0E3E5] rounded-xl">
+            {currentPage} / {totalPages}
+          </div>
+          <button 
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage(p => p + 1)}
+            className="p-2 bg-white border border-[#E0E3E5] rounded-xl disabled:opacity-30 hover:bg-gray-50 transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
         </div>
       )}
     </div>

@@ -1,6 +1,10 @@
 import { db } from './schema';
 import type { Item, PurchaseOrder } from '../types';
 
+function txnId(): string {
+  return 'TXN-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
 export async function exportAllData(): Promise<string> {
   const dump: Record<string, any[]> = {};
   for (const table of db.tables) {
@@ -59,14 +63,14 @@ export const inventoryService = {
       }
       // Record Sale Income
       await db.transactions.add({
-        type: 'income', category: 'sale', amount: order.totalAmount,
+        transactionNumber: txnId(), type: 'income', category: 'sale', amount: order.totalAmount,
         description: `مبيعات - فاتورة صرف رقم ${order.orderNumber}`, referenceId: order.id, date: Date.now()
       });
       // Record COGS (Cost of Goods Sold)
       const cogsTotal = order.items.reduce((sum, i) => sum + (i.quantity * (i.purchasePrice || 0)), 0);
       if (cogsTotal > 0) {
         await db.transactions.add({
-          type: 'expense', category: 'cogs', amount: cogsTotal,
+          transactionNumber: txnId(), type: 'expense', category: 'cogs', amount: cogsTotal,
           description: `تكلفة البضاعة المباعة - فاتورة صرف رقم ${order.orderNumber}`, referenceId: order.id, date: Date.now()
         });
       }
@@ -112,7 +116,7 @@ export const inventoryService = {
         });
       }
       await db.transactions.add({
-        type: 'expense', category: 'purchase', amount: invoice.totalAmount,
+        transactionNumber: txnId(), type: 'expense', category: 'purchase', amount: invoice.totalAmount,
         description: `فاتورة شراء مباشرة رقم ${invoice.orderNumber} (مورد: ${invoice.supplierId})`, referenceId: invoiceId, date: Date.now()
       });
       await db.activityLogs.add({
@@ -142,7 +146,7 @@ export const inventoryService = {
       const financialTx = await db.transactions.where({ referenceId: invoiceId, category: 'purchase' }).first();
       if (financialTx) {
         await db.transactions.add({
-          type: 'income',
+          transactionNumber: txnId(), type: 'income',
           category: 'purchase',
           amount: financialTx.amount,
           description: `عكس قيد - إلغاء فاتورة مورد رقم ${invoice.orderNumber}`,
@@ -186,11 +190,11 @@ export const inventoryService = {
       const financialTx = await db.transactions.where({ referenceId: invoiceId, category: 'purchase' }).first();
       if (financialTx) {
         await db.transactions.add({
-          type: 'income', category: 'purchase', amount: financialTx.amount,
+          transactionNumber: txnId(), type: 'income', category: 'purchase', amount: financialTx.amount,
           description: `عكس القيد القديم - تحديث فاتورة شراء رقم ${updatedInvoice.orderNumber}`, referenceId: invoiceId, date: Date.now()
         });
         await db.transactions.add({
-          type: 'expense', category: 'purchase', amount: updatedInvoice.totalAmount,
+          transactionNumber: txnId(), type: 'expense', category: 'purchase', amount: updatedInvoice.totalAmount,
           description: `القيد الجديد - تحديث فاتورة شراء رقم ${updatedInvoice.orderNumber}`, referenceId: invoiceId, date: Date.now()
         });
       }
@@ -217,7 +221,7 @@ export const inventoryService = {
         await this.updateQuantity(item.itemId, item.quantity, 'increase', 'فاتورة توريد', userId, `Purchase-${order.orderNumber}`);
       }
       await db.transactions.add({
-        type: 'expense', category: 'purchase', amount: order.totalAmount,
+        transactionNumber: txnId(), type: 'expense', category: 'purchase', amount: order.totalAmount,
         description: `شراء بضاعة - فاتورة توريد رقم ${order.orderNumber}`, referenceId: order.id, date: Date.now()
       });
       await db.purchaseOrders.update(orderId, { status: 'received' });
@@ -256,7 +260,7 @@ export const paymentService = {
       if (collection.status !== 'pending') throw new Error('تمت معالجة الطلب مسبقاً');
       await db.paymentCollections.update(collectionId, { status: 'confirmed', confirmedDate: Date.now() });
       await db.transactions.add({
-        type: 'income', category: 'sale', amount: collection.amount,
+        transactionNumber: txnId(), type: 'income', category: 'sale', amount: collection.amount,
         description: `تحصيل من مندوب - طلب رقم ${collectionId}`, referenceId: collection.id, date: Date.now()
       });
       if (collection.type !== 'rep_settlement' && collection.customerId) {

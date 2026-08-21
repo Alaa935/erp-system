@@ -68,12 +68,16 @@ export async function seedData() {
           { name: 'المتحدة للاستيراد والتصدير', contactName: 'سارة حسن', phone: '01198765432', email: 'united@import.com', address: 'مصر الجديدة، القاهرة', createdAt: Date.now() }
         ]);
         const suppliers = await db.suppliers.toArray();
-        await db.items.bulkAdd([
-          { sku: 'SKU-001', name: 'أرز بسمتي هندي - 5كجم', category: 'مواد غذائية', purchasePrice: 200, sellingPrice: 250, quantity: 150, minQuantity: 20, location: 'ممر A - رف 01', supplierId: suppliers[0].id, createdAt: Date.now(), updatedAt: Date.now() },
-          { sku: 'SKU-002', name: 'زيت سلايت عباد شمس - 1لتر', category: 'مواد غذائية', purchasePrice: 70, sellingPrice: 85, quantity: 45, minQuantity: 50, location: 'ممر B - رف 12', supplierId: suppliers[0].id, createdAt: Date.now(), updatedAt: Date.now() },
-          { sku: 'SKU-003', name: 'سكر الأسرة - 1كجم', category: 'مواد غذائية', purchasePrice: 28, sellingPrice: 35, quantity: 500, minQuantity: 100, location: 'ممر A - رف 05', supplierId: suppliers[1].id, createdAt: Date.now(), updatedAt: Date.now() },
-          { sku: 'SKU-004', name: 'مكرونة الملكة - 400جم', category: 'مواد غذائية', purchasePrice: 12, sellingPrice: 15, quantity: 1000, minQuantity: 200, location: 'ممر C - رف 03', supplierId: suppliers[0].id, createdAt: Date.now(), updatedAt: Date.now() }
-        ]);
+        const sup0 = suppliers[0];
+        const sup1 = suppliers[1];
+        if (sup0 && sup1) {
+          await db.items.bulkAdd([
+            { sku: 'SKU-001', name: 'أرز بسمتي هندي - 5كجم', category: 'مواد غذائية', purchasePrice: 200, sellingPrice: 250, quantity: 150, minQuantity: 20, location: 'ممر A - رف 01', supplierId: sup0.id, createdAt: Date.now(), updatedAt: Date.now() },
+            { sku: 'SKU-002', name: 'زيت سلايت عباد شمس - 1لتر', category: 'مواد غذائية', purchasePrice: 70, sellingPrice: 85, quantity: 45, minQuantity: 50, location: 'ممر B - رف 12', supplierId: sup0.id, createdAt: Date.now(), updatedAt: Date.now() },
+            { sku: 'SKU-003', name: 'سكر الأسرة - 1كجم', category: 'مواد غذائية', purchasePrice: 28, sellingPrice: 35, quantity: 500, minQuantity: 100, location: 'ممر A - رف 05', supplierId: sup1.id, createdAt: Date.now(), updatedAt: Date.now() },
+            { sku: 'SKU-004', name: 'مكرونة الملكة - 400جم', category: 'مواد غذائية', purchasePrice: 12, sellingPrice: 15, quantity: 1000, minQuantity: 200, location: 'ممر C - رف 03', supplierId: sup0.id, createdAt: Date.now(), updatedAt: Date.now() }
+          ]);
+        }
       }
 
       const repInvCount = await db.repInventory.count();
@@ -97,9 +101,10 @@ export async function seedData() {
       const purchaseOrderCount = await db.purchaseOrders.count();
       if (purchaseOrderCount === 0) {
         const suppliers = await db.suppliers.toArray();
-        if (suppliers.length > 0) {
+        const firstSup = suppliers[0];
+        if (firstSup) {
           await db.purchaseOrders.add({
-            orderNumber: 'PO-2024-001', supplierId: suppliers[0].id!,
+            orderNumber: 'PO-2024-001', supplierId: firstSup.id!,
             items: [{ itemId: 1, quantity: 100, price: 250 }], totalAmount: 25000,
             status: 'received', paymentStatus: 'paid', paidAmount: 25000, date: Date.now() - 86400000
           });
@@ -126,10 +131,11 @@ export async function seedData() {
       const transactionCount = await db.transactions.count();
       if (transactionCount === 0) {
         const purchaseOrders = await db.purchaseOrders.toArray();
+        const txn = (p: string) => `TXN-${Date.now()}-${p}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
         await db.transactions.bulkAdd([
-          { type: 'income', category: 'sale', amount: 25000, description: 'مبيعات نقدية - دفعة أولى', date: Date.now() - 172800000 },
-          { type: 'expense', category: 'purchase', amount: 15000, description: 'شراء بضاعة PO-2024-001', referenceId: purchaseOrders[0]?.id, date: Date.now() - 86400000 },
-          { type: 'expense', category: 'rent', amount: 5000, description: 'إيجار المخزن الرئيسي للشهر الحالي', date: Date.now() - 432000000 }
+          { transactionNumber: txn('SEED'), type: 'income', category: 'sale', amount: 25000, description: 'مبيعات نقدية - دفعة أولى', date: Date.now() - 172800000 },
+          { transactionNumber: txn('SEED'), type: 'expense', category: 'purchase', amount: 15000, description: 'شراء بضاعة PO-2024-001', referenceId: purchaseOrders[0]?.id, date: Date.now() - 86400000 },
+          { transactionNumber: txn('SEED'), type: 'expense', category: 'rent', amount: 5000, description: 'إيجار المخزن الرئيسي للشهر الحالي', date: Date.now() - 432000000 }
         ]);
       }
 
@@ -148,11 +154,15 @@ export async function seedData() {
 
       const employees = await db.employees.toArray();
       const payrollCount = await db.employeePayroll.count();
-      if (payrollCount === 0 && employees.length > 0) {
-        await db.employeePayroll.bulkAdd([
-          { employeeId: employees[0].id!, baseSalary: 8000, advances: 500, bonuses: 200, deductions: 0, month: new Date().setHours(0, 0, 0, 0) },
-          { employeeId: employees[1].id!, baseSalary: 6500, advances: 0, bonuses: 0, deductions: 100, month: new Date().setHours(0, 0, 0, 0) }
-        ]);
+      if (payrollCount === 0) {
+        const emp0 = employees[0];
+        const emp1 = employees[1];
+        if (emp0 && emp1) {
+          await db.employeePayroll.bulkAdd([
+            { employeeId: emp0.id!, baseSalary: 8000, advances: 500, bonuses: 200, deductions: 0, month: new Date().setHours(0, 0, 0, 0) },
+            { employeeId: emp1.id!, baseSalary: 6500, advances: 0, bonuses: 0, deductions: 100, month: new Date().setHours(0, 0, 0, 0) }
+          ]);
+        }
       }
 
       const systemConfigCount = await db.systemConfig.count();

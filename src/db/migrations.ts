@@ -121,6 +121,20 @@ const migrations: Migration[] = [
       // IndexedDB's onupgradeneeded callback (version 14).
     },
   },
+  {
+    version: 15,
+    description: 'Add repId+isSettledWithWarehouse index for sales orders',
+    up: async () => {
+      // Handled by schema.ts version 15 — Dexie onupgradeneeded
+    },
+  },
+  {
+    version: 16,
+    description: 'Add transactionNumber/collectionNumber/requestNumber indexes',
+    up: async () => {
+      // Handled by schema.ts version 16 — Dexie onupgradeneeded
+    },
+  },
 ];
 
 export async function runMigrations(): Promise<void> {

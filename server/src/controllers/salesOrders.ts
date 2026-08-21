@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { salesOrdersService } from '../services/salesOrders.service.js';
+import { AppError } from '../middleware/errorHandler.js';
 
 export const salesOrdersController = {
   async list(req: Request, res: Response, next: NextFunction) {
@@ -59,6 +60,25 @@ export const salesOrdersController = {
         method,
         req.user!.userId
       );
+      res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+  },
+
+  async getUnsettled(req: Request, res: Response, next: NextFunction) {
+    try {
+      const repId = Number(req.query.repId);
+      if (!repId) throw new AppError(400, 'repId is required');
+      const result = await salesOrdersService.getUnsettledAmount(repId);
+      res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+  },
+
+  async getSettledCommission(req: Request, res: Response, next: NextFunction) {
+    try {
+      const repId = Number(req.query.repId);
+      const commissionRate = Number(req.query.commissionRate);
+      if (!repId) throw new AppError(400, 'repId is required');
+      const result = await salesOrdersService.getSettledCommission(repId, commissionRate || 0);
       res.json({ success: true, data: result });
     } catch (err) { next(err); }
   },

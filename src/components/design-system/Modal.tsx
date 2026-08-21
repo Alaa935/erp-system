@@ -43,7 +43,11 @@ function Modal({
   className,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
-  const previousActiveElement = useRef<Element | null>(null);
+  useEffect(() => {
+    console.log('[MOUNT] design-system Modal', title);
+    return () => console.log('[UNMOUNT] design-system Modal', title);
+  }, [title]);
+  console.log('[RENDER] design-system Modal open=' + open, title);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') { onClose(); return; }
@@ -54,6 +58,7 @@ function Modal({
       if (focusable.length === 0) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
+      if (!first || !last) return;
       if (e.shiftKey) {
         if (document.activeElement === first) { e.preventDefault(); last.focus(); }
       } else {
@@ -64,7 +69,6 @@ function Modal({
 
   useEffect(() => {
     if (open) {
-      previousActiveElement.current = document.activeElement;
       document.addEventListener('keydown', handleKeyDown);
       setTimeout(() => {
         const firstFocusable = modalRef.current?.querySelector<HTMLElement>(
@@ -77,11 +81,8 @@ function Modal({
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = '';
-      if (previousActiveElement.current instanceof HTMLElement) {
-        previousActiveElement.current.focus();
-      }
     };
-  }, [open, handleKeyDown]);
+  }, [open]);
 
   return (
     <AnimatePresence>

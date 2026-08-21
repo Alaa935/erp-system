@@ -11,6 +11,11 @@ import { useSalesOrders } from '../hooks/useSalesOrders';
 import { usePaymentCollections, useConfirmPaymentCollection } from '../hooks/usePaymentCollections';
 
 export default function Customers() {
+  console.log('[RENDER] Customers page');
+  useEffect(() => {
+    console.log('[MOUNT] Customers page');
+    return () => console.log('[UNMOUNT] Customers page');
+  }, []);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [isModalOpen, setModalOpen] = useState(false);
@@ -64,6 +69,14 @@ export default function Customers() {
 
   const customers = customersQuery.data?.items;
   const allCustomers = allCustomersQuery.data?.items || [];
+  
+  console.log('[Customers Page] customersQuery.data:', customersQuery.data);
+  console.log('[Customers Page] customers array:', customers);
+  console.log('[Customers Page] customers length:', customers?.length);
+  console.log('[Customers Page] isLoading:', customersQuery.isLoading);
+  console.log('[Customers Page] isError:', customersQuery.isError);
+  console.log('[Customers Page] error:', customersQuery.error);
+  console.log('[Customers Page] allCustomers length:', allCustomers.length);
 
   const customersLookup = useMemo(() => {
     const map = new Map<number, Customer>();

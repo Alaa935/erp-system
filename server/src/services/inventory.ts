@@ -4,17 +4,30 @@ import type { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 
 export const inventoryService = {
-  async listItems(params: {
-    page?: number;
-    pageSize?: number;
-    search?: string;
-    category?: string;
-    supplierId?: number;
-    sortBy?: string;
-    sortOrder?: 'asc' | 'desc';
-  }) {
-    const { page = 1, pageSize = 10, search, category, supplierId, sortBy, sortOrder } = params;
-    const where: Prisma.ItemWhereInput = { deletedAt: null };
+async listItems(params: {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  category?: string;
+  supplierId?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}) {
+
+  const {
+    page = 1,
+    pageSize = 10,
+    search,
+    category,
+    supplierId,
+    sortBy,
+    sortOrder,
+  } = params;
+
+  const pageNum = Number(page) || 1;
+  const pageSizeNum = Number(pageSize) || 10;
+
+  const where: Prisma.ItemWhereInput = { deletedAt: null };
 
     if (search) {
       where.OR = [
@@ -23,7 +36,7 @@ export const inventoryService = {
       ];
     }
     if (category) where.category = category;
-    if (supplierId) where.supplierId = supplierId;
+    if (supplierId) where.supplierId = Number(supplierId);
 
     const orderBy: Prisma.ItemOrderByWithRelationInput = {};
     if (sortBy === 'name') orderBy.name = sortOrder;
@@ -34,16 +47,25 @@ export const inventoryService = {
     else if (sortBy === 'category') orderBy.category = sortOrder;
     else orderBy.updatedAt = 'desc';
 
-    const [items, total] = await Promise.all([
+    const [items, total, allItemsForStats] = await Promise.all([
       prisma.item.findMany({
         where,
         orderBy,
-        skip: (page - 1) * pageSize,
-        take: pageSize,
+        skip: (pageNum - 1) * pageSizeNum,
+        take: pageSizeNum,
         include: { supplier: { select: { id: true, name: true } } },
       }),
       prisma.item.count({ where }),
+      prisma.item.findMany({
+        where: { deletedAt: null },
+        select: { purchasePrice: true, sellingPrice: true, quantity: true, minQuantity: true }
+      }),
     ]);
+
+    const costValue = allItemsForStats.reduce((acc, i) => acc + (Number(i.purchasePrice) * Number(i.quantity)), 0);
+    const sellingValue = allItemsForStats.reduce((acc, i) => acc + (Number(i.sellingPrice) * Number(i.quantity)), 0);
+    const totalQty = allItemsForStats.reduce((acc, i) => acc + Number(i.quantity), 0);
+    const lowStockCount = allItemsForStats.filter(i => Number(i.quantity) <= Number(i.minQuantity)).length;
 
     return {
       items: items.map(i => ({
@@ -54,11 +76,19 @@ export const inventoryService = {
         minQuantity: Number(i.minQuantity),
       })),
       meta: {
-        page,
-        pageSize,
+        page: pageNum,
+        pageSize: pageSizeNum,
         total,
-        totalPages: Math.ceil(total / pageSize),
+        totalPages: Math.ceil(total / pageSizeNum),
       },
+      stats: {
+        totalItems: allItemsForStats.length,
+        totalQuantity: totalQty,
+        costValue,
+        sellingValue,
+        expectedProfit: sellingValue - costValue,
+        lowStockCount
+      }
     };
   },
 

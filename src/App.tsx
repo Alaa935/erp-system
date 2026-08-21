@@ -34,13 +34,32 @@ const Accounting = lazy(() => import('./pages/Accounting'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const TaxManagement = lazy(() => import('./pages/TaxManagement'));
 const InvoiceVerificationPage = lazy(() => import('./pages/InvoiceVerificationPage'));
+const CustomerDetailsPage = lazy(() => import('./pages/CustomerDetailsPage'));
 const Profile = lazy(() => import('./pages/Profile'));
+const SupplierInvoiceCreate = lazy(() => import('./pages/SupplierInvoiceCreate'));
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://server-e6y4.onrender.com';
+
+const PAGE_STORAGE_KEY = 'wms_active_page';
+
+function getSavedPage(): string | null {
+  try { return localStorage.getItem(PAGE_STORAGE_KEY); } catch { return null; }
+}
+
+function savePage(page: string): void {
+  try { localStorage.setItem(PAGE_STORAGE_KEY, page); } catch {}
+}
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
-  const [activePage, setActivePage] = useState('dashboard');
+  const [activePage, setActivePage] = useState(() => {
+    const hash = window.location.hash;
+    if (/^#\/customer\/\d+$/.test(hash)) return 'customer-details';
+    return getSavedPage() || 'dashboard';
+  });
+  useEffect(() => {
+    console.log('[ACTIVE PAGE]', activePage);
+  }, [activePage]);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setNotificationsOpen] = useState(false);
@@ -54,11 +73,21 @@ export default function App() {
     return null;
   });
 
-  const { data: notificationsData } = useNotifications(50);
-  const { data: unreadData } = useUnreadNotifications();
+  const [customerDetailsId, setCustomerDetailsId] = useState<number | null>(() => {
+    const hash = window.location.hash;
+    const match = hash.match(/^#\/customer\/(\d+)$/);
+    if (match && match[1]) {
+      sessionStorage.setItem('wms_selected_customer_id', match[1]);
+      return Number(match[1]);
+    }
+    return null;
+  });
+
+  const { data: notificationsData } = useNotifications(50, !!currentUser);
+  const { data: unreadData } = useUnreadNotifications(!!currentUser);
   const markAllReadMutation = useMarkAllNotificationsRead();
 
-  const rawNotifications = notificationsData as any[] | undefined;
+  const rawNotifications = (notificationsData as any)?.data as any[] | undefined;
   const notifications: AppNotification[] | undefined = rawNotifications?.map((n: any) => ({
     id: n.id,
     title: n.title,
@@ -70,6 +99,10 @@ export default function App() {
   const unreadCount = (unreadData as any)?.unreadCount ?? notifications?.filter(n => !n.read).length ?? 0;
 
   const [isInitializing, setIsInitializing] = useState(true);
+
+  useEffect(() => {
+    if (currentUser) savePage(activePage);
+  }, [activePage, currentUser]);
 
   const handleUserUpdate = useCallback((user: UserAccount) => {
     setCurrentUser(user);
@@ -95,6 +128,15 @@ export default function App() {
       const hash = window.location.hash;
       if (hash.startsWith('#/invoice/')) {
         setInvoiceVerificationNumber(decodeURIComponent(hash.replace('#/invoice/', '')));
+      } else {
+        const match = hash.match(/^#\/customer\/(\d+)$/);
+        if (match && match[1]) {
+          sessionStorage.setItem('wms_selected_customer_id', match[1]);
+          setCustomerDetailsId(Number(match[1]));
+          setActivePage('customer-details');
+        } else if (hash === '') {
+          setCustomerDetailsId(null);
+        }
       }
     };
     window.addEventListener('hashchange', onHashChange);
@@ -108,7 +150,11 @@ export default function App() {
       const token = getAccessToken();
       if (token) {
         try {
-          const userData = await api<{ id: number; username: string; role: 'admin' | 'manager' | 'rep'; repId?: number | null }>('/auth/me');
+          const meRes = await api<{
+            success: boolean;
+            data: { id: number; username: string; role: 'admin' | 'manager' | 'rep'; repId?: number | null };
+          }>('/auth/me');
+          const userData = meRes.data;
           const user: UserAccount = {
             id: userData.id,
             username: userData.username,
@@ -120,7 +166,6 @@ export default function App() {
           sessionRestored = true;
         } catch {
           clearTokens();
-          console.warn('JWT session restore failed — cleared tokens');
         }
       }
 
@@ -136,7 +181,11 @@ export default function App() {
             const refreshJson = await refreshRes.json();
             if (refreshJson.success && refreshJson.data) {
               setTokens(refreshJson.data.accessToken, refreshJson.data.refreshToken);
-              const userData = await api<{ id: number; username: string; role: 'admin' | 'manager' | 'rep'; repId?: number | null }>('/auth/me');
+              const meRes = await api<{
+                success: boolean;
+                data: { id: number; username: string; role: 'admin' | 'manager' | 'rep'; repId?: number | null };
+              }>('/auth/me');
+              const userData = meRes.data;
               const user: UserAccount = {
                 id: userData.id,
                 username: userData.username,
@@ -201,7 +250,12 @@ export default function App() {
   const handleLogin = (user: UserAccount) => {
     sessionManager.create(user);
     setCurrentUser(user);
-    setActivePage(getDefaultPage(user));
+    const saved = getSavedPage();
+    if (saved && canAccessPage(saved, user)) {
+      setActivePage(saved);
+    } else {
+      setActivePage(getDefaultPage(user));
+    }
   };
 
   const handleNavigate = (page: string) => {
@@ -234,6 +288,7 @@ export default function App() {
   };
 
   const renderPage = () => {
+    console.log('[ACTIVE PAGE]', activePage);
     if (!currentUser) return null;
     if (!canAccessPage(activePage, currentUser)) {
       const target = getDefaultPage(currentUser);
@@ -249,7 +304,8 @@ export default function App() {
             case 'inventory': return <Inventory setActivePage={setActivePage} />;
             case 'suppliers': return <Suppliers />;
             case 'customers': return <Customers />;
-            case 'supplier-invoices': return <SupplierInvoices />;
+            case 'supplier-invoices': return <SupplierInvoices onNavigate={handleNavigate} />;
+            case 'supplier-invoice-create': return <SupplierInvoiceCreate onNavigate={handleNavigate} />;
             case 'sales-orders': return <SalesOrders />;
             case 'reports': return <Reports setActivePage={setActivePage} />;
             case 'warehouses': return <Warehouses setActivePage={setActivePage} />;
@@ -264,6 +320,7 @@ export default function App() {
             case 'profile': return <Profile currentUser={currentUser} onNavigate={handleNavigate} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />;
             case 'sales-rep-management': return <SalesRepManagement />;
             case 'sales-rep-portal': return <SalesRepPortal currentUser={currentUser} />;
+            case 'customer-details': return <CustomerDetailsPage onNavigate={handleNavigate} />;
             default:
               if (currentUser?.role === 'rep') return <SalesRepPortal currentUser={currentUser} activeTab='overview' />;
               if (currentUser?.role === 'admin') return <SettingsPage activeTab='general' />;

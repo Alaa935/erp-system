@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { Item } from '../types';
 import { 
   Plus, 
@@ -11,6 +11,7 @@ import {
   AlertCircle,
   TrendingUp,
   TrendingDown,
+  DollarSign,
   ArrowRightLeft
 } from 'lucide-react';
 import { cn, formatCurrency } from '../lib/utils';
@@ -28,6 +29,11 @@ export default function Inventory({
 }: { 
   setActivePage: (page: string) => void 
 }) {
+  console.log('[RENDER] Inventory page');
+  useEffect(() => {
+    console.log('[MOUNT] Inventory page');
+    return () => console.log('[UNMOUNT] Inventory page');
+  }, []);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('جميع الفئات');
   const [isModalOpen, setModalOpen] = useState(false);
@@ -63,7 +69,27 @@ export default function Inventory({
     changedFields: [] as string[]
   });
 
-  const { data: inventoryData } = useInventory({ pageSize: 10000 });
+  const [page, setPage] = useState(1);
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [categoryFilter]);
+
+  const { data: inventoryData, isLoading } = useInventory({
+    page,
+    pageSize: 10,
+    search: debouncedSearch || undefined,
+    category: categoryFilter === 'جميع الفئات' ? undefined : categoryFilter
+  });
   const { data: suppliersData } = useSuppliers({ pageSize: 10000 });
   const items = inventoryData?.items;
   const suppliers = suppliersData?.items;
@@ -92,12 +118,7 @@ export default function Inventory({
     setModalOpen(true);
   };
 
-  const filteredItems = useMemo(() => items?.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    item.sku.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === 'جميع الفئات' || item.category === categoryFilter;
-    return matchesSearch && matchesCategory;
-  }), [items, searchTerm, categoryFilter]);
+  const filteredItems = items;
 
   
   const columns: Column<Item>[] = [
@@ -139,12 +160,24 @@ export default function Inventory({
     }
   ];
 
-const inventoryStats = useMemo(() => [
-  { label: 'إجمالي الأصناف', value: items?.length || 0, icon: Package, color: 'text-blue-500' },
-  { label: 'أصناف منخفضة', value: items?.filter(i => i.quantity <= i.minQuantity).length || 0, icon: AlertCircle, color: 'text-orange-500' },
-  { label: 'إجمالي الكمية', value: items?.reduce((acc, i) => acc + i.quantity, 0) || 0, icon: Package, color: 'text-green-500' },
-  { label: 'القيمة (بيع)', value: formatCurrency(items?.reduce((acc, i) => acc + (i.sellingPrice * i.quantity), 0) || 0), icon: Package, color: 'text-purple-500' },
-  ], [items]);
+const inventoryStats = useMemo(() => {
+  const stats = inventoryData?.stats || {
+    totalItems: 0,
+    totalQuantity: 0,
+    costValue: 0,
+    sellingValue: 0,
+    expectedProfit: 0,
+    lowStockCount: 0
+  };
+  return [
+    { label: 'إجمالي الأصناف', value: stats.totalItems, icon: Package, color: 'text-blue-500' },
+    { label: 'إجمالي الكمية', value: stats.totalQuantity, icon: Package, color: 'text-green-500' },
+    { label: 'قيمة المخزون (بالشراء)', value: formatCurrency(stats.costValue), icon: DollarSign, color: 'text-purple-500' },
+    { label: 'قيمة المخزون (بالبيع)', value: formatCurrency(stats.sellingValue), icon: TrendingUp, color: 'text-amber-500' },
+    { label: 'الربح المتوقع', value: formatCurrency(stats.expectedProfit), icon: TrendingDown, color: stats.expectedProfit >= 0 ? 'text-emerald-500' : 'text-red-500' },
+    { label: 'أصناف منخفضة', value: stats.lowStockCount, icon: AlertCircle, color: 'text-orange-500' },
+  ];
+}, [inventoryData?.stats]);
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -340,7 +373,7 @@ const inventoryStats = useMemo(() => [
         }
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
         {inventoryStats.map((stat, i) => (
           <div key={i} className="glass-card p-4 flex items-center gap-4">
             <div className={cn("p-2 rounded-lg bg-white/60", stat.color)}>
@@ -391,13 +424,18 @@ const inventoryStats = useMemo(() => [
       </div>
 
       <EnterpriseTable
-        data={filteredItems || []}
+        data={items || []}
         columns={columns}
         keyExtractor={(item) => item.id!}
         searchable={false}
         pagination
         pageSize={10}
         compact
+        loading={isLoading}
+        serverSide={true}
+        totalItems={inventoryData?.meta?.total ?? 0}
+        page={page}
+        onPageChange={(p) => setPage(p)}
         emptyState={
           <div className='flex flex-col items-center gap-2 py-12 opacity-50'>
             <Package className='w-12 h-12 text-gray-300' />

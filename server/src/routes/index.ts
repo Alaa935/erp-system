@@ -1,4 +1,4 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import authRoutes from './auth.js';
 import inventoryRoutes from './inventory.js';
 import analyticsRoutes from './analytics.js';
@@ -19,8 +19,10 @@ import stockTransfersRoutes from './stockTransfers.routes.js';
 import stockRequestsRoutes from './stockRequests.routes.js';
 import purchaseOrdersRoutes from './purchaseOrders.routes.js';
 import salesRepsRoutes from './salesReps.routes.js';
+import repInventoryRoutes from './repInventory.routes.js';
 import employeesRoutes from './employees.routes.js';
 import branchesRoutes from './branches.routes.js';
+import diagnoseRoutes from './diagnose.routes.js';
 
 const router = Router();
 
@@ -43,8 +45,10 @@ router.use('/stock-transfers', stockTransfersRoutes);
 router.use('/stock-requests', stockRequestsRoutes);
 router.use('/purchase-orders', purchaseOrdersRoutes);
 router.use('/sales-reps', salesRepsRoutes);
+router.use('/rep-inventory', repInventoryRoutes);
 router.use('/employees', employeesRoutes);
 router.use('/branches', branchesRoutes);
 router.use('/payment-collections', paymentCollectionsRoutes);
+router.use('/diagnose', diagnoseRoutes);
 
 export default router;

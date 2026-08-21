@@ -36,7 +36,7 @@ export const CustomerAccounts = ({
   const itemsPerPage = 8;
 
   const filteredCustomers = customers?.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase())
+    (c.name || '').toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
   const paginatedCustomers = filteredCustomers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -56,7 +56,7 @@ export const CustomerAccounts = ({
             </h3>
             <div className="space-y-4 flex-1 overflow-y-auto max-h-[600px] no-scrollbar">
                {customers?.map(customer => {
-                  const receivables = salesOrders?.filter(o => o.customerId === customer.id).reduce((sum, o) => sum + (o.totalAmount - (o.paidAmount || 0)), 0) || 0;
+                  const receivables = salesOrders?.filter(o => o.customerId === customer.id).reduce((sum, o) => sum + ((o.totalAmount || 0) - (o.paidAmount || 0)), 0) || 0;
                   if (receivables <= 0) return null;
                   return (
                     <div 
@@ -81,8 +81,8 @@ export const CustomerAccounts = ({
                     </div>
                   )
                })}
-               {(customers?.filter(c => (salesOrders?.filter(o => o.customerId === c.id).reduce((sum, o) => sum + (o.totalAmount - (o.paidAmount || 0)), 0) || 0) > 0).length === 0) && (
-                 <div className="p-12 text-center text-gray-400 text-sm italic">لا توجد مديونيات مستحقة على العملاء</div>
+               {(customers?.filter(c => (salesOrders?.filter(o => o.customerId === c.id).reduce((sum, o) => sum + ((o.totalAmount || 0) - (o.paidAmount || 0)), 0) || 0) > 0).length === 0) && (
+                  <div className="p-12 text-center text-gray-400 text-sm italic">لا توجد مديونيات مستحقة على العملاء</div>
                )}
             </div>
           </div>
@@ -103,19 +103,19 @@ export const CustomerAccounts = ({
             </div>
             <div className="space-y-1 flex-1">
                {paginatedCustomers.map(c => (
-                 <div 
-                   key={c.id} 
-                   onClick={() => { setSelectedCustomerId(c.id!); setViewMode('statement'); }}
-                   className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl cursor-pointer transition-all group border-b border-gray-50 last:border-0"
-                 >
-                    <div className="flex items-center gap-3">
-                       <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center font-black text-[10px] text-gray-400 group-hover:bg-black group-hover:text-white">
-                         {c.name.charAt(0)}
-                       </div>
-                       <p className="text-xs font-black group-hover:text-blue-600 transition-colors uppercase">{c.name}</p>
-                    </div>
-                    <ChevronLeft className="w-4 h-4 text-gray-300 group-hover:text-black transition-colors" />
-                 </div>
+                  <div 
+                    key={c.id} 
+                    onClick={() => { setSelectedCustomerId(c.id!); setViewMode('statement'); }}
+                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl cursor-pointer transition-all group border-b border-gray-50 last:border-0"
+                  >
+                     <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center font-black text-[10px] text-gray-400 group-hover:bg-black group-hover:text-white">
+                          {(c.name || '?').charAt(0)}
+                        </div>
+                        <p className="text-xs font-black group-hover:text-blue-600 transition-colors uppercase">{c.name}</p>
+                     </div>
+                     <ChevronLeft className="w-4 h-4 text-gray-300 group-hover:text-black transition-colors" />
+                  </div>
                ))}
             </div>
 

@@ -37,7 +37,7 @@ export function useAccountingData() {
   const { data: overviewData } = useAccountingOverview();
   const confirmCollectionMutation = useConfirmCollection();
 
-  const d = overviewData?.data;
+  const d = (overviewData && 'transactions' in overviewData) ? overviewData : (overviewData?.data ?? overviewData);
 
   const transactions = d?.transactions;
   const allItems = d?.items;

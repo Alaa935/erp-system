@@ -39,7 +39,7 @@ export const VendorAccounts = ({
   const pendingInvoices = purchaseOrders?.filter(o => o.paymentStatus !== 'paid' && o.status === 'received') || [];
   
   const filteredSuppliers = suppliers?.filter(s => 
-    s.name.toLowerCase().includes(searchTerm.toLowerCase())
+    (s.name || '').toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
   const paginatedSuppliers = filteredSuppliers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -47,6 +47,17 @@ export const VendorAccounts = ({
 
   const selectedSupplier = suppliers?.find(s => s.id === selectedSupplierId);
   const supplierOrders = purchaseOrders?.filter(o => o.supplierId === selectedSupplierId) || [];
+
+  const getDueDate = (order: PurchaseOrder) => {
+    if (order.dueDate) return order.dueDate;
+    if (order.date) {
+      const d = new Date(order.date);
+      if (!isNaN(d.getTime())) {
+        return new Date(d.getTime() + 15 * 24 * 60 * 60 * 1000);
+      }
+    }
+    return null;
+  };
 
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
@@ -65,8 +76,9 @@ export const VendorAccounts = ({
                     <div>
                       <p className="text-sm font-black text-black">{order.orderNumber}</p>
                       <p className="text-[10px] text-gray-500 font-bold">{supplier?.name}</p>
-                      <p className="text-[9px] text-red-500 mt-1">تاريخ الاستحقاق: {formatDate(order.dueDate || order.date + 1296000000)}</p>
+                      <p className="text-[9px] text-red-500 mt-1">تاريخ الاستحقاق: {formatDate(getDueDate(order))}</p>
                     </div>
+
                     <div className="text-left flex flex-col items-end gap-2">
                       <p className="text-sm font-black text-red-600">{(order.totalAmount - (order.paidAmount || 0)).toLocaleString()} ج.م</p>
                       <div className="flex gap-2">
@@ -117,25 +129,25 @@ export const VendorAccounts = ({
             </div>
             <div className="space-y-2 flex-1">
                {paginatedSuppliers.map(supplier => {
-                 const balance = purchaseOrders?.filter(o => o.supplierId === supplier.id).reduce((sum, o) => sum + (o.totalAmount - (o.paidAmount || 0)), 0) || 0;
-                 return (
-                   <div 
-                     key={supplier.id} 
-                     onClick={() => { setSelectedSupplierId(supplier.id!); setViewMode('statement'); }}
-                     className="flex justify-between items-center p-3 hover:bg-gray-50 rounded-xl group cursor-pointer transition-all border-b border-gray-50 last:border-0"
-                   >
-                      <div>
-                        <p className="text-sm font-black group-hover:text-blue-600 transition-colors">{supplier.name}</p>
-                        <p className="text-[10px] text-gray-400">{supplier.phone}</p>
-                      </div>
-                      <div className="text-left flex items-center gap-4">
-                         <div className={cn("text-sm font-black", balance > 0 ? "text-red-600" : "text-green-600")}>
-                            {balance.toLocaleString()} ج.م
-                         </div>
-                         <ChevronLeft className="w-4 h-4 text-gray-300 group-hover:text-black transition-colors" />
-                      </div>
-                   </div>
-                 )
+                  const balance = purchaseOrders?.filter(o => o.supplierId === supplier.id).reduce((sum, o) => sum + (o.totalAmount - (o.paidAmount || 0)), 0) || 0;
+                  return (
+                    <div 
+                      key={supplier.id} 
+                      onClick={() => { setSelectedSupplierId(supplier.id!); setViewMode('statement'); }}
+                      className="flex justify-between items-center p-3 hover:bg-gray-50 rounded-xl group cursor-pointer transition-all border-b border-gray-50 last:border-0"
+                    >
+                       <div>
+                         <p className="text-sm font-black group-hover:text-blue-600 transition-colors">{supplier.name}</p>
+                         <p className="text-[10px] text-gray-400">{supplier.phone}</p>
+                       </div>
+                       <div className="text-left flex items-center gap-4">
+                          <div className={cn("text-sm font-black", balance > 0 ? "text-red-600" : "text-green-600")}>
+                             {balance.toLocaleString()} ج.م
+                          </div>
+                          <ChevronLeft className="w-4 h-4 text-gray-300 group-hover:text-black transition-colors" />
+                       </div>
+                    </div>
+                  )
                })}
             </div>
             

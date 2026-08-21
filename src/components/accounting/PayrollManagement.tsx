@@ -43,7 +43,11 @@ export const PayrollManagement = ({
             <tbody className="divide-y">
                {payrolls?.map(pr => {
                   const employee = employees?.find(e => e.id === pr.employeeId);
-                  const net = pr.baseSalary + pr.bonuses - pr.advances - pr.deductions;
+                  const baseSalary = pr.baseSalary || 0;
+                  const advances = pr.advances || 0;
+                  const bonuses = pr.bonuses || 0;
+                  const deductions = pr.deductions || 0;
+                  const net = baseSalary + bonuses - advances - deductions;
                   return (
                     <tr 
                       key={pr.id} 
@@ -64,15 +68,16 @@ export const PayrollManagement = ({
                             </div>
                           </div>
                        </td>
-                       <td className="p-4 text-sm font-bold">{pr.baseSalary.toLocaleString()} ج.م</td>
-                       <td className="p-4 text-xs font-bold text-red-600">-{pr.advances.toLocaleString()}</td>
-                       <td className="p-4 text-xs font-bold text-green-600">+{pr.bonuses.toLocaleString()}</td>
+                       <td className="p-4 text-sm font-bold">{baseSalary.toLocaleString()} ج.م</td>
+                       <td className="p-4 text-xs font-bold text-red-600">-{advances.toLocaleString()}</td>
+                       <td className="p-4 text-xs font-bold text-green-600">+{bonuses.toLocaleString()}</td>
                        <td className="p-4 text-sm font-black text-black">
                           {net.toLocaleString()} ج.م
                           {pr.status === 'paid' && (
                             <span className="mr-2 text-[9px] px-1.5 py-0.5 bg-green-100 text-green-600 rounded-full">تم الصرف</span>
                           )}
                        </td>
+
                        <td className="p-4" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center gap-1 text-left">
                              <button 
@@ -103,7 +108,7 @@ export const PayrollManagement = ({
                   )
                })}
                {(!payrolls || payrolls.length === 0) && (
-                 <tr><td colSpan={6} className="py-12 text-center text-gray-400 italic text-sm">لا توجد سجلات رواتب مسجلة لهذا الشهر</td></tr>
+                  <tr><td colSpan={6} className="py-12 text-center text-gray-400 italic text-sm">لا توجد سجلات رواتب مسجلة لهذا الشهر</td></tr>
                )}
             </tbody>
          </table>

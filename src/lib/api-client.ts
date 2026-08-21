@@ -32,7 +32,7 @@ function decodeToken(token: string): { exp?: number } | null {
   }
 }
 
-function isTokenExpired(token: string, bufferMs = 5 * 60 * 1000): boolean {
+function isTokenExpired(token: string, bufferMs = 30 * 1000): boolean {
   const decoded = decodeToken(token);
   if (!decoded?.exp) return true;
   return Date.now() >= (decoded.exp * 1000 - bufferMs);
@@ -98,22 +98,19 @@ export async function api<T = unknown>(
     headers.set('Content-Type', 'application/json');
   }
 
-  const accessToken = getAccessToken();
+  let accessToken = getAccessToken();
   wasTokenSent = false;
 
-  if (accessToken) {
-    if (isTokenExpired(accessToken)) {
-      await refreshAccessToken();
-      const refreshedToken = getAccessToken();
-      if (refreshedToken) {
-        headers.set('Authorization', `Bearer ${refreshedToken}`);
-        wasTokenSent = true;
-      }
-    } else {
-      headers.set('Authorization', `Bearer ${accessToken}`);
-      wasTokenSent = true;
-    }
+  if (accessToken && isTokenExpired(accessToken)) {
+    await refreshAccessToken();
+    accessToken = getAccessToken();
   }
+
+  if (accessToken) {
+    headers.set('Authorization', `Bearer ${accessToken}`);
+    wasTokenSent = true;
+  }
+
 
   console.log('[api-client] REQUEST URL:', url.toString());
   console.log('[api-client] REQUEST METHOD:', fetchOptions.method || 'GET');

@@ -27,6 +27,7 @@ export const dashboardService = {
       totalItems,
       totalValue,
       lowStockItems,
+      allMinStockItems,
       customerCount,
       supplierCount,
       pendingSalesOrders,
@@ -63,12 +64,16 @@ export const dashboardService = {
       prisma.item.count({ where: { deletedAt: null } }),
       prisma.item.findMany({
         where: { deletedAt: null },
-        select: { quantity: true, purchasePrice: true },
+        select: { quantity: true, purchasePrice: true, sellingPrice: true },
       }),
       prisma.item.findMany({
         where: { deletedAt: null, quantity: { lte: prisma.item.fields.minQuantity } },
         select: { id: true, name: true, sku: true, quantity: true, minQuantity: true },
         orderBy: { quantity: ASC },
+      }),
+      prisma.item.findMany({
+        where: { deletedAt: null },
+        select: { quantity: true, minQuantity: true },
       }),
       prisma.customer.count({ where: { deletedAt: null } }),
       prisma.supplier.count({ where: { deletedAt: null } }),
@@ -132,8 +137,11 @@ export const dashboardService = {
     const totalPurchases = toNumber(totalPurchaseAgg._sum.totalAmount);
     const totalTaxAmount = toNumber(totalTaxAgg._sum.taxAmount);
 
-    const inventoryValue = (totalValue as Array<{ quantity: Decimal; purchasePrice: Decimal }>).reduce(
+    const inventoryCostValue = (totalValue as Array<{ quantity: Decimal; purchasePrice: Decimal; sellingPrice: Decimal }>).reduce(
       (sum, i) => sum + Number(i.quantity) * Number(i.purchasePrice), 0
+    );
+    const inventorySellingValue = (totalValue as Array<{ quantity: Decimal; purchasePrice: Decimal; sellingPrice: Decimal }>).reduce(
+      (sum, i) => sum + Number(i.quantity) * Number(i.sellingPrice), 0
     );
 
     const todaySales = todayCompletedOrders.reduce((s, o) => s + Number(o.totalAmount), 0);
@@ -141,7 +149,8 @@ export const dashboardService = {
 
     const curMonthSalesAmt = toNumber(currentMonthSales._sum.totalAmount);
     const prevMonthSalesAmt = toNumber(prevMonthSales._sum.totalAmount);
-    const salesChange = prevMonthSalesAmt > 0 ? ((curMonthSalesAmt - prevMonthSalesAmt) / prevMonthSalesAmt) * 100 : 0;
+    const hasPrevMonthSales = prevMonthSalesAmt > 0;
+    const salesChange = hasPrevMonthSales ? ((curMonthSalesAmt - prevMonthSalesAmt) / prevMonthSalesAmt) * 100 : 0;
 
     const curMonthCogsAmt = currentMonthCogs.reduce((s, i) => s + Number(i.quantity) * Number(i.purchasePrice ?? 0), 0);
     const prevMonthCogsAmt = prevMonthCogs.reduce((s, i) => s + Number(i.quantity) * Number(i.purchasePrice ?? 0), 0);
@@ -149,7 +158,8 @@ export const dashboardService = {
     const prevMonthExpAmt = toNumber(prevMonthExpenses._sum.amount);
     const curMonthProfit = curMonthSalesAmt - curMonthCogsAmt - curMonthExpAmt;
     const prevMonthProfit = prevMonthSalesAmt - prevMonthCogsAmt - prevMonthExpAmt;
-    const profitChange = prevMonthProfit > 0 ? ((curMonthProfit - prevMonthProfit) / prevMonthProfit) * 100 : 0;
+    const hasPrevMonthProfit = prevMonthProfit !== 0;
+    const profitChange = hasPrevMonthProfit ? ((curMonthProfit - prevMonthProfit) / Math.abs(prevMonthProfit)) * 100 : 0;
 
     const profitMargin = totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : '0';
     const pendingOrders = pendingSalesOrders;
@@ -165,11 +175,37 @@ export const dashboardService = {
       return completedOrders.filter(o => new Date(o.date).toDateString() === ds).reduce((s, o) => s + Number(o.totalAmount), 0);
     });
 
+    const profitTrend = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(nowDate); d.setDate(d.getDate() - (6 - i));
+      const ds = d.toDateString();
+      const dailySales = completedOrders.filter(o => new Date(o.date).toDateString() === ds).reduce((s, o) => s + Number(o.totalAmount), 0);
+      return Math.round(dailySales * (totalSales > 0 ? netProfit / totalSales : 0.2));
+    });
+
     const customerTrend = Array.from({ length: 7 }, (_, i) => {
       const d = new Date(nowDate); d.setDate(d.getDate() - (6 - i));
       const ds = d.toDateString();
       return allSalesOrders.filter(o => new Date(o.date).toDateString() === ds).length;
     });
+
+    let availableCount = 0;
+    let lowStockCount = 0;
+    let criticalCount = 0;
+    let outOfStockCount = 0;
+
+    for (const item of allMinStockItems) {
+      const q = Number(item.quantity);
+      const min = Number(item.minQuantity);
+      if (q === 0) {
+        outOfStockCount++;
+      } else if (q <= min * 0.5) {
+        criticalCount++;
+      } else if (q <= min) {
+        lowStockCount++;
+      } else {
+        availableCount++;
+      }
+    }
 
     return {
       totalSales,
@@ -177,8 +213,16 @@ export const dashboardService = {
       totalCogs,
       totalExpenses,
       totalItems,
-      inventoryValue,
+      inventoryValue: inventoryCostValue,
+      inventoryCostValue,
+      inventorySellingValue,
       lowStockCount: lowStockItems.length,
+      stockBreakdown: {
+        available: availableCount,
+        lowStock: lowStockCount,
+        critical: criticalCount,
+        outOfStock: outOfStockCount,
+      },
       totalCustomers: customerCount,
       totalSuppliers: supplierCount,
       totalOrders,
@@ -189,12 +233,15 @@ export const dashboardService = {
       todaySales,
       todayInvoices,
       profitMargin,
+      hasPrevMonthSales,
+      hasPrevMonthProfit,
       salesChange: Math.round(salesChange * 10) / 10,
       profitChange: Math.round(profitChange * 10) / 10,
       totalPurchases,
       totalTaxAmount,
-      avgStockValue: totalItems > 0 ? inventoryValue / totalItems : 0,
+      avgStockValue: totalItems > 0 ? inventoryCostValue / totalItems : 0,
       salesTrend,
+      profitTrend,
       customerTrend,
       lowStockItems: lowStockItems.map(i => ({
         id: i.id,
@@ -209,7 +256,6 @@ export const dashboardService = {
 
   async getCharts(repId?: number) {
     const now = new Date();
-    const currentYear = now.getFullYear();
     const repFilter = repId ? { repId } : {};
 
     const [orders, purchaseOrders, items] = await Promise.all([
@@ -240,7 +286,8 @@ export const dashboardService = {
 
     const categoryMap: Record<string, number> = {};
     for (const item of items) {
-      categoryMap[item.category] = (categoryMap[item.category] ?? 0) + Number(item.quantity);
+      const cat = item.category || 'أخرى';
+      categoryMap[cat] = (categoryMap[cat] ?? 0) + Number(item.quantity);
     }
     const categoryData = Object.entries(categoryMap).map(([name, value]) => ({ name, value }));
 

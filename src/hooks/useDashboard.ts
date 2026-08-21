@@ -8,7 +8,15 @@ export interface DashboardSummary {
   totalExpenses: number;
   totalItems: number;
   inventoryValue: number;
+  inventoryCostValue: number;
+  inventorySellingValue: number;
   lowStockCount: number;
+  stockBreakdown: {
+    available: number;
+    lowStock: number;
+    critical: number;
+    outOfStock: number;
+  };
   totalCustomers: number;
   totalSuppliers: number;
   totalOrders: number;
@@ -19,12 +27,15 @@ export interface DashboardSummary {
   todaySales: number;
   todayInvoices: number;
   profitMargin: string;
+  hasPrevMonthSales: boolean;
+  hasPrevMonthProfit: boolean;
   salesChange: number;
   profitChange: number;
   totalPurchases: number;
   totalTaxAmount: number;
   avgStockValue: number;
   salesTrend: number[];
+  profitTrend: number[];
   customerTrend: number[];
   lowStockItems: { id: number; name: string; sku: string; quantity: number; minQuantity: number; deficit: number }[];
 }
@@ -47,7 +58,7 @@ export function useDashboardSummary(repId?: number) {
   return useQuery({
     queryKey: ['dashboard', 'summary', repId],
     queryFn: () => api<{ success: boolean; data: DashboardSummary }>(`/dashboard/summary${params}`),
-    staleTime: 60_000,
+    staleTime: 30_000,
   });
 }
 
@@ -56,7 +67,7 @@ export function useDashboardCharts(repId?: number) {
   return useQuery({
     queryKey: ['dashboard', 'charts', repId],
     queryFn: () => api<{ success: boolean; data: DashboardCharts }>(`/dashboard/charts${params}`),
-    staleTime: 60_000,
+    staleTime: 30_000,
   });
 }
 
@@ -73,7 +84,7 @@ export function useTopProducts(repId?: number) {
   return useQuery({
     queryKey: ['dashboard', 'top-products', repId],
     queryFn: () => api<{ success: boolean; data: { items: { name: string; qty: number; revenue: number }[] } }>(`/dashboard/top-products${params}`),
-    staleTime: 60_000,
+    staleTime: 30_000,
   });
 }
 
@@ -82,7 +93,7 @@ export function useTopCustomers(repId?: number) {
   return useQuery({
     queryKey: ['dashboard', 'top-customers', repId],
     queryFn: () => api<{ success: boolean; data: { items: { name: string; total: number; orders: number }[] } }>(`/dashboard/top-customers${params}`),
-    staleTime: 60_000,
+    staleTime: 30_000,
   });
 }
 

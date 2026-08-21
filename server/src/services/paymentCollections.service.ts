@@ -40,7 +40,6 @@ export const paymentCollectionsService = {
   async create(data: { repId: number; amount: number; method: string; status?: string; type?: string; date?: number }) {
     const collection = await prisma.paymentCollection.create({
       data: {
-        collectionNumber: `COL-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         repId: data.repId,
         amount: new Decimal(data.amount),
         method: data.method as any,

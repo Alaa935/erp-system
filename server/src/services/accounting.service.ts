@@ -1,9 +1,16 @@
 import { prisma } from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
 import Decimal from 'decimal.js';
+import crypto from 'crypto';
 
 function toNumber(d: Decimal | null | undefined): number {
   return d ? Number(d) : 0;
+}
+
+export function generateTransactionNumber(prefix = 'TXN'): string {
+  const timestamp = Date.now();
+  const random = crypto.randomBytes(3).toString('hex').toUpperCase();
+  return `${prefix}-${timestamp}-${random}`;
 }
 
 export const accountingService = {
@@ -94,6 +101,7 @@ export const accountingService = {
         amount: new Decimal(amount),
         category: 'capital_injection',
         description: 'تعديل رأس المال',
+        transactionNumber: generateTransactionNumber('CAP'),
         date: new Date(),
       },
     });
@@ -103,24 +111,34 @@ export const accountingService = {
   },
 
   async createTransaction(data: { type: 'income' | 'expense'; amount: number; category: string; description?: string; referenceId?: number; date?: string }) {
-    try {
-      const transaction = await prisma.financialTransaction.create({
-        data: {
-          type: data.type,
-          amount: new Decimal(data.amount),
-          category: data.category as any,
-          description: data.description || '',
-          referenceId: data.referenceId ?? null,
-          date: data.date ? new Date(data.date) : new Date(),
-        },
-      });
-      return { ...transaction, amount: toNumber(transaction.amount) };
-    } catch (err: any) {
-      if (err?.code === 'P2002') {
-        throw new AppError(409, 'رقم المعاملة مكرر، يرجى المحاولة مرة أخرى');
+    const prefix = data.type === 'income' ? 'INC' : 'EXP';
+    let attempts = 0;
+    while (attempts < 3) {
+      try {
+        const transaction = await prisma.financialTransaction.create({
+          data: {
+            type: data.type,
+            amount: new Decimal(data.amount),
+            category: data.category as any,
+            description: data.description || '',
+            referenceId: data.referenceId ?? null,
+            transactionNumber: generateTransactionNumber(prefix),
+            date: data.date ? new Date(data.date) : new Date(),
+          },
+        });
+        return { ...transaction, amount: toNumber(transaction.amount) };
+      } catch (err: any) {
+        attempts++;
+        if (err?.code === 'P2002' && attempts < 3) {
+          continue;
+        }
+        if (err?.code === 'P2002') {
+          throw new AppError(409, 'رقم المعاملة مكرر، يرجى المحاولة مرة أخرى');
+        }
+        throw err;
       }
-      throw err;
     }
+    throw new AppError(500, 'فشل في إنشاء رقم المعاملة');
   },
 
   async createPayroll(data: { employeeId: number; baseSalary: number; advances?: number; bonuses?: number; deductions?: number; month: number }) {
@@ -162,6 +180,7 @@ export const accountingService = {
           category: 'other',
           description: `تحصيل من ${username}`,
           referenceId: collection.orderId ?? collection.customerId,
+          transactionNumber: generateTransactionNumber('COL'),
           date: new Date(),
         },
       }),
@@ -200,6 +219,7 @@ export const accountingService = {
         category: 'vehicle',
         description: data.description,
         referenceId: data.vehicleId,
+        transactionNumber: generateTransactionNumber('VEH'),
         date: data.date ? new Date(data.date) : new Date(),
       },
     });
